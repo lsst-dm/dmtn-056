@@ -106,7 +106,7 @@ An entity that one can point a butler to that has the following three properties
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
 - Has a label that humans can parse (i.e. :ref:`RepositoryRef`)
-- Provides enough info to a make globally (accross repositories) unique filename (or key for an object store) given a :ref:`DatasetRef`.
+- Provides enough info to a make globally (across repositories) unique filename (or key for an object store) given a :ref:`DatasetRef`.
 
 
 .. _RepositoryRef:
