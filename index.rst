@@ -70,7 +70,7 @@ Components
 Dataset
 -------
 
-Represents a single entity of data, with associated metadata (e.g. a particular ``calexp`` for a particular instrument recorded at a particular time).
+Represents a single entity of data, with associated metadata (e.g. a particular ``calexp`` for a particular instrument corresponding to a particular visit and sensor).
 
 
 .. _DatasetType:
@@ -89,7 +89,6 @@ ConcreteDataset
 The in-memory manifestation of a :ref:`Dataset` (e.g. an ``afw::image::Exposure`` with the contents of a particular ``calexp``).
 
 
-
 .. _DatasetMetatype:
 
 DatasetMetatype
@@ -98,12 +97,34 @@ DatasetMetatype
 A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`ConcreteDatasets <ConcreteDataset>` and can be saved to the same file format(s).
 
 
+.. _DataUnit:
+
+DataUnit
+--------
+
+Represents a discrete unit of data (e.g. a particular visit, tract, or filter).
+
+In the :ref:`Common Schema <CommonSchema>`, a :ref:`DataUnit` is a row in the table for its :ref:`DataUnitType`.  :ref:`DataUnits <DataUnit>` must be shared across different repositories (which may be backed by different database systems), so their primary keys in the :ref:`Common Schema` must not be database-specific quantities such as autoincrement fields.
+
+
+.. _DataUnitType:
+
+DataUnitType
+------------
+
+The conceptual type of a :ref:`DataUnit` (such as visit, tract, or filter).
+
+In the :ref:`Common Schema <CommonSchema>`, each :ref:`DataUnitType` is a table that the holds :ref:`DataUnits <DataUnit>` of that type as its rows.
+
+
 .. _DatasetRef:
 
 DatasetRef
 ----------
 
-Unique identifier of a :ref:`Dataset` within a :ref:`Repository`.
+A unique identifier for a :ref:`Dataset` across :ref:`Repositories <Repository>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
+
+In the :ref:`Common Schema <CommonSchema>`, a :ref:`DatasetRef` is a row in the table for its :ref:`DatasetType`, with a foreign key field pointing to a :ref:`DataUnit` row for each element in tuple of :ref:`DataUnits <DataUnit>`.
 
 
 .. _Repository:
@@ -124,14 +145,6 @@ RepositoryRef
 -------------
 
 Globally unique, human parseable, identifier of a :ref:`Repository` (e.g. the path to it or a URI).
-
-
-.. _DataUnit:
-
-DataUnit
---------
-
-Unique (primary) key within a repository, the set of which (one for every table) forms a full unique :ref:`DatasetRef`.
 
 
 .. _StorageButler:
@@ -156,7 +169,7 @@ Backend storage is not defined by this interface. Different :ref:`StorageButler`
 DatasetExpression
 -----------------
 
-Is an expression (SQL query against a fixed schema) that can be evaluated by an :ref:`AssociationButler` to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
+Is an expression (SQL query against a :ref:`Common Schema <CommonSchema>`) that can be evaluated by an :ref:`AssociationButler` to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
 
 An open question is if it is sufficient to only allow users to vary the ``WHERE`` clause of the SQL query, or if custom joins are also required.
 
@@ -178,7 +191,7 @@ Has one method:
 
 - ``evaluateExpression(List<DatasetTypes> types, DatasetExpression expression) -> DataGraph``
 
-Presents the user with a fixed schema (set of tables) that the :ref:`DatasetExpression` can be evaluated against to yied a graph of unique :ref:`DatasetRefs <DatasetRef>` with their relations (this is typically a subset of the full repository graph).
+Presents the user with the :ref:`Common Schema` (a set of tables) that the :ref:`DatasetExpression` can be evaluated against to yied a graph of unique :ref:`DatasetRefs <DatasetRef>` with their relations (this is typically a subset of the full repository graph).
 
 In different implementations these tables may exist directly, as a pass-through to a ``SQLite``/``PostgreSQL``/``MySQL`` database that actually has them, or it may have to do some kind of mapping.
 
@@ -191,6 +204,12 @@ ConvenienceButler
 -----------------
 
 Wraps an :ref:`AssociationButler` with some tooling to build up a :ref:`DatasetExpression`. This may be a simple mini-language parser (e.g. for globs) or even some interactive tool.
+
+
+.. _CommonSchema:
+
+Common Schema
+=============
 
 
 .. .. rubric:: References
