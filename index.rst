@@ -117,10 +117,10 @@ RepositoryRef
 Globally unique, human parseable, identifier of a :ref:`Repository` (e.g. the path to it or a URI).
 
 
-.. _Unit:
+.. _DataUnit:
 
-Unit
-----
+DataUnit
+--------
 
 Unique (primary) key within a repository, the set of which (one for every table) forms a full unique :ref:`DataRef`.
 
@@ -157,7 +157,7 @@ An open question is if it is sufficient to only allow users to vary the ``WHERE`
 RepositoryGraph
 ---------------
 
-A graph in which the nodes are :ref:`DataRefs <DataRef>` and :ref:`Units <Unit>`, and the edges are the relations between them.
+A graph in which the nodes are :ref:`DataRefs <DataRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
 
 
 .. _AssociationButler:
