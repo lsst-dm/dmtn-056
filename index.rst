@@ -89,10 +89,10 @@ ConcreteDataset
 The in-memory manifestation of a :ref:`Dataset` (e.g. an ``afw::image::Exposure`` with the contents of a particular ``calexp``).
 
 
-.. _DataRef:
+.. _DatasetRef:
 
-DataRef
--------
+DatasetRef
+----------
 
 Unique identifier of a :ref:`Dataset` within a :ref:`Repository`.
 
@@ -104,9 +104,9 @@ Repository
 
 An entity that one can point a butler to that has the following three properties:
 
-- Has at most one :ref:`Dataset` per :ref:`DataRef`.
+- Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
 - Has a label that humans can parse (i.e. :ref:`RepositoryRef`)
-- Provides enough info to a make globally (accross repositories) unique filename (or key for an object store) given a :ref:`DataRef`.
+- Provides enough info to a make globally (accross repositories) unique filename (or key for an object store) given a :ref:`DatasetRef`.
 
 
 .. _RepositoryRef:
@@ -122,7 +122,7 @@ Globally unique, human parseable, identifier of a :ref:`Repository` (e.g. the pa
 DataUnit
 --------
 
-Unique (primary) key within a repository, the set of which (one for every table) forms a full unique :ref:`DataRef`.
+Unique (primary) key within a repository, the set of which (one for every table) forms a full unique :ref:`DatasetRef`.
 
 
 .. _StorageButler:
@@ -132,8 +132,8 @@ StorageButler
 
 Abstract interface that has two methods:
 
-- ``get(DataRef dr) -> ConcreteDataset``
-- ``put(DataRef dr, ConcreteDataset obj) -> None``
+- ``get(DatasetRef dr) -> ConcreteDataset``
+- ``put(DatasetRef dr, ConcreteDataset obj) -> None``
 
 where :ref:`ConcreteDataset` is any kind of in-memory object supported by the butler.
 
@@ -142,12 +142,12 @@ The input and output :ref:`ConcreteDataset` are always bitwise identical. Transf
 Backend storage is not defined by this interface. Different :ref:`StorageButler` implementations may write to single/multiple (FITS/HDF5) files, (no)sql-databases, object stores, etc. They may even delegate part of the work to other concrete :ref:`StorageButlers <StorageButler>`.
 
 
-.. _DataRefExpression:
+.. _DatasetRefExpression:
 
-DataRefExpression
------------------
+DatasetRefExpression
+--------------------
 
-Is an expression (SQL query against a fixed schema) that can be evaluated by an :ref:`AssociationButler` to yield one or more unique :ref:`DataRefs <DataRef>` and their relations (in a :ref:`RepositoryGraph`).
+Is an expression (SQL query against a fixed schema) that can be evaluated by an :ref:`AssociationButler` to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`RepositoryGraph`).
 
 An open question is if it is sufficient to only allow users to vary the ``WHERE`` clause of the SQL query, or if custom joins are also required.
 
@@ -157,7 +157,7 @@ An open question is if it is sufficient to only allow users to vary the ``WHERE`
 RepositoryGraph
 ---------------
 
-A graph in which the nodes are :ref:`DataRefs <DataRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
+A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
 
 
 .. _AssociationButler:
@@ -167,9 +167,9 @@ AssociationButler
 
 Has one method:
 
-- ``evaluateExpression(List<DatasetTypes> types, DataRefExpression expression) -> RepositoryGraph``
+- ``evaluateExpression(List<DatasetTypes> types, DatasetRefExpression expression) -> RepositoryGraph``
 
-Presents the user with a fixed schema (set of tables) that the :ref:`DataRefExpression` can be evaluated against to yied a graph of unique :ref:`DataRefs <DataRef>` with their relations (this is typically a subset of the full repository graph).
+Presents the user with a fixed schema (set of tables) that the :ref:`DatasetRefExpression` can be evaluated against to yied a graph of unique :ref:`DatasetRefs <DatasetRef>` with their relations (this is typically a subset of the full repository graph).
 
 In different implementations these tables may exist directly, as a pass-through to a ``SQLite``/``PostgreSQL``/``MySQL`` database that actually has them, or it may have to do some kind of mapping.
 
@@ -181,7 +181,7 @@ The point is that users/developers can write their SQL queries against this fixe
 ConvenienceButler
 -----------------
 
-Wraps an :ref:`AssociationButler` with some tooling to build up a :ref:`DataRefExpression`. This may be a simple mini-language parser (e.g. for globs) or even some interactive tool.
+Wraps an :ref:`AssociationButler` with some tooling to build up a :ref:`DatasetRefExpression`. This may be a simple mini-language parser (e.g. for globs) or even some interactive tool.
 
 
 .. .. rubric:: References
