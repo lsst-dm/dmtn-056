@@ -167,7 +167,7 @@ AssociationButler
 
 Has one method:
 
-- ``evaluateExpression(DataRefExpression expression) -> RepositoryGraph``
+- ``evaluateExpression(List<DatasetTypes> types, DataRefExpression expression) -> RepositoryGraph``
 
 Presents the user with a fixed schema (set of tables) that the :ref:`DataRefExpression` can be evaluated against to yied a graph of unique :ref:`DataRefs <DataRef>` with their relations (this is typically a subset of the full repository graph).
 
