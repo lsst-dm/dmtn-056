@@ -142,10 +142,10 @@ The input and output :ref:`ConcreteDataset` are always bitwise identical. Transf
 Backend storage is not defined by this interface. Different :ref:`StorageButler` implementations may write to single/multiple (FITS/HDF5) files, (no)sql-databases, object stores, etc. They may even delegate part of the work to other concrete :ref:`StorageButlers <StorageButler>`.
 
 
-.. _DatasetRefExpression:
+.. _DatasetExpression:
 
-DatasetRefExpression
---------------------
+DatasetExpression
+-----------------
 
 Is an expression (SQL query against a fixed schema) that can be evaluated by an :ref:`AssociationButler` to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
 
@@ -167,9 +167,9 @@ AssociationButler
 
 Has one method:
 
-- ``evaluateExpression(List<DatasetTypes> types, DatasetRefExpression expression) -> DataGraph``
+- ``evaluateExpression(List<DatasetTypes> types, DatasetExpression expression) -> DataGraph``
 
-Presents the user with a fixed schema (set of tables) that the :ref:`DatasetRefExpression` can be evaluated against to yied a graph of unique :ref:`DatasetRefs <DatasetRef>` with their relations (this is typically a subset of the full repository graph).
+Presents the user with a fixed schema (set of tables) that the :ref:`DatasetExpression` can be evaluated against to yied a graph of unique :ref:`DatasetRefs <DatasetRef>` with their relations (this is typically a subset of the full repository graph).
 
 In different implementations these tables may exist directly, as a pass-through to a ``SQLite``/``PostgreSQL``/``MySQL`` database that actually has them, or it may have to do some kind of mapping.
 
@@ -181,7 +181,7 @@ The point is that users/developers can write their SQL queries against this fixe
 ConvenienceButler
 -----------------
 
-Wraps an :ref:`AssociationButler` with some tooling to build up a :ref:`DatasetRefExpression`. This may be a simple mini-language parser (e.g. for globs) or even some interactive tool.
+Wraps an :ref:`AssociationButler` with some tooling to build up a :ref:`DatasetExpression`. This may be a simple mini-language parser (e.g. for globs) or even some interactive tool.
 
 
 .. .. rubric:: References
