@@ -147,15 +147,15 @@ Backend storage is not defined by this interface. Different :ref:`StorageButler`
 DatasetRefExpression
 --------------------
 
-Is an expression (SQL query against a fixed schema) that can be evaluated by an :ref:`AssociationButler` to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`RepositoryGraph`).
+Is an expression (SQL query against a fixed schema) that can be evaluated by an :ref:`AssociationButler` to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
 
 An open question is if it is sufficient to only allow users to vary the ``WHERE`` clause of the SQL query, or if custom joins are also required.
 
 
-.. _RepositoryGraph:
+.. _DataGraph:
 
-RepositoryGraph
----------------
+DataGraph
+---------
 
 A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
 
@@ -167,7 +167,7 @@ AssociationButler
 
 Has one method:
 
-- ``evaluateExpression(List<DatasetTypes> types, DatasetRefExpression expression) -> RepositoryGraph``
+- ``evaluateExpression(List<DatasetTypes> types, DatasetRefExpression expression) -> DataGraph``
 
 Presents the user with a fixed schema (set of tables) that the :ref:`DatasetRefExpression` can be evaluated against to yied a graph of unique :ref:`DatasetRefs <DatasetRef>` with their relations (this is typically a subset of the full repository graph).
 
