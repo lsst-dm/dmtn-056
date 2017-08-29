@@ -89,6 +89,15 @@ ConcreteDataset
 The in-memory manifestation of a :ref:`Dataset` (e.g. an ``afw::image::Exposure`` with the contents of a particular ``calexp``).
 
 
+
+.. _DatasetMetatype:
+
+DatasetMetatype
+---------------
+
+A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`ConcreteDatasets <ConcreteDataset>` and can be saved to the same file format(s).
+
+
 .. _DatasetRef:
 
 DatasetRef
