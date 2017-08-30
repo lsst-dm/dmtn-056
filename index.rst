@@ -80,6 +80,8 @@ DatasetType
 
 The conceptual type of which :ref:`Datasets <Dataset>` are instances (e.g. ``calexp``).
 
+[KSK] I worry about this.  It still is conflated in my mind with ``datatype``, which is a different thing.  In fact there can be many different ``DatasetType``\ s that have the exact same datatype.  I'm not sure what information this particular thing gives you other than a handle to reference the ``Dataset`` with.
+
 
 .. _ConcreteDataset:
 
@@ -95,6 +97,8 @@ DatasetMetatype
 ---------------
 
 A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`ConcreteDatasets <ConcreteDataset>` and can be saved to the same file format(s).
+
+[KSK] as above, calling it a ``Metatype`` seems to hide the fact that they are concrete implementations.  Mappings of ``DatasetHandle``\ s to ``DatasetType``\ s that, when constructed, result in ``ConcreteDataset``\ s, is a more intutive treatment to me.
 
 
 .. _DataUnit:
@@ -116,6 +120,9 @@ The conceptual type of a :ref:`DataUnit` (such as visit, tract, or filter).
 
 In the :ref:`Common Schema <CommonSchema>`, each :ref:`DataUnitType` is a table that the holds :ref:`DataUnits <DataUnit>` of that type as its rows.
 
+[KSK] Maybe having the "Common Schema" section fleshed out a little will help with this, but I'm not clear from the discussion what each of these is.  Here's my understanding as a concrete example.  
+
+``DataUnit`` -- 'r' (filter), ``DataUnitType`` -- filter.  Again the word type is causing me confusion the type of the ``DataUnit`` is ``String``, but I get the impression that is supposed to be introspected from the "Common Schema".
 
 .. _DatasetRef:
 
@@ -146,6 +153,8 @@ RepositoryRef
 
 Globally unique, human parseable, identifier of a :ref:`Repository` (e.g. the path to it or a URI).
 
+[KSK] Do we want to to explicitly call out the term path?  A path could be URI given a filesystem.
+
 
 .. _DatasetExpression:
 
@@ -163,6 +172,8 @@ DataGraph
 ---------
 
 A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
+
+[KSK] Don't ``DatasetRef``\ s already contain a tuple of ``DataUnit``\ s?  Maybe an example, very simple ``DataGraph`` would help clarify.
 
 
 .. _Butlers:
@@ -222,6 +233,7 @@ In different implementations these tables may exist directly, as a pass-through 
 
 The point is that users/developers can write their SQL queries against this fixed schema.
 
+[KSK]  I know I'm exposing a bias here, but a ``Butler`` without ``get`` and ``put`` methods doesn't seem like a butler (it doesn't abstract I/O).  I can imagine this being a mixin for use with a ``PrimitiveButler`` or ``StorageButler``, but it seems confusing to call it a butler.
 
 .. _ConvenienceButler:
 
@@ -229,6 +241,8 @@ ConvenienceButler
 -----------------
 
 Wraps an :ref:`AssociationButler` with some tooling to build up a :ref:`DatasetExpression`. This may be a simple mini-language parser (e.g. for globs) or even some interactive tool.
+
+[KSK] same argument as above.  Butler seems the wrong word for these add-on classes.
 
 
 .. _CommonSchema:
