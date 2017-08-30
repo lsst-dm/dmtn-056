@@ -147,23 +147,6 @@ RepositoryRef
 Globally unique, human parseable, identifier of a :ref:`Repository` (e.g. the path to it or a URI).
 
 
-.. _StorageButler:
-
-StorageButler
--------------
-
-Abstract interface that has two methods:
-
-- ``get(DatasetRef dr) -> ConcreteDataset``
-- ``put(DatasetRef dr, ConcreteDataset obj) -> None``
-
-where :ref:`ConcreteDataset` is any kind of in-memory object supported by the butler.
-
-The input and output :ref:`ConcreteDataset` are always bitwise identical. Transformations are to be handled by higher level wrappers (that may expose the same interface).
-
-Backend storage is not defined by this interface. Different :ref:`StorageButler` implementations may write to single/multiple (FITS/HDF5) files, (no)sql-databases, object stores, etc. They may even delegate part of the work to other concrete :ref:`StorageButlers <StorageButler>`.
-
-
 .. _DatasetExpression:
 
 DatasetExpression
@@ -180,6 +163,48 @@ DataGraph
 ---------
 
 A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
+
+
+.. _Butlers:
+
+Butlers
+=======
+
+define interfaces to abstract away serialization/deserialization of :ref:`ConcreteDatasets <ConcreteDataset>`.
+Additionally some, but not all, :ref:`Butlers` allow particular :ref:`Datasets <Dataset>` (and relations between them) to be retrieved by a (metadata) query (i.e. :ref:`DatasetExpression`).
+
+
+.. _PrimitiveButler:
+
+PrimitiveButler
+---------------
+
+Abstract interface that has two methods:
+
+- ``get(Key k) -> ConcreteDataset``
+- ``put(Key k, ConcreteDataset obj) -> None``
+
+where :ref:`ConcreteDataset` is any kind of in-memory object supported by the butler.
+The `Key` type is implementation specific and may be a filename or a hash for an object store.
+
+The input and output :ref:`ConcreteDataset` are always bitwise identical. Transformations are to be handled by higher level wrappers (that may expose the same interface).
+
+Backend storage is not defined by this interface. Different :ref:`PrimitiveButler` implementations may write to single/multiple (FITS/HDF5) files, (no)sql-databases, object stores, etc. They may even delegate part of the work to other concrete :ref:`PrimitiveButlers <PrimitiveButler>`.
+
+
+.. _StorageButler:
+
+StorageButler
+-------------
+
+Abstract interface that has two methods:
+
+- ``get(DatasetRef dr) -> ConcreteDataset``
+- ``put(DatasetRef dr, ConcreteDataset obj) -> None``
+
+where :ref:`ConcreteDataset` is any kind of in-memory object supported by the butler.
+
+In practice delegates the actual IO to a lower level butler which may be another :ref:`StorageButler` or a :ref:`PrimitiveButler` (in which case it will map the :ref:`DatasetRef` to a :ref:`Key`).
 
 
 .. _AssociationButler:
