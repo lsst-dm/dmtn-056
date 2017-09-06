@@ -1,0 +1,166 @@
+DataUnits:
+    # Core units of data that can be used to define the granularity of datasets.
+
+    camera:
+        name: str
+
+    abstract_filter:
+        name: str
+
+    physical_filter:
+        name: str
+        camera: str
+        abstract: str
+
+    sensor:
+        name: str   # may be a stringified integer for some cameras
+        camera: str
+
+    sensor_group:   # could be used for LSST rafts, HSC rotation groups, WF sensors
+        name: str
+        camera: str
+
+    visit:
+        number: int
+        camera: str
+        begin: datetime
+        end: datetime
+        filter: str     # physical_filter
+        region: region
+        ra: angle
+        dec: angle
+
+    snap:
+        number: int
+        visit: int
+        camera: str
+        begin: datetime
+        end: datetime
+
+    skymap:
+        name: str    # must be globally unique (across repositories)!
+
+    tract:
+        skymap: str
+        number: int
+        region: region
+
+    patch:
+        skymap: str
+        index_x: int
+        index_y: int
+
+
+Joins:
+    # Many-to-many joins of data units that require an additional table to
+    # store.  May or may not add additional fields.  Should not be used
+    # directly when defining datasets, but we should have some system that
+    # notices when these combinations are used together.
+
+    sensor_group_members:
+        sensor: str
+        group: str
+        camera: str
+
+    observed_sensor:
+        sensor: str
+        visit: int
+        camera: str
+        region: region
+
+    tract_members:
+        skymap: str
+        tract: int
+        patch_x: int
+        patch_y: int
+        region: region
+
+
+Templates:
+    # Additional predefined combination of Units that can be used to define
+    # Dataset types without requiring table-creation privileges.
+
+    calib:
+        first_visit: int    # first visit number (inclusive)
+        last_visit: int     # last visit number (inclusive)
+        camera: str
+
+    raw:
+        sensor: str
+        snap: int
+        visit: int
+        camera: str
+
+    jointcal_visit:
+        visit: int
+        camera: str
+        tract: int
+        skymap: str
+
+    jointcal_sensor:
+        sensor: str
+        visit: int
+        camera: str
+        tract: int
+        skymap: str
+
+    warp:
+        visit: int
+        camera: str
+        tract: int
+        patch_x: int
+        patch_y: int
+
+    coadd:
+        tract: int
+        patch_x: int
+        patch_y: int
+        skymap: str
+        filter: str   # abstract_filter, may be null
+
+
+Relationships:
+  - camera.name = physical_filter.camera
+  - camera.name = sensor.camera
+  - camera.name = sensor_group.camera
+  - camera.name = visit.camera
+  - camera.name = snap.camera
+  - camera.name = sensor_group_members.camera
+  - camera.name = observed_sensor.camera
+  - camera.name = calib.camera
+  - camera.name = raw.camera
+  - camera.name = jointcal_visit.camera
+  - camera.name = jointcal_sensor.camera
+  - camera.name = warp.camera
+  - abstract_filter.name = physical_filter.abstract
+  - abstract_filter.name = coadd.filter
+  - physical_filter.name = visit.filter
+  - visit.number = snap.visit
+  - visit.number = observed_sensor.visit
+  - visit.number BETWEEN calib.first_visit AND calib.last_visit
+  - visit.number = raw.visit
+  - visit.number = jointcal_visit.visit
+  - visit.number = jointcal_sensor.visit
+  - visit.number = warp.visit
+  - sensor.name = sensor_group_members.sensor
+  - sensor.name = raw.sensor
+  - sensor.name = observed_sensor.sensor
+  - sensor.name = jointcal_sensor.sensor
+  - snap.number = raw.snap
+  - sensor_group.name = sensor_group_members.group
+  - skymap.name = tract.skymap
+  - skymap.name = patch.skymap
+  - skymap.name = tract_members.skymap
+  - skymap.name = jointcal_visit.skymap
+  - skymap.name = jointcal_sensor.skymap
+  - skymap.name = warp.skymap
+  - skymap.name = coadd.skymap
+  - tract.number = tract_members.tract
+  - tract.number = warp.tract
+  - tract.number = coadd.tract
+  - patch.index_x = tract_members.patch_x
+  - patch.index_y = tract.members.patch_y
+  - patch.index_x = warp.patch_x
+  - patch.index_y = warp.patch_y
+  - patch.index_x = coadd.patch_x
+  - patch.index_y = coadd.patch_y
