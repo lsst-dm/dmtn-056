@@ -199,6 +199,7 @@ CREATE TABLE DatasetType (
 CREATE TABLE Dataset (
     dataset_id int PRIMARY KEY,
     dataset_type_id NOT NULL,
+    uri varchar NOT NULL,
     producer_id int,
     FOREIGN KEY (producer_id) REFERENCES Quantum (quantum_id)
 );
@@ -294,6 +295,7 @@ CREATE TABLE DatasetTagJoin (
 CREATE VIEW CalExp AS
     SELECT
         Dataset.dataset_id AS dataset_id,
+        Dataset.uri AS uri,
         Dataset.producer_id AS producer_id,
         ObservedSensorDatasetJoin.observed_sensor_id AS observed_sensor_id
     FROM
@@ -310,6 +312,7 @@ CREATE VIEW CalExp AS
 CREATE VIEW DeepCoadd AS
 SELECT
         Dataset.dataset_id AS dataset_id,
+        Dataset.uri AS uri,
         Dataset.producer_id AS producer_id,
         PatchDatasetJoin.patch_id AS patch_id,
         FilterDatasetJoin.filter_id AS filter_id
