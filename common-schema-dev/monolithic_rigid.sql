@@ -8,18 +8,26 @@ CREATE TABLE Camera (
     UNIQUE (name)
 );
 
-CREATE TABLE Filter (
-    filter_id int PRIMARY KEY,
+CREATE TABLE AbstractFilter (
+    abstract_filter_id int PRIMARY KEY,
     name varchar NOT NULL,
-    camera_id int ,
+    UNIQUE (name)
+);
+
+CREATE TABLE PhysicalFilter (
+    physical_filter_id int PRIMARY KEY,
+    name varchar NOT NULL,
+    camera_id int NOT NULL,
+    abstract_filter_id int,
     FOREIGN KEY (camera_id) REFERENCES Camera (camera_id),
+    FOREIGN KEY (abstract_filter_id) REFERENCES AbstractFilter (abstract_filter_id),
     UNIQUE (name, camera_id)
 );
 
 CREATE TABLE PhysicalSensor (
     physical_sensor_id int PRIMARY KEY,
     name varchar NOT NULL,  -- may be stringified int for some cameras
-    num varchar NOT NULL,   -- either name or num may be used to identify
+    number varchar NOT NULL,   -- either name or num may be used to identify
     camera_id int NOT NULL,
     group varchar,    -- raft for LSST, rotation group for HSC?
     purpose varchar,  -- science vs. wavefront vs. guide
@@ -29,14 +37,14 @@ CREATE TABLE PhysicalSensor (
 
 CREATE TABLE Visit (
     visit_id int PRIMARY KEY,
-    num int NOT NULL,
+    number int NOT NULL,
     camera_id int NOT NULL,
-    filter_id int NOT NULL,
+    physical_filter_id int NOT NULL,
     obs_begin datetime NOT NULL,
     obs_end datetime NOT NULL,
     region blob,
     FOREIGN KEY (camera_id) REFERENCES Camera (camera_id),
-    FOREIGN KEY (filter_id) REFERENCES Filter (filter_id),
+    FOREIGN KEY (physical_filter_id) REFERENCES PhysicalFilter (physical_filter_id),
     CONSTRAINT UNIQUE (num, camera_id)
 );
 
@@ -48,7 +56,6 @@ CREATE TABLE ObservedSensor (
     FOREIGN KEY (visit_id) REFERENCES Visit (visit_id),
     FOREIGN KEY (physical_sensor_id) REFERENCES PhysicalSensor (physical_sensor_id),
     CONSTRAINT UNIQUE (visit_id, physical_sensor_id)
-    -- CONSTRAINT (Visit.camera_id = PhysicalSensor.camera_id)
 );
 
 CREATE TABLE Snap (
@@ -74,7 +81,7 @@ CREATE TABLE SkyMap (
 
 CREATE TABLE Tract (
     tract_id int PRIMARY KEY,
-    num int NOT NULL,
+    number int NOT NULL,
     skymap_id int NOT NULL,
     region blob,
     FOREIGN KEY (skymap_id) REFERENCES SkyMap (skymap_id),
@@ -97,25 +104,24 @@ CREATE TABLE Patch (
 
 CREATE TABLE CalibRange (
     calib_range_id int PRIMARY KEY,
-    first_visit_num int NOT NULL,
-    last_visit_num int,
+    first_visit int NOT NULL,
+    last_visit int,
     camera_id int,
-    filter_id int,
+    physical_filter_id int,
     FOREIGN KEY (camera_id) REFERENCES Camera (camera_id),
-    FOREIGN KEY (filter_id) REFERENCES Filter (filter_id),
-    CONSTRAINT UNIQUE (first_visit, last_visit, camera_id, filter_id)
+    FOREIGN KEY (physical_filter_id) REFERENCES PhysicalFilter (physical_filter_id),
+    CONSTRAINT UNIQUE (first_visit, last_visit, camera_id, physical_filter_id)
 );
 
 CREATE TABLE SensorCalibRange (
     sensor_calib_range_id int PRIMARY KEY,
-    first_visit_num int NOT NULL,
-    last_visit_num int,
+    first_visit int NOT NULL,
+    last_visit int,
     phyiscal_sensor_id int,
-    filter_id int,
+    physical_filter_id int,
     FOREIGN KEY (physical_sensor_id) REFERENCES PhysicalSensor (physical_sensor_id),
-    FOREIGN KEY (filter_id) REFERENCES Filter (unit_id),
-    CONSTRAINT UNIQUE (first_visit, last_visit, camera_id, filter_id)
-    -- CONSTRAINT (PhysicalSensor.camera_id = Filter.camera_id OR Filter.camera_id is NULL)
+    FOREIGN KEY (physical_filter_id) REFERENCES Filter (unit_id),
+    CONSTRAINT UNIQUE (first_visit, last_visit, camera_id, physical_filter_id)
 );
 
 
@@ -142,9 +148,9 @@ CREATE TABLE ObservedSensorSnapIdentifier (
 CREATE TABLE PatchFilterIdentifier (
     unit_id int PRIMARY KEY,
     patch_id int NOT NULL,
-    filter_id int,
+    abstract_filter_id int,
     FOREIGN KEY (patch_id) REFERENCES Patch (patch_id),
-    FOREIGN KEY (filter_id) REFERENCES Filter (filter_id),
+    FOREIGN KEY (abstract_filter_id) REFERENCES AbstractFilter (abstract_filter_id),
     CONSTRAINT UNIQUE (patch_id, filter_id),
 );
 
@@ -200,7 +206,7 @@ CREATE VIEW CalibRangeJoin AS
     FROM
         Visit INNER JOIN CalibRange ON (
             (Visit.num BETWEEN CalibRange.first_visit AND CalibRange.last_visit)
-            AND Visit.filter_id = CalibRange.filter_id
+            AND Visit.physical_filter_id = CalibRange.physical_filter_id
         );
 
 CREATE VIEW SensorCalibRangeJoin
@@ -210,9 +216,9 @@ CREATE VIEW SensorCalibRangeJoin
     FROM
         ObservedSensor INNER JOIN Visit ON (ObservedSensor.visit_id = Visit.visit_id)
         INNER JOIN SensorCalibRange ON (
-        (Visit.num BETWEEN SensorCalibRange.first_visit AND SensorCalibRange.last_visit)
-        AND Visit.filter_id = SensorCalibRange.filter_id
-    );
+            (Visit.num BETWEEN SensorCalibRange.first_visit AND SensorCalibRange.last_visit)
+            AND Visit.physical_filter_id = SensorCalibRange.physical_filter_id
+        );
 
 CREATE VIEW SensorTractJoin AS
     SELECT
@@ -246,16 +252,9 @@ CREATE VIEW VisitPatchJoin AS
 -- Dataset and Provenance tables
 --------------------------------------------------------------------------
 
-CREATE TABLE Quantum (
-    quantum_id int PRIMARY KEY,
-    task varchar
-    -- other provenance information
-);
-
 CREATE TABLE DatasetType (
     dataset_type_id int PRIMARY KEY,
-    name varchar NOT NULL,
-    unit_type varchar NOT NULL
+    name varchar NOT NULL
 );
 
 CREATE TABLE Dataset (
@@ -266,15 +265,23 @@ CREATE TABLE Dataset (
     FOREIGN KEY (producer_id) REFERENCES Quantum (quantum_id)
 );
 
+CREATE TABLE Quantum (
+    quantum_id int PRIMARY KEY,
+    task varchar,
+    config_id int NOT NULL,
+    -- other provenance information
+    FOREIGN KEY (config_id) REFERENCES Dataset (dataset_id)
+);
+
 CREATE TABLE DatasetConsumers (
     dataset_id int NOT NULL,
     quantum_id int NOT NULL,
-    FOREIGN KEY (dataset_id) REFERENCES Dataset (dataset_id)
+    FOREIGN KEY (dataset_id) REFERENCES Dataset (dataset_id),
     FOREIGN KEY (quantum_id) REFERENCES Quantum (quantum_id)
 );
 
 --------------------------------------------------------------------------
--- Dataset-DataUnit join
+-- Datasets and Dataset-DataUnit join
 --
 -- NOT PART OF COMMON SCHEMA
 --------------------------------------------------------------------------
@@ -335,7 +342,7 @@ SELECT
         Dataset.uri AS uri,
         Dataset.producer_id AS producer_id,
         PatchFilterIdentifier.patch_id AS patch_id,
-        PatchFilterIdentifier.filter_id AS filter_id
+        PatchFilterIdentifier.abstract_filter_id AS abstract_filter_id
     FROM
         Dataset
         INNER JOIN UnitDatasetJoin ON (Dataset.dataset_id = UnitDatasetJoin.dataset_id)
