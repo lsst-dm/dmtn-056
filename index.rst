@@ -122,29 +122,29 @@ In the :ref:`Common Schema <CommonSchema>`, each :ref:`DataUnitType` is a table 
 DatasetRef
 ----------
 
-A unique identifier for a :ref:`Dataset` across :ref:`Repositories <Repository>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
+A unique identifier for a :ref:`Dataset` across :ref:`Data Repositories <DataRepository>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
 
 In the :ref:`Common Schema <CommonSchema>`, a :ref:`DatasetRef` is a row in the table for its :ref:`DatasetType`, with a foreign key field pointing to a :ref:`DataUnit` row for each element in tuple of :ref:`DataUnits <DataUnit>`.
 
 
-.. _Repository:
+.. _DataRepository:
 
-Repository
-----------
+DataRepository
+--------------
 
 An entity that one can point a butler to that has the following three properties:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
-- Has a label that humans can parse (i.e. :ref:`RepositoryRef`)
+- Has a label that humans can parse (i.e. :ref:`DataRepositoryRef`)
 - Provides enough info to a make globally (across repositories) unique filename (or key for an object store) given a :ref:`DatasetRef`.
 
 
-.. _RepositoryRef:
+.. _DataRepositoryRef:
 
-RepositoryRef
--------------
+DataRepositoryRef
+-----------------
 
-Globally unique, human parseable, identifier of a :ref:`Repository` (e.g. the path to it or a URI).
+Globally unique, human parseable, identifier of a :ref:`DataRepository` (e.g. the path to it or a URI).
 
 
 .. _DatasetExpression:
