@@ -104,7 +104,7 @@ DataUnit
 
 Represents a discrete unit of data (e.g. a particular visit, tract, or filter).
 
-In the :ref:`Common Schema <CommonSchema>`, a :ref:`DataUnit` is a row in the table for its :ref:`DataUnitType`.  :ref:`DataUnits <DataUnit>` must be shared across different repositories (which may be backed by different database systems), so their primary keys in the :ref:`Common Schema` must not be database-specific quantities such as autoincrement fields.
+In the :ref:`Common Schema <CommonSchema>`, a :ref:`DataUnit` is a row in the table for its :ref:`DataUnitType`.  :ref:`DataUnits <DataUnit>` must be shared across different repositories (which may be backed by different database systems), so their primary keys in the :ref:`CommonSchema` must not be database-specific quantities such as autoincrement fields.
 
 
 .. _DataUnitType:
@@ -204,7 +204,7 @@ Abstract interface that has two methods:
 
 where :ref:`ConcreteDataset` is any kind of in-memory object supported by the butler.
 
-In practice delegates the actual IO to a lower level butler which may be another :ref:`StorageButler` or a :ref:`PrimitiveButler` (in which case it will map the :ref:`DatasetRef` to a :ref:`Key`).
+In practice delegates the actual IO to a lower level butler which may be another :ref:`StorageButler` or a :ref:`PrimitiveButler` (in which case it will map the :ref:`DatasetRef` to a Key).
 
 
 .. _AssociationButler:
@@ -216,7 +216,7 @@ Has one method:
 
 - ``evaluateExpression(List<DatasetTypes> types, DatasetExpression expression) -> DataGraph``
 
-Presents the user with the :ref:`Common Schema` (a set of tables) that the :ref:`DatasetExpression` can be evaluated against to yied a graph of unique :ref:`DatasetRefs <DatasetRef>` with their relations (this is typically a subset of the full repository graph).
+Presents the user with the :ref:`CommonSchema` (a set of tables) that the :ref:`DatasetExpression` can be evaluated against to yied a graph of unique :ref:`DatasetRefs <DatasetRef>` with their relations (this is typically a subset of the full repository graph).
 
 In different implementations these tables may exist directly, as a pass-through to a ``SQLite``/``PostgreSQL``/``MySQL`` database that actually has them, or it may have to do some kind of mapping.
 
