@@ -138,9 +138,9 @@ CREATE TABLE SensorCalibRange (
 CREATE TABLE ObservedSensorSnapIdentifier (
     unit_id int PRIMARY KEY,
     snap_id int NOT NULL,
-    sensor_id int NOT NULL,
+    observed_sensor_id int NOT NULL,
     FOREIGN KEY (snap_id) REFERENCES Snap (snap_id),
-    FOREIGN KEY (sensor_id) REFERENCES ObservedSensor (observed_sensor_id),
+    FOREIGN KEY (observed_sensor_id) REFERENCES ObservedSensor (observed_sensor_id),
     CONSTRAINT UNIQUE (snap_id, sensor_id),
     -- CONSTRAINT (Snap.visit_id == ObservedSensor.visit_id)
 );
@@ -273,7 +273,7 @@ CREATE TABLE Quantum (
     FOREIGN KEY (config_id) REFERENCES Dataset (dataset_id)
 );
 
-CREATE TABLE DatasetConsumers (
+CREATE TABLE DatasetConsumer (
     dataset_id int NOT NULL,
     quantum_id int NOT NULL,
     FOREIGN KEY (dataset_id) REFERENCES Dataset (dataset_id),
@@ -323,7 +323,6 @@ CREATE VIEW CalExp AS
     SELECT
         Dataset.dataset_id AS dataset_id,
         Dataset.uri AS uri,
-        Dataset.producer_id AS producer_id,
         UnitDatasetJoin.unit_id AS observed_sensor_id
     FROM
         Dataset
@@ -340,7 +339,6 @@ CREATE VIEW DeepCoadd AS
 SELECT
         Dataset.dataset_id AS dataset_id,
         Dataset.uri AS uri,
-        Dataset.producer_id AS producer_id,
         PatchFilterIdentifier.patch_id AS patch_id,
         PatchFilterIdentifier.abstract_filter_id AS abstract_filter_id
     FROM
@@ -351,4 +349,29 @@ SELECT
         INNER JOIN PatchFilterIdentifier ON (UnitDatasetJoin.unit_id = PatchFilterIdentifier.unit_id)
     WHERE
         DatasetType.name = "DeepCoadd"
+        AND DatasetTagJoin.tag_id = 42;
+
+-- Special case: Raw could be defined as (Snap, PhysicalSensor), but because a
+-- Snap implies a Visit, it could also be (Snap, ObservedSensor), with an
+-- insert constraint that the Visit for the two be the same.  We want to
+-- choose the latter, because ObservedSensor brings with it information
+-- (region, joins to calibration data and skymaps) that we want to associate
+-- with the Raw dataset (especially for the calibration joins).  I think this
+-- combination of units is the only one in which this situation could
+-- realistically occur, but we need some mechanism in the Dataset-definition
+-- system to guarantee that we use ObservedSensor in preference to
+-- PhysicalSensor when they are both applicable.
+CREATE VIEW Raw AS
+    SELECT
+        Dataset.dataset_id AS dataset_id,
+        Dataset.uri AS uri,
+        ObservedSensorSnapIdentifier.observed_sensor_id AS observed_sensor_id,
+        ObservedSensorSnapIdentifier.snap_id AS snap_id
+    FROM
+        Dataset
+        INNER JOIN UnitDatasetJoin ON (Dataset.dataset_id = UnitDatasetJoin.dataset_id)
+        INNER JOIN DatasetType ON (Dataset.dataset_type_id = DatasetType.Dataset_type_id)
+        INNER JOIN DatasetTagJoin ON (Dataset.dataset_id = DatasetTagJoin.dataset_id)
+    WHERE
+        DatasetType.name = "Raw"
         AND DatasetTagJoin.tag_id = 42;

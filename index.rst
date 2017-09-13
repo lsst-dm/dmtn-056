@@ -246,12 +246,22 @@ database systems, we can in general only support a limited common dialect.
 
 The relationship between databases and :ref:`DataRepositories
 <DataRepository>` may be one-to-many or one-to-one in different
-implementations, so the Common Schema only provides a view to a single
-:ref:`DataRepository`.  As a result, for most implementations that take the
-one-to-many approach, at least some of the conceptual tables below must be
-implemented as views that select only the entries that correspond to a
-particular :ref:`DataRepository`.
+implementations, but the Common Schema only provides a view to a single
+:ref:`DataRepository` (except for the tables in the :ref:`Provenance
+<cs_provenance>` section).  As a result, for most implementations that take
+the one- to-many approach, at least some of the conceptual tables below must
+be implemented as views that select only the entries that correspond to a
+particular :ref:`DataRepository`.  We will refer to them as "tables" in the
+rest of this system only for brevity.
 
+The common schema is only intended to be used for SELECT queries.  Operations
+that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dataset>` (or
+types thereof) to/from a :ref:`DataRepository` will be supported through Butler
+Python APIs, but the SQL behind these APIs will in general be specific to the
+actual (private) schema used to implement the data repository and possibly the
+database system and its associated SQL dialect.
+
+.. _cs_camera_dataunits:
 
 Camera DataUnits
 ----------------
@@ -267,7 +277,7 @@ Camera DataUnits
 Entries in the Camera table are essentially just sources of raw data with a
 constant layout of PhysicalSensors and a self-constent numbering system for
 Visits.  Different versions of the same camera (due to e.g. changes in
-hardware) should correspond to a single row in this table.
+hardware) should still correspond to a single row in this table.
 
 
 +----------------------+--------+----------------------+
@@ -298,6 +308,8 @@ which are used to label Datasets that aggregate data from multiple Visits.
 Having these two different DataUnits for filters is necessary to make it
 possible to combine data from Visits taken with different filters.  A
 PhysicalFilter may or may not be associated with a particular AbstractFilter.
+AbstractFilter is the only DataUnit not associated with either a Camera or a
+SkyMap.
 
 +----------------------+--------+-----------------------------------------+
 | *PhysicalSensor*                                                        |
@@ -394,6 +406,8 @@ sky.
 A Snap is a single-exposure subset of a Visit.  Most non-LSST Visits will have
 only a single Snap.
 
+.. _cs_skymap_dataunits:
+
 SkyMap DataUnits
 ----------------
 
@@ -451,6 +465,7 @@ and define similarly-sized regions that overlap by a configurable amount.  As
 with Tracts, we may want to include fields to describe Patch boundaries in this
 table in the future.
 
+.. _cs_calibration_dataunits:
 
 Calibration DataUnits
 ---------------------
@@ -493,6 +508,8 @@ Calibration products may additionally be specialized for a particular
 PhysicalFilter, or may be appropriate for all PhysicalFilters by setting the
 ``physical_filter_id`` field to ``NULL``.  Calibration products that are
 defined for individual sensors should use ``SensorCalibRange``.
+
+.. _cs_dataunit_joins:
 
 DataUnit Joins
 --------------
@@ -581,6 +598,145 @@ tables when the two entities overlap as defined by their ``region`` fields.
 | tract_id   | uint64 | NOT NULL REFERENCES Tract (tract_id)   |
 +------------+--------+----------------------------------------+
 
+
+.. _cs_datasets:
+
+Datasets
+--------
+
+Because the :ref:`DatasetTypes <DatasetType>` in present in a
+:ref:`DataRepository` may vary from repository to repository, the
+:ref:`Dataset` tables in the Common Schema are defined dynamically according to
+a set of rules:
+
+ - There is a table for each :ref:`DatasetType`, with entries corresponding to
+   :ref:`Datasets <Dataset>` that are present in the :ref:`DataRepository` (and
+   only these).
+
+ - The name of the table should be the name of the :ref:`DatasetType`.
+
+ - The table has a foreign key field relating to each :ref:`DataUnit` table that
+   is used to label the :ref:`DatasetType`.
+
+ - The table has at least the following additional fields:
+
++------------+--------+---------------------------------------------+
+| dataset_id | uint64 | PRIMARY KEY REFERENCES Dataset (dataset_id) |
++------------+--------+---------------------------------------------+
+| uri        | str    |                                             |
++------------+--------+---------------------------------------------+
+
+The ``dataset_id`` field is both a primary key that must be unique across
+elements in this table and a link to the more general Dataset table described in
+the :ref:`Provenance <cs_Provenance>` section; this means that it must be
+globally unique across *all* dataset tables, virtually guaranteeing that these
+per-:ref:`DatasetType` tables will be implemented as views into a larger table.
+
+The ``uri`` field contains a string that can be used to local the file or other
+entity that contains the stored :ref:`Dataset`.  While this may be generated
+differently according to different butler configurations when the file is first
+written, after it is written we do not expect the name to change and hence
+record it in the database; this reduces the need for butler implementations to
+be aware of past configurations in addition to their current confirguration. For
+multi-file composite datasets, this field should be NULL, and another table
+(TBD) can be used to associate the composite with its leaf-node :ref:`Datasets
+<Dataset>`.
+
+
+.. _cs_provenance:
+
+Provenance
+----------
+
+Provenance queries frequently involve crossing :ref:`DataRepository` boundaries;
+the inputs to a task that produced a particular :ref:`Dataset` may not be
+present in the same repository that contains that :ref:`Dataset`.  As a result,
+the tables in this section are not restricted to the contents of a single
+:ref:`DataRepository`.
+
++-----------------+--------+----------------------------------------+
+| *DatasetType*                                                     |
++=================+========+========================================+
+| dataset_type_id | uint64 | PRIMARY KEY                            |
++-----------------+--------+----------------------------------------+
+| name            | str    | NOT NULL UNIQUE                        |
++-----------------+--------+----------------------------------------+
+
++-------------+--------+---------------------------------+
+| *Dataset*                                              |
++=============+========+=================================+
+| dataset_id  | uint64 | PRIMARY KEY                     |
++-------------+--------+---------------------------------+
+| uri         | str    |                                 |
++-------------+--------+---------------------------------+
+| producer_id | uint64 | REFERENCES Quantum (quantum_id) |
++-------------+--------+---------------------------------+
+
+These tables provide another view of the information in the
+per-:ref:`DatasetType` tables described in the :ref:`Datasets <cs_datasets>`
+section, with the following differences:
+
+ - They provide no way to join with :ref:`DataUnit` tables (aside from joining
+   with the per-:ref:`DatasetType` tables themselves on the ``dataset_id``
+   field).
+
+ - The Dataset table must contain entries for at least all :ref:`Datasets
+   <Dataset>` in the :ref:`DataRepository`, but it may contain entries for
+   additional :ref:`Datasets <Dataset>` as well.
+
+ - These add the ``producer_id`` field, which records the Quantum that produced
+   the dataset (if applicable).
+
++-------------+--------+---------------------------------+
+| *Quantum*                                              |
++=============+========+=================================+
+| quantum_id  | uint64 | PRIMARY KEY                     |
++-------------+--------+---------------------------------+
+| config_id   | uint64 | REFERENCES Dataset (dataset_id) |
++-------------+--------+---------------------------------+
+| env_id      | uint64 | REFERENCES Dataset (dataset_id) |
++-------------+--------+---------------------------------+
+| task_name   | str    |                                 |
++-------------+--------+---------------------------------+
+
++-------------+--------+---------------------------------------------+
+| *DatasetConsumer*                                                  |
++=============+========+=============================================+
+| quantum_id  | uint64 | NOT NULL REFERENCES Quantum (quantum_id)    |
++-------------+--------+---------------------------------------------+
+| dataset_id  | uint64 | NOT NULL REFERENCES Dataset (dataset_id)    |
++-------------+--------+---------------------------------------------+
+
+A Quantum (a term borrowed from the SuperTask design) is a discrete unit of
+work, such as a single invocation of ``SuperTask.runQuantum``.  It may also be
+used here to describe other actions that produce and/or consume :ref:`Datasets
+<Dataset>`.  The ``config_id`` and ``env_id`` provide links to :ref:`Datasets
+<Dataset>` that hold the configuration and a description of the software and
+compute environments.
+
+Because each :ref:`Dataset` can have multiple consumers but at most one
+producer, the Quantum that produces a Dataset is recorded in the
+Dataset table itself, while the separate join table DatasetConsumers is
+used to record the Quantum entries that utilized a Dataset entry.
+
+There is no guarantee that the full provenance of a :ref:`Dataset` is captured
+by these tables in a particular :ref:`DataRepository`, unless the :ref:`Dataset`
+and all of its dependencies (any datasets consumed by its producer Quantum,
+recursively) are also in the :ref:`DataRepository`.  When this is not the case,
+the provenance information *may* be present (with dependencies included in the
+Dataset table), or the ``Dataset.producer_id`` field may be null.
+
+.. note::
+
+    As with everything else in the Common Schema, the provenance system used in
+    the operations data backbone will almost certainly involve additional fields
+    and tables, and what's in the Common Schema will just be a view.  But
+    provenance tables here are even more of a blind straw-man than the rest of
+    the Common Schema (which is derived more directly from SuperTask
+    requirements), and I certainly expect it to change based on feedback; I
+    think this reflects all that we need outside the operations system, but how
+    operations implements their system should probably influence the details
+    (such as how we represent configuration and software environment information).
 
 .. .. rubric:: References
 
