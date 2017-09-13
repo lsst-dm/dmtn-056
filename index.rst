@@ -724,7 +724,10 @@ by these tables in a particular :ref:`DataRepository`, unless the :ref:`Dataset`
 and all of its dependencies (any datasets consumed by its producer Quantum,
 recursively) are also in the :ref:`DataRepository`.  When this is not the case,
 the provenance information *may* be present (with dependencies included in the
-Dataset table), or the ``Dataset.producer_id`` field may be null.
+Dataset table), or the ``Dataset.producer_id`` field may be null.  The Dataset
+table may also contain entries that are not related at all to those in the
+:ref:`DataRepository`; we have no obvious use for such a restriction, and it is
+    potentially burdensome on implementations.
 
 .. note::
 
