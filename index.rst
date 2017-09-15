@@ -144,7 +144,7 @@ An entity that has the following three properties:
 DataRepositoryRef
 -----------------
 
-Globally unique, human parseable, identifier of a :ref:`DataRepository` (e.g. the path to it or a URI).
+Globally unique, human parseable, identifier of a :ref:`DataRepository` (e.g. the path to it or a Uri).
 
 
 .. _DatasetExpression:
@@ -674,6 +674,169 @@ table may also contain entries that are not related at all to those in the
     think this reflects all that we need outside the operations system, but how
     operations implements their system should probably influence the details
     (such as how we represent configuration and software environment information).
+
+.. _AbstractComponents:
+
+AbstractComponents
+==================
+
+This section describes the different components in the data access system, and the
+relations between them.  The components are abstract (there are multiple realizations
+of them) and may themselves be composite.  The goal being to identify some framework
+for reasoning about requirements, assumptions and limitations.  To be fleshed out
+later into a concrete design.
+
+
+.. _RepositoryDatabase:
+
+RepositoryDatabase
+------------------
+
+A SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides one or more
+realizations of the :ref:`Common Schema <CommonSchema>`.
+
+.. note::
+
+Multiple :ref:`Data Repositories <DataRepository>`, can be served from a single :ref:`RepositoryDatabase`
+using tags (TBD if this should be part of the :ref:`CommonSchema`).
+
+
+.. _RepositoryDatastore:
+
+RepositoryDatastore
+-------------------
+
+An entity that stores the actual data. This may be a (shared) filesystem, an object store
+or some other system.
+
+.. _ScratchSpace:
+
+ScratchSpace
+------------
+
+An entity that serves as temporary (volitile) storage for any kind of data that is
+not (yet) in a :ref:`RepositoryDatabase` or a :ref:`RepositoryDatastore`.
+
+.. _RepositoryHost:
+
+RepositoryHost
+--------------
+
+Is an entity that is the combination of a :ref:`RepositoryDatabase`, a :ref:`RepositoryDatabase`
+and (optionally) :ref:`ScratchSpace`.
+
+.. _RepositoryRegistry:
+
+RepositoryRegistry
+------------------
+
+Is the software component that sits on top of a :ref:`RepositoryDatabase` and provides the following API:
+
+- `addDataUnit(DataUnit) -> None`
+- `addDatasetType(DatasetType) -> None`
+- `addDataset(Uri, DatasetMetaType) -> DatasetRef`
+- `getDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
+- `subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription`
+
+.. _TransferClient:
+
+TransferClient
+--------------
+
+Is the software component that initiates a transfer of data from a :ref:`RepositoryDatastore` to another :ref:`RepositoryDatastore` or :ref:`ScratchSpace`.
+It has the following API:
+
+- `retrieve({Uri : Path}) -> None`
+  Retrieves :ref:`Datasets <Dataset>` and stores them in the provided `Path`.
+
+.. _InputOutputClient:
+
+InputOutputClient
+-----------------
+
+Is the software componets that clients use to retrieve `Datasets <Dataset>` from a `RepositoryDatastore`.
+It provides the following API:
+
+- `get(Uri) -> ConcreteDatset`
+- `put(ConcreteDataset, UriHint) -> Uri`
+  store a :ref:`ConcreteDataset` at the location provided by `UriHint`.
+  Actual storage location may be different and is returned as output `Uri`.
+
+.. _ConcreteComponents:
+
+ConcreteComponents
+==================
+
+This section identifies the concrete realizations of :ref:`AbstractComponents` that might
+exist.
+
+RepositoryHosts
+---------------
+
+These are the hosts that can be identified.
+
+Archive
+*******
+
+Ops Database
+    Is/has a :ref:`RepositoryDatabase`
+Release Database
+    Is/has a :ref:`RepositoryDatabase`
+Data BackBone
+    Is/has a :ref:`RepositoryDatastore`
+Batch Scratch
+    Is/has :ref:`ScratchSpace`
+
+Science Platform
+****************
+
+User Databases
+    Is/has :ref:`RepositoryDatabases <RepositoryDatabase>`
+User Filesystem
+    Is/has :ref:`RepositoryDatastores <RepositoryDatastore>`
+Batch Scratch
+    Is/has :ref:`ScratchSpace`
+
+Non-Ops Clusters
+****************
+
+Database
+    Is/has a :ref:`RepositoryDatabase`
+Filesystem
+    Is/has a :ref:`RepositoryDatastore`
+Batch Scratch
+    Is/has :ref:`ScratchSpace`
+
+User (Lap)Desktops
+******************
+
+Database
+    Is/has a :ref:`RepositoryDatabase`
+Filesystem
+    Is/has a :ref:`RepositoryDatastore`
+Scratch
+    Has (trivial) :ref:`ScratchSpace`
+
+Communication
+-------------
+
+By means of a :ref:`TransferClient` will be needed both between all of these components.
+In particular the following relations have been identified:
+
+.. digraph:: communication_by_transfer
+
+  Archive -> LSP
+  Archive -> Laptops
+  Archive -> NonOpsClusters
+  LSP -> Laptops
+  LSP -> NonOpsClusters
+  NonOpsClusters -> Laptops
+
+In addition to:
+
+.. digraph:: communication_by_transfer_internal
+
+  RepositoryDatastore <-> ScratchSpace
 
 .. .. rubric:: References
 
