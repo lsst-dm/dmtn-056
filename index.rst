@@ -48,7 +48,7 @@
 
    **This technote is not yet published.**
 
-   For now, a WIP scratch pad for new Butler APIs.
+   For now, a WIP scratch pad for new data access APIs.
 
 
 .. _Purpose:
@@ -132,7 +132,7 @@ In the :ref:`Common Schema <CommonSchema>`, a :ref:`DatasetRef` is a row in the 
 DataRepository
 --------------
 
-An entity that one can point a butler to that has the following three properties:
+An entity that has the following three properties:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
 - Has a label that humans can parse (i.e. :ref:`DataRepositoryRef`)
@@ -152,7 +152,7 @@ Globally unique, human parseable, identifier of a :ref:`DataRepository` (e.g. th
 DatasetExpression
 -----------------
 
-Is an expression (SQL query against a :ref:`Common Schema <CommonSchema>`) that can be evaluated by an :ref:`AssociationButler` to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
+Is an expression (SQL query against a :ref:`Common Schema <CommonSchema>`) that can be evaluated to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
 
 An open question is if it is sufficient to only allow users to vary the ``WHERE`` clause of the SQL query, or if custom joins are also required.
 
@@ -163,72 +163,6 @@ DataGraph
 ---------
 
 A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
-
-
-.. _Butlers:
-
-Butlers
-=======
-
-define interfaces to abstract away serialization/deserialization of :ref:`ConcreteDatasets <ConcreteDataset>`.
-Additionally some, but not all, :ref:`Butlers` allow particular :ref:`Datasets <Dataset>` (and relations between them) to be retrieved by a (metadata) query (i.e. :ref:`DatasetExpression`).
-
-
-.. _PrimitiveButler:
-
-PrimitiveButler
----------------
-
-Abstract interface that has two methods:
-
-- ``get(Key k) -> ConcreteDataset``
-- ``put(Key k, ConcreteDataset obj) -> None``
-
-where :ref:`ConcreteDataset` is any kind of in-memory object supported by the butler.
-The `Key` type is implementation specific and may be a filename or a hash for an object store.
-
-The input and output :ref:`ConcreteDataset` are always bitwise identical. Transformations are to be handled by higher level wrappers (that may expose the same interface).
-
-Backend storage is not defined by this interface. Different :ref:`PrimitiveButler` implementations may write to single/multiple (FITS/HDF5) files, (no)sql-databases, object stores, etc. They may even delegate part of the work to other concrete :ref:`PrimitiveButlers <PrimitiveButler>`.
-
-
-.. _StorageButler:
-
-StorageButler
--------------
-
-Abstract interface that has two methods:
-
-- ``get(DatasetRef dr) -> ConcreteDataset``
-- ``put(DatasetRef dr, ConcreteDataset obj) -> None``
-
-where :ref:`ConcreteDataset` is any kind of in-memory object supported by the butler.
-
-In practice delegates the actual IO to a lower level butler which may be another :ref:`StorageButler` or a :ref:`PrimitiveButler` (in which case it will map the :ref:`DatasetRef` to a Key).
-
-
-.. _AssociationButler:
-
-AssociationButler
------------------
-
-Has one method:
-
-- ``evaluateExpression(List<DatasetTypes> types, DatasetExpression expression) -> DataGraph``
-
-Presents the user with the :ref:`CommonSchema` (a set of tables) that the :ref:`DatasetExpression` can be evaluated against to yied a graph of unique :ref:`DatasetRefs <DatasetRef>` with their relations (this is typically a subset of the full repository graph).
-
-In different implementations these tables may exist directly, as a pass-through to a ``SQLite``/``PostgreSQL``/``MySQL`` database that actually has them, or it may have to do some kind of mapping.
-
-The point is that users/developers can write their SQL queries against this fixed schema.
-
-
-.. _ConvenienceButler:
-
-ConvenienceButler
------------------
-
-Wraps an :ref:`AssociationButler` with some tooling to build up a :ref:`DatasetExpression`. This may be a simple mini-language parser (e.g. for globs) or even some interactive tool.
 
 
 .. _CommonSchema:
@@ -256,7 +190,7 @@ rest of this system only for brevity.
 
 The common schema is only intended to be used for SELECT queries.  Operations
 that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dataset>` (or
-types thereof) to/from a :ref:`DataRepository` will be supported through Butler
+types thereof) to/from a :ref:`DataRepository` will be supported through 
 Python APIs, but the SQL behind these APIs will in general be specific to the
 actual (private) schema used to implement the data repository and possibly the
 database system and its associated SQL dialect.
@@ -634,9 +568,9 @@ per-:ref:`DatasetType` tables will be implemented as views into a larger table.
 
 The ``uri`` field contains a string that can be used to local the file or other
 entity that contains the stored :ref:`Dataset`.  While this may be generated
-differently according to different butler configurations when the file is first
+differently according to different configurations when the file is first
 written, after it is written we do not expect the name to change and hence
-record it in the database; this reduces the need for butler implementations to
+record it in the database; this reduces the need for implementations to
 be aware of past configurations in addition to their current confirguration. For
 multi-file composite datasets, this field should be NULL, and another table
 (TBD) can be used to associate the composite with its leaf-node :ref:`Datasets
