@@ -714,6 +714,11 @@ RepositoryDatastore
 An entity that stores the actual data. This may be a (shared) filesystem, an object store
 or some other system.
 
+The interface to this supports the following methods:
+
+- `get(Uri, DatasetMetatype) -> ConcreteDataset`
+- `put(ConcreteDataset, DataRepositoryRef, Path, DatasetMetatype) -> Uri`
+
 .. _ScratchSpace:
 
 ScratchSpace
