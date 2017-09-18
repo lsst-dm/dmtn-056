@@ -164,6 +164,12 @@ DataGraph
 
 A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
 
+.. _Uri:
+
+Uri
+---
+
+A standard Uniform Resource Identifier.
 
 .. _CommonSchema:
 
@@ -742,17 +748,41 @@ RepositoryRegistry
 
 Is the software component that sits on top of a :ref:`RepositoryDatabase` and provides the following API:
 
-- `addDataUnit(DataUnit) -> None`
-- `addDataset(DatasetRef, Uri, Quantum=None) -> None`
-- `addDataset(Uri, DatasetMetatype) -> DatasetRef` (dupplicate, unclear we don't need both?)
-- `addQuantum(Quantum) -> None`
-- `find(DatasetRef) -> Uri, DatasetMetatype`
-- `getDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
-- `insertDataUnit(DataUnit, replace=False) -> None`
-- `makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
-- `makePath(DatasetRef) -> Path`
-- `registerDatasetType(DatasetType, template) -> None` (what does template mean exactly?)
-- `subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription` (output undefined)
+`addDataset(DatasetRef, Uri, Quantum=None) -> None`
+
+  Add a :ref:`Dataset` with a given :ref:`DatasetMetatype`.
+  Optionally indicates which :ref:`Quantum` generated it.
+
+`addQuantum(Quantum) -> None`
+
+  Add a new :ref:`Quantum`.
+
+`find(DatasetRef) -> Uri, DatasetMetatype`
+
+  Lookup the location of :ref:`Dataset` associated with a `DatasetRef` in a :ref:`RepositoryDatastore`.
+  Also return its :ref:`DatasetMetatype`.
+
+`insertDataUnit(DataUnit, replace=False) -> None`
+
+  Insert a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
+
+`makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
+
+  Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a `DataGraph`.
+
+`makePath(DatasetRef) -> Path`
+
+  Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
+  the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
+  (in the case of an object-store for instance).
+ 
+`registerDatasetType(DatasetType, template) -> None` (what does template mean exactly?)
+
+  Register a new :ref:`DatasetType`.
+
+`subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription` (output undefined)
+
+  Create a subset of a :ref:`DataRepository`.
 
 .. _TransferClient:
 
@@ -778,6 +808,15 @@ It provides the following API:
   store a :ref:`ConcreteDataset` at the location provided by `UriHint`.
   Actual storage location may be different and is returned as output `Uri`.
 
+.. ButlerConfiguration::
+
+ButlerConfiguration
+-------------------
+
+Configuration for :ref:`Butler`. Wraps a YAML config file and provides:
+
+- `dataRepositoryRef`.
+
 .. Butler::
 
 Butler
@@ -791,6 +830,8 @@ Holds a:
 
 and provides:
 
+* `get(DatasetRef, parameters) -> ConcreteDataset`
+
 .. code:: python
 
     def get(self, datasetRef, parameters):
@@ -798,6 +839,8 @@ and provides:
         uri, datasetMetatype = RR.find(datasetRef)
         concreteDataset = RDS.get(uri, datasetMetatype)
         return concreteDataset
+
+* `put(DatasetRef, ConcreteDataset, Quantum) -> None`
 
 .. code:: python
 
@@ -807,7 +850,7 @@ and provides:
         uri = RDS.put(concreteDataset, dataRepositoryRef, path, datasetMetatype)
         RR.addDataset(datasetRef, uri, quantum)
 
-and
+* `getRepositoryRegistry() -> RepositoryRegistry`
 
 .. code:: python
 
