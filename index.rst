@@ -743,10 +743,16 @@ RepositoryRegistry
 Is the software component that sits on top of a :ref:`RepositoryDatabase` and provides the following API:
 
 - `addDataUnit(DataUnit) -> None`
-- `addDatasetType(DatasetType) -> None`
-- `addDataset(Uri, DatasetMetatype) -> DatasetRef`
+- `addDataset(DatasetRef, Uri, Quantum=None) -> None`
+- `addDataset(Uri, DatasetMetatype) -> DatasetRef` (dupplicate, unclear we don't need both?)
+- `addQuantum(Quantum) -> None`
+- `find(DatasetRef) -> Uri, DatasetMetatype`
 - `getDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
-- `subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription`
+- `insertDataUnit(DataUnit, replace=False) -> None`
+- `makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
+- `makePath(DatasetRef) -> Path`
+- `registerDatasetType(DatasetType, template) -> None` (what does template mean exactly?)
+- `subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription` (output undefined)
 
 .. _TransferClient:
 
@@ -772,18 +778,52 @@ It provides the following API:
   store a :ref:`ConcreteDataset` at the location provided by `UriHint`.
   Actual storage location may be different and is returned as output `Uri`.
 
-.. _ConcreteComponents:
+.. StorageButler::
 
-ConcreteComponents
-==================
+StorageButler
+-------------
 
-This section identifies the concrete realizations of :ref:`Interfaces` that might
-exist.
+Holds a:
 
-RepositoryHosts
----------------
+- :ref:`RepositoryDatastore` (`RDS`);
+- :ref:`RepositoryDatabase` (`RDB`);
+- :ref:`RepositoryRef` (`dataRepositoryRef`);
+ 
+and provides:
 
-These are the hosts that can be identified.
+.. code:: python
+
+    def get(self, DatasetRef datasetRef, parameters):
+        uri, datasetMetatype = RDB.getRepositoryRegistry(dataRepositoryRef).find(datasetRef)
+        concreteDataset = RDS.get(uri, datasetMetatype)
+        return concreteDataset
+
+and
+
+.. code:: python
+
+    def put(self, DatasetRef datasetRef, ConcreteDataset concreteDataset):
+        RR = RDB.getRepositoryRegistry(dataRepositoryRef)
+        path = RR.makePath(datasetRef)
+        uri = RDS.put(concreteDataset, dataRepositoryRef, path, datasetMetatype)
+        RR.addDataset(datasetRef, uri, quantum=None)
+
+.. FullButler::
+
+FullButler
+----------
+
+Has both :ref:`StorageButler` methods and also holds a :ref:`RepositoryRegistry`
+to which a reference may be obtained with:
+
+- `getRepositoryRegistry() -> RepositoryRegistry&`
+
+.. _Provides:
+
+Provides
+========
+
+The following :ref:`Interfaces` should be provided.
 
 Archive
 *******
@@ -826,50 +866,6 @@ Filesystem
     Is/has a :ref:`RepositoryDatastore`
 Scratch
     Has (trivial) :ref:`ScratchSpace`
-
-.. Butler::
-
-Butler
-======
-
-This section describes how a :ref:`Butler` might be implemented in terms of the
-:ref:`Interfaces`.
-
-.. StorageButler::
-
-StorageButler
--------------
-
-Has two methods:
-
-- `get(DatasetRef, parameters) -> ConcreteDataset`
-- `put(DatasetRef, ConcreteDataset) -> None`
-
-.. FullButler::
-
-FullButler
-----------
-
-Has both :ref:`StorageButler` methods and also holds a :ref:`Registry`
-to which a reference may be obtained with:
-
-- `getRegistry() -> Registry&`
-
-.. Registry::
-
-Registry
---------
-
-Is the client side interface to a :ref:`RepositoryDatabase` and has the following
-methods:
-
-- `registerDatasetType(DatasetType, template) -> None`
-- `insertDataUnit(DataUnit, replace=False) -> None`
-- `makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
-- `addQuantum(Quantum) -> None`
-- `find(DatasetRef) -> Uri, DatasetMetatype`
-- `makePath(DatasetRef) -> Path`
-- `addDataset(DatasetRef, Uri, Quantum=None) -> None`
 
 .. .. rubric:: References
 
