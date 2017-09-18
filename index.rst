@@ -744,7 +744,7 @@ Is the software component that sits on top of a :ref:`RepositoryDatabase` and pr
 
 - `addDataUnit(DataUnit) -> None`
 - `addDatasetType(DatasetType) -> None`
-- `addDataset(Uri, DatasetMetaType) -> DatasetRef`
+- `addDataset(Uri, DatasetMetatype) -> DatasetRef`
 - `getDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
 - `subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription`
 
@@ -867,9 +867,9 @@ methods:
 - `insertDataUnit(DataUnit, replace=False) -> None`
 - `makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
 - `addQuantum(Quantum) -> None`
-- `find(DatasetRef) -> URI, DatasetMetatype`
+- `find(DatasetRef) -> Uri, DatasetMetatype`
 - `makePath(DatasetRef) -> Path`
-- `addDataset(DatasetRef, URI, Quantum=None) -> None`
+- `addDataset(DatasetRef, Uri, Quantum=None) -> None`
 
 .. .. rubric:: References
 
