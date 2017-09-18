@@ -271,7 +271,7 @@ over the life of the camera).  The ``group`` field may mean different things
 for different cameras (such as rafts for LSST, or groups of sensors oriented
 the same way relative to the focal plane for HSC).  The ``purpose`` field
 indicates the role of the sensor (such as science, wavefront, or guiding).
-Becaues some cameras identify sensors with string names and other use numbers,
+Because some cameras identify sensors with string names and other use numbers,
 we provide fields for both; the name may be a stringified integer, and the
 number may be autoincrement.
 
@@ -538,7 +538,7 @@ tables when the two entities overlap as defined by their ``region`` fields.
 Datasets
 --------
 
-Because the :ref:`DatasetTypes <DatasetType>` in present in a
+Because the :ref:`DatasetTypes <DatasetType>` present in a
 :ref:`DataRepository` may vary from repository to repository, the
 :ref:`Dataset` tables in the Common Schema are defined dynamically according to
 a set of rules:
