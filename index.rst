@@ -661,19 +661,19 @@ the provenance information *may* be present (with dependencies included in the
 Dataset table), or the ``Dataset.producer_id`` field may be null.  The Dataset
 table may also contain entries that are not related at all to those in the
 :ref:`DataRepository`; we have no obvious use for such a restriction, and it is
-    potentially burdensome on implementations.
+potentially burdensome on implementations.
 
 .. note::
 
-    As with everything else in the Common Schema, the provenance system used in
-    the operations data backbone will almost certainly involve additional fields
-    and tables, and what's in the Common Schema will just be a view.  But
-    provenance tables here are even more of a blind straw-man than the rest of
-    the Common Schema (which is derived more directly from SuperTask
-    requirements), and I certainly expect it to change based on feedback; I
-    think this reflects all that we need outside the operations system, but how
-    operations implements their system should probably influence the details
-    (such as how we represent configuration and software environment information).
+   As with everything else in the Common Schema, the provenance system used in
+   the operations data backbone will almost certainly involve additional fields
+   and tables, and what's in the Common Schema will just be a view.  But
+   provenance tables here are even more of a blind straw-man than the rest of
+   the Common Schema (which is derived more directly from SuperTask
+   requirements), and I certainly expect it to change based on feedback; I
+   think this reflects all that we need outside the operations system, but how
+   operations implements their system should probably influence the details
+   (such as how we represent configuration and software environment information).
 
 .. _AbstractComponents:
 
@@ -697,8 +697,8 @@ realizations of the :ref:`Common Schema <CommonSchema>`.
 
 .. note::
 
-Multiple :ref:`Data Repositories <DataRepository>`, can be served from a single :ref:`RepositoryDatabase`
-using tags (TBD if this should be part of the :ref:`CommonSchema`).
+   Multiple :ref:`Data Repositories <DataRepository>`, can be served from a single :ref:`RepositoryDatabase`
+   using tags (TBD if this should be part of the :ref:`CommonSchema`).
 
 
 .. _RepositoryDatastore:
