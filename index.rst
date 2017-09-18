@@ -675,13 +675,13 @@ potentially burdensome on implementations.
    operations implements their system should probably influence the details
    (such as how we represent configuration and software environment information).
 
-.. _AbstractComponents:
+.. _Interfaces:
 
-AbstractComponents
-==================
+Interfaces
+==========
 
-This section describes the different components in the data access system, and the
-relations between them.  The components are abstract (there are multiple realizations
+This section describes the different interfaces in the data access system, and the
+relations between them.  The interfaces are abstract (there are multiple realizations
 of them) and may themselves be composite.  The goal being to identify some framework
 for reasoning about requirements, assumptions and limitations.  To be fleshed out
 later into a concrete design.
@@ -694,6 +694,11 @@ RepositoryDatabase
 
 A SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides one or more
 realizations of the :ref:`Common Schema <CommonSchema>`.
+
+The interface to this supports the following two methods:
+
+- `getRegistry(DataRepositoryRef) -> Registry`
+- `merge([DataRepositoryRef, ...]) -> DataRepositoryRef`
 
 .. note::
 
@@ -767,7 +772,7 @@ It provides the following API:
 ConcreteComponents
 ==================
 
-This section identifies the concrete realizations of :ref:`AbstractComponents` that might
+This section identifies the concrete realizations of :ref:`Interfaces` that might
 exist.
 
 RepositoryHosts
@@ -816,6 +821,50 @@ Filesystem
     Is/has a :ref:`RepositoryDatastore`
 Scratch
     Has (trivial) :ref:`ScratchSpace`
+
+.. Butler::
+
+Butler
+======
+
+This section describes how a :ref:`Butler` might be implemented in terms of the
+:ref:`Interfaces`.
+
+.. StorageButler::
+
+StorageButler
+-------------
+
+Has two methods:
+
+- `get(DatasetRef, parameters) -> ConcreteDataset`
+- `put(DatasetRef, ConcreteDataset) -> None`
+
+.. FullButler::
+
+FullButler
+----------
+
+Has both :ref:`StorageButler` methods and also holds a :ref:`Registry`
+to which a reference may be obtained with:
+
+- `getRegistry() -> Registry&`
+
+.. Registry::
+
+Registry
+--------
+
+Is the client side interface to a :ref:`RepositoryDatabase` and has the following
+methods:
+
+- `registerDatasetType(DatasetType, template) -> None`
+- `insertDataUnit(DataUnit, replace=False) -> None`
+- `makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
+- `addQuantum(Quantum) -> None`
+- `find(DatasetRef) -> URI, DatasetMetatype`
+- `makePath(DatasetRef) -> Path`
+- `addDataset(DatasetRef, URI, Quantum=None) -> None`
 
 .. .. rubric:: References
 
