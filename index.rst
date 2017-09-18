@@ -817,27 +817,6 @@ Filesystem
 Scratch
     Has (trivial) :ref:`ScratchSpace`
 
-Communication
--------------
-
-By means of a :ref:`TransferClient` will be needed both between all of these components.
-In particular the following relations have been identified:
-
-.. digraph:: communication_by_transfer
-
-  Archive -> LSP
-  Archive -> Laptops
-  Archive -> NonOpsClusters
-  LSP -> Laptops
-  LSP -> NonOpsClusters
-  NonOpsClusters -> Laptops
-
-In addition to:
-
-.. digraph:: communication_by_transfer_internal
-
-  RepositoryDatastore <-> ScratchSpace
-
 .. .. rubric:: References
 
 .. Make in-text citations with: :cite:`bibkey`.
