@@ -778,45 +778,50 @@ It provides the following API:
   store a :ref:`ConcreteDataset` at the location provided by `UriHint`.
   Actual storage location may be different and is returned as output `Uri`.
 
-.. StorageButler::
+.. Butler::
 
-StorageButler
--------------
+Butler
+------
 
 Holds a:
 
-- :ref:`RepositoryDatastore` (`RDS`);
-- :ref:`RepositoryDatabase` (`RDB`);
-- :ref:`RepositoryRef` (`dataRepositoryRef`);
- 
+- :ref:`ButlerConfiguration` (`config`);
+- :ref:`RepositoryDatastore` (optional, `RDS`);
+- :ref:`RepositoryDatabase` (optional, `RDB`);
+
 and provides:
 
 .. code:: python
 
-    def get(self, DatasetRef datasetRef, parameters):
-        uri, datasetMetatype = RDB.getRepositoryRegistry(dataRepositoryRef).find(datasetRef)
+    def get(self, datasetRef, parameters):
+        RR = RDB.getRepositoryRegistry(config.dataRepositoryRef)
+        uri, datasetMetatype = RR.find(datasetRef)
         concreteDataset = RDS.get(uri, datasetMetatype)
         return concreteDataset
+
+.. code:: python
+
+    def put(self, datasetRef, concreteDataset, quantum=None):
+        RR = RDB.getRepositoryRegistry(config.dataRepositoryRef)
+        path = RR.makePath(datasetRef)
+        uri = RDS.put(concreteDataset, dataRepositoryRef, path, datasetMetatype)
+        RR.addDataset(datasetRef, uri, quantum)
 
 and
 
 .. code:: python
 
-    def put(self, DatasetRef datasetRef, ConcreteDataset concreteDataset):
-        RR = RDB.getRepositoryRegistry(dataRepositoryRef)
-        path = RR.makePath(datasetRef)
-        uri = RDS.put(concreteDataset, dataRepositoryRef, path, datasetMetatype)
-        RR.addDataset(datasetRef, uri, quantum=None)
+    def getRepositoryRegistry(self):
+        return RDB.getRepositoryRegistry(config.dataRepositoryRef)
 
-.. FullButler::
+.. StorageButler::
 
-FullButler
-----------
+StorageButler
+-------------
 
-Has both :ref:`StorageButler` methods and also holds a :ref:`RepositoryRegistry`
-to which a reference may be obtained with:
-
-- `getRepositoryRegistry() -> RepositoryRegistry&`
+Is a :ref:`Butler` that only provides `get` and `put`. It does
+not hold a :ref:`RepositoryDatabase` and may or may not
+hold a :ref:`RepositoryDatastore`.
 
 .. _Provides:
 
