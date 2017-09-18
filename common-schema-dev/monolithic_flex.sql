@@ -192,7 +192,15 @@ CREATE TABLE VisitPatchJoin (
 
 CREATE TABLE DatasetType (
     dataset_type_id int PRIMARY KEY,
-    name varchar NOT NULL
+    name varchar NOT NULL,
+    template varchar,  -- pattern used to generate filenames from DataUnit fields
+    reader varchar,
+    writer varchar
+);
+
+CREATE TABLE DatasetTypeUnits (
+    dataset_type_id int PRIMARY KEY,
+    unit_name varchar NOT NULL
 );
 
 CREATE TABLE Dataset (
@@ -200,7 +208,8 @@ CREATE TABLE Dataset (
     dataset_type_id NOT NULL,
     uri varchar NOT NULL,
     producer_id int,
-    FOREIGN KEY (producer_id) REFERENCES Quantum (quantum_id)
+    FOREIGN KEY (producer_id) REFERENCES Quantum (quantum_id),
+    FOREIGN KEY (parent_dataset_id) REFERENCES Dataset (dataset_id)
 );
 
 CREATE TABLE Quantum (
@@ -214,8 +223,41 @@ CREATE TABLE Quantum (
 CREATE TABLE DatasetConsumers (
     dataset_id int NOT NULL,
     quantum_id int NOT NULL,
-    FOREIGN KEY (dataset_id) REFERENCES Dataset (dataset_id)
+    FOREIGN KEY (dataset_id) REFERENCES Dataset (dataset_id),
     FOREIGN KEY (quantum_id) REFERENCES Quantum (quantum_id)
+);
+
+--------------------------------------------------------------------------
+-- Composite Datasets
+--
+--  - If a Dataset is comprised of multiple files, we require each file to
+--    also be a full-fledged Dataset in its own right.  The parent
+--    DatasetType's template field is then null, and its reader is
+--    responsible for aggregating already-loaded components instead of
+--    reading from disk.  Only the per-file Datasets may be written, so the
+--    parent will also have a null writer.
+--
+--  - If a single file contains multiple Datasets, there must be a full-
+--    fledged Dataset for the full file as well.  The child DatasetTypes then
+--    have null writer and template fields (they may not be written), and
+--    their readers should operate on the full file as defined in the parent
+--    DatasetType.
+--------------------------------------------------------------------------
+
+CREATE TABLE DatasetTypeComposition (
+    parent_id int NOT NULL,
+    component_id int NOT NULL,
+    component_name int NOT NULL,
+    FOREIGN KEY (parent_id) REFERENCES DatasetType (dataset_type_id),
+    FOREIGN KEY (component_id) REFERENCES DatasetType (dataset_type_id)
+);
+
+CREATE TABLE DatasetComposition (
+    parent_id int NOT NULL,
+    component_id int NOT NULL,
+    component_name int NOT NULL,
+    FOREIGN KEY (parent_id) REFERENCES Dataset (dataset_id),
+    FOREIGN KEY (component_id) REFERENCES Dataset (dataset_id)
 );
 
 --------------------------------------------------------------------------
