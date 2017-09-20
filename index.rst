@@ -125,29 +125,29 @@ In the :ref:`Common Schema <CommonSchema>`, each :ref:`DataUnitType` is a table 
 DatasetRef
 ----------
 
-A unique identifier for a :ref:`Dataset` across :ref:`Data Repositories <DataRepository>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
+A unique identifier for a :ref:`Dataset` across :ref:`Data Repositories <Repository>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
 
 In the :ref:`Common Schema <CommonSchema>`, a :ref:`DatasetRef` is a row in the table for its :ref:`DatasetType`, with a foreign key field pointing to a :ref:`DataUnit` row for each element in tuple of :ref:`DataUnits <DataUnit>`.
 
 
-.. _DataRepository:
+.. _Repository:
 
-DataRepository
---------------
+Repository
+----------
 
 An entity that has the following three properties:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
-- Has a unique identifier (i.e. :ref:`DataRepositoryTag`).
+- Has a unique identifier (i.e. :ref:`RepositoryTag`).
 - Provides enough info to obtain a globally (across repositories) unique :ref:`Uri` given a :ref:`DatasetRef`.
 
 
-.. _DataRepositoryTag:
+.. _RepositoryTag:
 
-DataRepositoryTag
------------------
+RepositoryTag
+-------------
 
-Unique identifier of a :ref:`DataRepository` within a :ref:`RepositoryDatabase`.
+Unique identifier of a :ref:`Repository` within a :ref:`RepositoryDatabase`.
 
 
 .. _DatasetExpression:
@@ -193,25 +193,25 @@ Common Schema
 
 The Common Schema is a set of conceptual SQL tables (which may be implemented
 as views) that can be used to retrieve :ref:`DataUnit` and :ref:`Dataset`
-metadata in any :ref:`DataRepository`.  Implementations may choose to add
+metadata in any :ref:`Repository`.  Implementations may choose to add
 fields to any of the tables described below, but they must have at least the
 fields shown here.  The SQL dialect used to construct queries against the
 Common Schema is TBD; because different implementations may use different
 database systems, we can in general only support a limited common dialect.
 
 The relationship between databases and :ref:`DataRepositories
-<DataRepository>` may be one-to-many or one-to-one in different
+<Repository>` may be one-to-many or one-to-one in different
 implementations, but the Common Schema only provides a view to a single
-:ref:`DataRepository` (except for the tables in the :ref:`Provenance
+:ref:`Repository` (except for the tables in the :ref:`Provenance
 <cs_provenance>` section).  As a result, for most implementations that take
 the one- to-many approach, at least some of the conceptual tables below must
 be implemented as views that select only the entries that correspond to a
-particular :ref:`DataRepository`.  We will refer to them as "tables" in the
+particular :ref:`Repository`.  We will refer to them as "tables" in the
 rest of this system only for brevity.
 
 The common schema is only intended to be used for SELECT queries.  Operations
 that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dataset>` (or
-types thereof) to/from a :ref:`DataRepository` will be supported through 
+types thereof) to/from a :ref:`Repository` will be supported through 
 Python APIs, but the SQL behind these APIs will in general be specific to the
 actual (private) schema used to implement the data repository and possibly the
 database system and its associated SQL dialect.
@@ -560,12 +560,12 @@ Datasets
 --------
 
 Because the :ref:`DatasetTypes <DatasetType>` present in a
-:ref:`DataRepository` may vary from repository to repository, the
+:ref:`Repository` may vary from repository to repository, the
 :ref:`Dataset` tables in the Common Schema are defined dynamically according to
 a set of rules:
 
  - There is a table for each :ref:`DatasetType`, with entries corresponding to
-   :ref:`Datasets <Dataset>` that are present in the :ref:`DataRepository` (and
+   :ref:`Datasets <Dataset>` that are present in the :ref:`Repository` (and
    only these).
 
  - The name of the table should be the name of the :ref:`DatasetType`.
@@ -603,11 +603,11 @@ multi-file composite datasets, this field should be NULL, and another table
 Provenance
 ----------
 
-Provenance queries frequently involve crossing :ref:`DataRepository` boundaries;
+Provenance queries frequently involve crossing :ref:`Repository` boundaries;
 the inputs to a task that produced a particular :ref:`Dataset` may not be
 present in the same repository that contains that :ref:`Dataset`.  As a result,
 the tables in this section are not restricted to the contents of a single
-:ref:`DataRepository`.
+:ref:`Repository`.
 
 +-----------------+--------+----------------------------------------+
 | *DatasetType*                                                     |
@@ -636,7 +636,7 @@ section, with the following differences:
    field).
 
  - The Dataset table must contain entries for at least all :ref:`Datasets
-   <Dataset>` in the :ref:`DataRepository`, but it may contain entries for
+   <Dataset>` in the :ref:`Repository`, but it may contain entries for
    additional :ref:`Datasets <Dataset>` as well.
 
  - These add the ``producer_id`` field, which records the Quantum that produced
@@ -675,13 +675,13 @@ Dataset table itself, while the separate join table DatasetConsumers is
 used to record the Quantum entries that utilized a Dataset entry.
 
 There is no guarantee that the full provenance of a :ref:`Dataset` is captured
-by these tables in a particular :ref:`DataRepository`, unless the :ref:`Dataset`
+by these tables in a particular :ref:`Repository`, unless the :ref:`Dataset`
 and all of its dependencies (any datasets consumed by its producer Quantum,
-recursively) are also in the :ref:`DataRepository`.  When this is not the case,
+recursively) are also in the :ref:`Repository`.  When this is not the case,
 the provenance information *may* be present (with dependencies included in the
 Dataset table), or the ``Dataset.producer_id`` field may be null.  The Dataset
 table may also contain entries that are not related at all to those in the
-:ref:`DataRepository`; we have no obvious use for such a restriction, and it is
+:ref:`Repository`; we have no obvious use for such a restriction, and it is
 potentially burdensome on implementations.
 
 .. note::
@@ -718,12 +718,12 @@ realizations of the :ref:`Common Schema <CommonSchema>`.
 
 The interface to this supports the following two methods:
 
-- `getRegistry(DataRepositoryTag) -> Registry`
-- `merge([DataRepositoryTag, ...]) -> DataRepositoryTag`
+- `getRegistry(RepositoryTag) -> Registry`
+- `merge([RepositoryTag, ...]) -> RepositoryTag`
 
 .. note::
 
-   Multiple :ref:`Data Repositories <DataRepository>`, can be served from a single :ref:`RepositoryDatabase`
+   Multiple :ref:`Data Repositories <Repository>`, can be served from a single :ref:`RepositoryDatabase`
    using tags (TBD if this should be part of the :ref:`CommonSchema`).
 
 
@@ -800,7 +800,7 @@ Is the software component that sits on top of a :ref:`RepositoryDatabase` and pr
 
 `subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription` (output undefined)
 
-  Create a subset of a :ref:`DataRepository`.
+  Create a subset of a :ref:`Repository`.
 
 
 .. _TransferClient:
