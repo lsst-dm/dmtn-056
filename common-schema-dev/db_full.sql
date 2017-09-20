@@ -1,3 +1,9 @@
+--========================================================================
+-- DATA UNITS
+--
+-- DataUnits apply to all repositories in the database.
+--========================================================================
+
 --------------------------------------------------------------------------
 -- Camera DataUnits
 --------------------------------------------------------------------------
@@ -68,7 +74,6 @@ CREATE TABLE Snap (
     CONSTRAINT UNIQUE (visit_id, index)
 );
 
-
 --------------------------------------------------------------------------
 -- SkyMap DataUnits
 --------------------------------------------------------------------------
@@ -97,62 +102,33 @@ CREATE TABLE Patch (
     CONSTRAINT UNIQUE (tract_id, index)
 );
 
-
 --------------------------------------------------------------------------
 -- Calibration DataUnits
 --------------------------------------------------------------------------
 
-CREATE TABLE CalibRange (
-    calib_range_id int PRIMARY KEY,
-    first_visit int NOT NULL,
-    last_visit int,
-    camera_id int,
-    physical_filter_id int,
+CREATE TABLE MasterCalib (
+    master_calib_id int PRIMARY KEY,
+    camera_id int NOT NULL,
     FOREIGN KEY (camera_id) REFERENCES Camera (camera_id),
     FOREIGN KEY (physical_filter_id) REFERENCES PhysicalFilter (physical_filter_id),
     CONSTRAINT UNIQUE (first_visit, last_visit, camera_id, physical_filter_id)
 );
 
-CREATE TABLE SensorCalibRange (
-    sensor_calib_range_id int PRIMARY KEY,
-    first_visit int NOT NULL,
-    last_visit int,
-    physical_sensor_id int NOT NULL,
-    physical_filter_id int,
-    FOREIGN KEY (physical_sensor_id) REFERENCES PhysicalSensor (physical_sensor_id),
-    FOREIGN KEY (physical_filter_id) REFERENCES Filter (unit_id),
-    CONSTRAINT UNIQUE (first_visit, last_visit, camera_id, physical_filter_id)
-);
-
-
 --------------------------------------------------------------------------
--- Calculated join tables
+-- Join tables between DataUnits
 --
--- The [Sensor]CalibRange joins can be views (with materialization a possible
--- optimization), while the spatial joins probably need non-SQL code to
--- populate.
+-- The spatial join tables are calculated, and may be implemented as views
+-- if those calculations can be done within the database efficiently.
+-- The MasterCalibVisitJoin table is not calculated; its entries should
+-- be added whenever new MasterCalib entries are added
 --------------------------------------------------------------------------
 
-CREATE VIEW CalibRangeJoin AS
-    SELECT
-        Visit.visit_id,
-        CalibRange.calib_range_id
-    FROM
-        Visit INNER JOIN CalibRange ON (
-            (Visit.num BETWEEN CalibRange.first_visit AND CalibRange.last_visit)
-            AND Visit.physical_filter_id = CalibRange.physical_filter_id
-        );
-
-CREATE VIEW SensorCalibRangeJoin
-    SELECT
-        ObservedSensor.observed_sensor_id,
-        SensorCalibRange.sensor_calib_range_id
-    FROM
-        ObservedSensor INNER JOIN Visit ON (ObservedSensor.visit_id = Visit.visit_id)
-        INNER JOIN SensorCalibRange ON (
-            (Visit.num BETWEEN SensorCalibRange.first_visit AND SensorCalibRange.last_visit)
-            AND Visit.physical_filter_id = SensorCalibRange.physical_filter_id
-        Se);
+CREATE TABLE MasterCalibVisitJoin (
+    master_calib_id int NOT NULL,
+    visit_id int,
+    FOREIGN KEY (master_calib_id) REFERENCES MasterCalib (master_calib_id),
+    FOREIGN KEY (visit_id) REFERENCES Visit (visit_id)
+);
 
 CREATE TABLE SensorTractJoin (
     observed_sensor_id int NOT NULL,
@@ -186,16 +162,38 @@ CREATE TABLE VisitPatchJoin (
     CONSTRAINT UNIQUE (visit_id, patch_id)
 );
 
+--========================================================================
+-- DATASETS
+--
+-- Dataset and DatasetType records are both associated with RepositoryTags.
+-- DatasetMetatypes are global (to the full codebase, not just a Database).
+-- Other tables here are associated with RepositoryTags implicitly through
+-- Dataset and DatasetType.
+--========================================================================
+
 --------------------------------------------------------------------------
--- Dataset and Provenance tables
+-- DatasetTypes and MetaType
 --------------------------------------------------------------------------
+
+CREATE TABLE DatasetMetatype (
+    metatype_id int PRIMARY KEY,
+    name varchar NOT NULL
+);
+
+CREATE TABLE DatasetMetatypeComposition (
+    parent_id int NOT NULL,
+    component_id int NOT NULL,
+    component_name varchar NOT NULL,
+    FOREIGN KEY (parent_id) REFERENCES DatasetMetatype (dataset_metatype_id),
+    FOREIGN KEY (component_id) REFERENCES DatasetMetatype (dataset_metatype_id)
+);
 
 CREATE TABLE DatasetType (
     dataset_type_id int PRIMARY KEY,
     name varchar NOT NULL,
     template varchar,  -- pattern used to generate filenames from DataUnit fields
-    reader varchar,
-    writer varchar
+    dataset_metatype_id int NOT NULL,
+    FOREIGN KEY (dataset_metatype_id) REFERENCES DatasetMetatype (dataset_metatype_id)
 );
 
 CREATE TABLE DatasetTypeUnits (
@@ -203,14 +201,29 @@ CREATE TABLE DatasetTypeUnits (
     unit_name varchar NOT NULL
 );
 
+--------------------------------------------------------------------------
+-- Datasets
+--
+-- There's table for the entire Database, so IDs are unique even across
+-- Repositories.  The dataref_pack field contains an ID that is unique
+-- only with a repository, constructed by packing together the associated
+-- units (the 'path' string passed to DataStore.put would be a viable but
+-- probably inefficient choice).
+--------------------------------------------------------------------------
+
 CREATE TABLE Dataset (
     dataset_id int PRIMARY KEY,
     dataset_type_id NOT NULL,
-    uri varchar NOT NULL,
+    dataref_pack binary NOT NULL, -- packing of unit IDs to make a unique-with-repository label
+    uri varchar,
     producer_id int,
     FOREIGN KEY (producer_id) REFERENCES Quantum (quantum_id),
     FOREIGN KEY (parent_dataset_id) REFERENCES Dataset (dataset_id)
 );
+
+--------------------------------------------------------------------------
+-- Provenance
+--------------------------------------------------------------------------
 
 CREATE TABLE Quantum (
     quantum_id int PRIMARY KEY,
@@ -220,37 +233,19 @@ CREATE TABLE Quantum (
     FOREIGN KEY (config_id) REFERENCES Dataset (dataset_id)
 );
 
-CREATE TABLE DatasetConsumers (
-    dataset_id int NOT NULL,
-    quantum_id int NOT NULL,
-    FOREIGN KEY (dataset_id) REFERENCES Dataset (dataset_id),
-    FOREIGN KEY (quantum_id) REFERENCES Quantum (quantum_id)
-);
-
 --------------------------------------------------------------------------
 -- Composite Datasets
 --
---  - If a Dataset is comprised of multiple files, we require each file to
---    also be a full-fledged Dataset in its own right.  The parent
---    DatasetType's template field is then null, and its reader is
---    responsible for aggregating already-loaded components instead of
---    reading from disk.  Only the per-file Datasets may be written, so the
---    parent will also have a null writer.
+--  - If a virtual Dataset was created by writing multiple component Datasets,
+--    the parent DatasetType's 'template' field and the parent Dataset's 'uri'
+--    field may be null (depending on whether there was a also parent Dataset
+--    stored whose components should be overridden).
 --
---  - If a single file contains multiple Datasets, there must be a full-
---    fledged Dataset for the full file as well.  The child DatasetTypes then
---    have null writer and template fields (they may not be written), and
---    their readers should operate on the full file as defined in the parent
---    DatasetType.
+--  - If a single Dataset was written and we're defining virtual components,
+--    the component DatasetTypes should have null 'template' fields, but the
+--    component Datasets will have non-null 'uri' fields with values created
+--    by the Datastore
 --------------------------------------------------------------------------
-
-CREATE TABLE DatasetTypeComposition (
-    parent_id int NOT NULL,
-    component_id int NOT NULL,
-    component_name int NOT NULL,
-    FOREIGN KEY (parent_id) REFERENCES DatasetType (dataset_type_id),
-    FOREIGN KEY (component_id) REFERENCES DatasetType (dataset_type_id)
-);
 
 CREATE TABLE DatasetComposition (
     parent_id int NOT NULL,
@@ -261,9 +256,33 @@ CREATE TABLE DatasetComposition (
 );
 
 --------------------------------------------------------------------------
--- Dataset-DataUnit joins
+-- Tags to define multiple repos in a single database
 --
--- NOT PART OF COMMON SCHEMA
+-- In a single-repository database, these tables would simply be absent.
+--------------------------------------------------------------------------
+
+CREATE TABLE RepositoryTag (
+    repository_tag_id int PRIMARY KEY,
+    name varchar NOT NULL,
+    CONSTRAINT UNIQUE (name)
+);
+
+CREATE TABLE DatasetRepositoryTagJoin (
+    repository_tag_id int PRIMARY KEY,
+    dataset_id int NOT NULL,
+    FOREIGN KEY (repository_tag_id) REFERENCES RepositoryTag (repository_tag_id),
+    FOREIGN KEY (dataset_id) REFERENCES Dataset (dataset_id)
+);
+
+CREATE TABLE DatasetTypeRepositoryTagJoin (
+    repository_tag_id int PRIMARY KEY,
+    dataset_type_id int NOT NULL,
+    FOREIGN KEY (repository_tag_id) REFERENCES RepositoryTag (repository_tag_id),
+    FOREIGN KEY (dataset_type_id) REFERENCES DatasetType (dataset_type_id)
+);
+
+--------------------------------------------------------------------------
+-- Dataset-DataUnit joins
 --------------------------------------------------------------------------
 
 CREATE TABLE PhysicalFilterDatasetJoin (
@@ -322,86 +341,3 @@ CREATE TABLE PatchDatasetJoin (
     FOREIGN KEY (dataset_id) REFERENCES Dataset (dataset_id)
 );
 
---------------------------------------------------------------------------
--- Tags for multiple repos in a single database
---
--- NOT PART OF COMMON SCHEMA
---------------------------------------------------------------------------
-
-CREATE TABLE Tag (
-    tag_id int PRIMARY KEY,
-    name varchar NOT NULL,
-    CONSTRAINT UNIQUE (name)
-);
-
-CREATE TABLE DatasetTagJoin (
-    tag_id int PRIMARY KEY,
-    dataset_id int NOT NULL,
-    FOREIGN KEY (tag_id) REFERENCES Tag (tag_id),
-    FOREIGN KEY (dataset_id) REFERENCES Dataset (dataset_id)
-);
-
---------------------------------------------------------------------------
--- Views for Datasets in a Repo with tag_id=42 (examples)
---------------------------------------------------------------------------
-
--- Simple case: a single common-schema unit is sufficient to label
--- the Dataset.
-CREATE VIEW CalExp AS
-    SELECT
-        Dataset.dataset_id AS dataset_id,
-        Dataset.uri AS uri,
-        ObservedSensorDatasetJoin.observed_sensor_id AS observed_sensor_id
-    FROM
-        Dataset
-        INNER JOIN ObservedSensorDatasetJoin ON (Dataset.dataset_id = ObservedSensorDatasetJoin.dataset_id)
-        INNER JOIN DatasetType ON (Dataset.dataset_type_id = DatasetType.Dataset_type_id)
-        INNER JOIN DatasetTagJoin ON (Dataset.dataset_id = DatasetTagJoin.dataset_id)
-    WHERE
-        DatasetType.name = "CalExp"
-        AND DatasetTagJoin.tag_id = 42;
-
--- Harder case (but still simple here): need multiple common-schema units to
--- label the dataset, but we have a predefined DatasetIdentifer table for that.
-CREATE VIEW DeepCoadd AS
-    SELECT
-        Dataset.dataset_id AS dataset_id,
-        Dataset.uri AS uri,
-        PatchDatasetJoin.patch_id AS patch_id,
-        AbstractFilterDatasetJoin.abstract.filter_id AS abstract_filter_id
-    FROM
-        Dataset
-        INNER JOIN PatchDatasetJoin ON (Dataset.dataset_id = PatchDatasetJoin.dataset_id)
-        INNER JOIN FilterDatasetJoin ON (Dataset.dataset_id = FilterDatasetJoin.dataset_id)
-        INNER JOIN DatasetType ON (Dataset.dataset_type_id = DatasetType.Dataset_type_id)
-        INNER JOIN DatasetTagJoin ON (Dataset.dataset_id = DatasetTagJoin.dataset_id)
-        INNER JOIN PatchFilterIdentifier ON (UnitDatasetJoin.unit_id = PatchFilterIdentifier.unit_id)
-    WHERE
-        DatasetType.name = "DeepCoadd"
-        AND DatasetTagJoin.tag_id = 42;
-
--- Special case: Raw could be defined as (Snap, PhysicalSensor), but because a
--- Snap implies a Visit, it could also be (Snap, ObservedSensor), with an
--- insert constraint that the Visit for the two be the same.  We want to
--- choose the latter, because ObservedSensor brings with it information
--- (region, joins to calibration data and skymaps) that we want to associate
--- with the Raw dataset (especially for the calibration joins).  I think this
--- combination of units is the only one in which this situation could
--- realistically occur, but we need some mechanism in the Dataset-definition
--- system to guarantee that we use ObservedSensor in preference to
--- PhysicalSensor when they are both applicable.
-CREATE VIEW Raw AS
-    SELECT
-        Dataset.dataset_id AS dataset_id,
-        Dataset.uri AS uri,
-        ObservedSensorDatasetJoin.observed_sensor_id AS observed_sensor_id,
-        SnapDatasetJoin.snap_id AS snap_id
-    FROM
-        Dataset
-        INNER JOIN ObservedSensorDatasetJoin ON (Dataset.dataset_id = ObservedSensorDatasetJoin.dataset_id)
-        INNER JOIN SnapDatasetJoin ON (Dataset.dataset_id = SnapDatasetJoin.dataset_id)
-        INNER JOIN DatasetType ON (Dataset.dataset_type_id = DatasetType.Dataset_type_id)
-        INNER JOIN DatasetTagJoin ON (Dataset.dataset_id = DatasetTagJoin.dataset_id)
-    WHERE
-        DatasetType.name = "Raw"
-        AND DatasetTagJoin.tag_id = 42;
