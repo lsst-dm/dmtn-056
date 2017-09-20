@@ -96,6 +96,9 @@ DatasetMetatype
 
 A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`ConcreteDatasets <ConcreteDataset>` and can be saved to the same file format(s).
 
+When implemented, its interface supports the following operation:
+
+- `assemble(ConcreteDataset, components=[ConcreteDataset, ...]) -> ConcreteDataset`
 
 .. _DataUnit:
 
@@ -170,6 +173,15 @@ Uri
 ---
 
 A standard Uniform Resource Identifier.
+
+.. _DatasetComponents:
+
+DatasetComponents
+-----------------
+
+A dictionary of named components in a *composite* :ref:`Dataset`.
+The entries in the dictionary are of `str : (Uri, DatasetMetatype)` type.
+
 
 .. _CommonSchema:
 
@@ -722,8 +734,8 @@ or some other system.
 
 The interface to this supports the following methods:
 
-- `get(Uri, DatasetMetatype) -> ConcreteDataset`
-- `put(ConcreteDataset, DataRepositoryRef, Path, DatasetMetatype) -> Uri`
+- `get(Uri) -> ConcreteDataset`
+- `put(ConcreteDataset, DatasetMetatype, Path) -> Uri`
 
 .. _ScratchSpace:
 
@@ -748,19 +760,18 @@ RepositoryRegistry
 
 Is the software component that sits on top of a :ref:`RepositoryDatabase` and provides the following API:
 
-`addDataset(DatasetRef, Uri, Quantum=None) -> None`
+`addDataset(DatasetRef, Uri, DatasetComponents, Quantum=None) -> None`
 
-  Add a :ref:`Dataset` with a given :ref:`DatasetMetatype`.
-  Optionally indicates which :ref:`Quantum` generated it.
+  Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
 
 `addQuantum(Quantum) -> None`
 
   Add a new :ref:`Quantum`.
 
-`find(DatasetRef) -> Uri, DatasetMetatype`
+`find(DatasetRef) -> Uri, DatasetMetatype, DatasetComponents`
 
   Lookup the location of :ref:`Dataset` associated with a `DatasetRef` in a :ref:`RepositoryDatastore`.
-  Also return its :ref:`DatasetMetatype`.
+  Also return its :ref:`DatasetMetatype` and possible :ref:`DatasetComponents`.
 
 `insertDataUnit(DataUnit, replace=False) -> None`
 
@@ -776,13 +787,18 @@ Is the software component that sits on top of a :ref:`RepositoryDatabase` and pr
   the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
   (in the case of an object-store for instance).
  
-`registerDatasetType(DatasetType, template) -> None` (what does template mean exactly?)
+`registerDatasetType(DatasetType, template) -> None`
 
   Register a new :ref:`DatasetType`.
+  
+  .. todo::
+
+      Clarify what a `template` means.
 
 `subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription` (output undefined)
 
   Create a subset of a :ref:`DataRepository`.
+
 
 .. _TransferClient:
 
@@ -792,8 +808,13 @@ TransferClient
 Is the software component that initiates a transfer of data from a :ref:`RepositoryDatastore` to another :ref:`RepositoryDatastore` or :ref:`ScratchSpace`.
 It has the following API:
 
-- `retrieve({Uri : Path}) -> None`
-  Retrieves :ref:`Datasets <Dataset>` and stores them in the provided `Path`.
+- `retrieve({Uri : LocalPath}) -> None`
+  Retrieves :ref:`Datasets <Dataset>` and stores them in the provided `LocalPath`.
+
+.. todo::
+
+    Needs updating
+
 
 .. _InputOutputClient:
 
@@ -804,11 +825,16 @@ Is the software componets that clients use to retrieve `Datasets <Dataset>` from
 It provides the following API:
 
 - `get(Uri) -> ConcreteDatset`
-- `put(ConcreteDataset, UriHint) -> Uri`
-  store a :ref:`ConcreteDataset` at the location provided by `UriHint`.
+- `put(ConcreteDataset, Path) -> Uri`
+  store a :ref:`ConcreteDataset` at the location provided by `Path`.
   Actual storage location may be different and is returned as output `Uri`.
 
+.. todo::
+
+    Needs updating
+
 .. ButlerConfiguration::
+
 
 ButlerConfiguration
 -------------------
@@ -836,9 +862,10 @@ and provides:
 
     def get(self, datasetRef, parameters):
         RR = RDB.getRepositoryRegistry(config.dataRepositoryRef)
-        uri, datasetMetatype = RR.find(datasetRef)
-        concreteDataset = RDS.get(uri, datasetMetatype)
-        return concreteDataset
+        uri, datasetMetatype, components = RR.find(datasetRef)
+        parent = RDS.get(uri, datsetMetatype) if uri else None
+        children = {name : RDS.get(childUri, childMeta) for name, (childUri, childMeta) in components.items()}
+        return datasetMetatype.assemble(parent, children)
 
 * `put(DatasetRef, ConcreteDataset, Quantum) -> None`
 
@@ -847,8 +874,9 @@ and provides:
     def put(self, datasetRef, concreteDataset, quantum=None):
         RR = RDB.getRepositoryRegistry(config.dataRepositoryRef)
         path = RR.makePath(datasetRef)
-        uri = RDS.put(concreteDataset, dataRepositoryRef, path, datasetMetatype)
-        RR.addDataset(datasetRef, uri, quantum)
+        datasetMetatype = RR.getDatasetMetatype(datasetRef)
+        uri = RDS.put(concreteDataset, datasetMetatype, path)
+        RR.addDataset(datasetRef, uri, components, quantum)
 
 * `getRepositoryRegistry() -> RepositoryRegistry`
 
