@@ -138,16 +138,16 @@ DataRepository
 An entity that has the following three properties:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
-- Has a label that humans can parse (i.e. :ref:`DataRepositoryRef`)
-- Provides enough info to a make globally (across repositories) unique filename (or key for an object store) given a :ref:`DatasetRef`.
+- Has a unique identifier (i.e. :ref:`DataRepositoryTag`).
+- Provides enough info to obtain a globally (across repositories) unique :ref:`Uri` given a :ref:`DatasetRef`.
 
 
-.. _DataRepositoryRef:
+.. _DataRepositoryTag:
 
-DataRepositoryRef
+DataRepositoryTag
 -----------------
 
-Globally unique, human parseable, identifier of a :ref:`DataRepository` (e.g. the path to it or a Uri).
+Unique identifier of a :ref:`DataRepository` within a :ref:`RepositoryDatabase`.
 
 
 .. _DatasetExpression:
@@ -715,8 +715,8 @@ realizations of the :ref:`Common Schema <CommonSchema>`.
 
 The interface to this supports the following two methods:
 
-- `getRegistry(DataRepositoryRef) -> Registry`
-- `merge([DataRepositoryRef, ...]) -> DataRepositoryRef`
+- `getRegistry(DataRepositoryTag) -> Registry`
+- `merge([DataRepositoryTag, ...]) -> DataRepositoryTag`
 
 .. note::
 
@@ -841,7 +841,7 @@ ButlerConfiguration
 
 Configuration for :ref:`Butler`. Wraps a YAML config file and provides:
 
-- `dataRepositoryRef`.
+- `dataRepositoryTag`.
 
 .. Butler::
 
@@ -861,7 +861,7 @@ and provides:
 .. code:: python
 
     def get(self, datasetRef, parameters):
-        RR = RDB.getRepositoryRegistry(config.dataRepositoryRef)
+        RR = RDB.getRepositoryRegistry(config.dataRepositoryTag)
         uri, datasetMetatype, components = RR.find(datasetRef)
         parent = RDS.get(uri, datsetMetatype) if uri else None
         children = {name : RDS.get(childUri, childMeta) for name, (childUri, childMeta) in components.items()}
@@ -872,7 +872,7 @@ and provides:
 .. code:: python
 
     def put(self, datasetRef, concreteDataset, quantum=None):
-        RR = RDB.getRepositoryRegistry(config.dataRepositoryRef)
+        RR = RDB.getRepositoryRegistry(config.dataRepositoryTag)
         path = RR.makePath(datasetRef)
         datasetMetatype = RR.getDatasetMetatype(datasetRef)
         uri = RDS.put(concreteDataset, datasetMetatype, path)
@@ -883,7 +883,7 @@ and provides:
 .. code:: python
 
     def getRepositoryRegistry(self):
-        return RDB.getRepositoryRegistry(config.dataRepositoryRef)
+        return RDB.getRepositoryRegistry(config.dataRepositoryTag)
 
 .. StorageButler::
 
