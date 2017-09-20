@@ -175,14 +175,14 @@ Uri
 A standard Uniform Resource Identifier pointing to a :ref:`ConcreteDataset` in a :ref:`RepositoryDatastore`.
 
 The :ref:`Dataset` pointed to may be **primary** or a :ref:`Component <DatasetComponents>` of a **composite**, but should always be serializable on its own.
-When supported by the :ref:`RepositoryDatastore` the query part of the Uri (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. region in an image).
+When supported by the :ref:`RepositoryDatastore` the query part of the Uri (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
 
 .. _DatasetComponents:
 
 DatasetComponents
 -----------------
 
-A dictionary of named components in a *composite* :ref:`Dataset`.
+A dictionary of named components in a **composite** :ref:`Dataset`.
 The entries in the dictionary are of `str : (Uri, DatasetMetatype)` type.
 
 
