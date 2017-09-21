@@ -98,7 +98,7 @@ A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory 
 
 When implemented, its interface supports the following operation:
 
-- `assemble(ConcreteDataset, components=[ConcreteDataset, ...]) -> ConcreteDataset`
+- `assemble(ConcreteDataset, components=[ConcreteDataset, ...], parameters=None) -> ConcreteDataset`
 
 .. _DataUnit:
 
@@ -740,7 +740,7 @@ or some other system.
 
 The interface to this supports the following methods:
 
-- `get(Uri) -> ConcreteDataset`
+- `get(Uri, parameters=None) -> ConcreteDataset`
 - `put(ConcreteDataset, DatasetMetatype, Path) -> Uri`
 
 .. _ScratchSpace:
@@ -862,16 +862,16 @@ Holds a:
 
 and provides:
 
-* `get(DatasetRef, parameters) -> ConcreteDataset`
+* `get(DatasetRef, parameters=None) -> ConcreteDataset`
 
 .. code:: python
 
-    def get(datasetRef, parameters):
+    def get(datasetRef, parameters=None):
         RR = RDB.getRepositoryRegistry(config.dataRepositoryTag)
-        uri, datasetMetatype, components = RR.find(datasetRef)
-        parent = RDS.get(uri, datsetMetatype) if uri else None
-        children = {name : RDS.get(childUri, childMeta) for name, (childUri, childMeta) in components.items()}
-        return datasetMetatype.assemble(parent, children)
+        uri, datasetMetatype, datasetComponents = RR.find(datasetRef)
+        parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
+        children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
+        return datasetMetatype.assemble(parent, children, parameters)
 
 * `put(DatasetRef, ConcreteDataset, Quantum) -> None`
 
@@ -882,7 +882,7 @@ and provides:
         path = RR.makePath(datasetRef)
         datasetMetatype = RR.getDatasetMetatype(datasetRef)
         uri = RDS.put(concreteDataset, datasetMetatype, path)
-        RR.addDataset(datasetRef, uri, components, quantum)
+        RR.addDataset(datasetRef, uri, datasetComponents, quantum)
 
 * `getRepositoryRegistry() -> RepositoryRegistry`
 
