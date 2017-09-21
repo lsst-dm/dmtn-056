@@ -891,54 +891,6 @@ potentially burdensome on implementations.
    operations implements their system should probably influence the details
    (such as how we represent configuration and software environment information).
 
-.. _Provides:
-
-Provides
-========
-
-The following :ref:`interfaces <concepts_and_interfaces>` should be provided.
-
-Archive
-*******
-
-Ops Database
-    Is/has a :ref:`RepositoryDatabase`
-Release Database
-    Is/has a :ref:`RepositoryDatabase`
-Data BackBone
-    Is/has a :ref:`RepositoryDatastore`
-Batch Scratch
-    Is/has :ref:`ScratchSpace`
-
-Science Platform
-****************
-
-User Databases
-    Is/has :ref:`RepositoryDatabases <RepositoryDatabase>`
-User Filesystem
-    Is/has :ref:`RepositoryDatastores <RepositoryDatastore>`
-Batch Scratch
-    Is/has :ref:`ScratchSpace`
-
-Non-Ops Clusters
-****************
-
-Database
-    Is/has a :ref:`RepositoryDatabase`
-Filesystem
-    Is/has a :ref:`RepositoryDatastore`
-Batch Scratch
-    Is/has :ref:`ScratchSpace`
-
-User (Lap)Desktops
-******************
-
-Database
-    Is/has a :ref:`RepositoryDatabase`
-Filesystem
-    Is/has a :ref:`RepositoryDatastore`
-Scratch
-    Has (trivial) :ref:`ScratchSpace`
 
 .. .. rubric:: References
 
