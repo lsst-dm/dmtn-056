@@ -59,10 +59,13 @@ Purpose
 This document describes a possible design for the LSST data access system.
 
 
-.. _Components:
+.. _concepts_and_interfaces:
 
-Components
-==========
+Concepts and Interfaces
+=======================
+
+This section describes the different concepts and interfaces in the data access system,
+and the relations between them.
 
 
 .. _Dataset:
@@ -185,6 +188,198 @@ DatasetComponents
 A dictionary of named components in a **composite** :ref:`Dataset`.
 The entries in the dictionary are of `str : (Uri, DatasetMetatype)` type.
 
+
+.. _RepositoryDatabase:
+
+RepositoryDatabase
+------------------
+
+A SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides one or more
+realizations of the :ref:`Common Schema <CommonSchema>`.
+
+The interface to this supports the following two methods:
+
+- `getRepositoryRegistry(RepositoryTag) -> RepositoryRegistry`
+  Obtain a :ref:`RepositoryRegistry` for a given :ref:`RepositoryTag`.
+- `merge([RepositoryTag, ...]) -> RepositoryTag`
+  Create a new (virtual, although all repositories are virtual in some sense) :ref:`Repository`
+  with a new :ref:`RepositoryTag` by merging all :ref:`DatasetRefs <DatasetRef>`.
+
+.. note::
+
+   Multiple :ref:`Data Repositories <Repository>`, can be served from a single :ref:`RepositoryDatabase`
+   using tags (TBD if this should be part of the :ref:`CommonSchema`).
+
+
+.. _RepositoryDatastore:
+
+RepositoryDatastore
+-------------------
+
+An entity that stores the actual data. This may be a (shared) filesystem, an object store
+or some other system.
+
+The interface to this supports the following methods:
+
+- `get(Uri, parameters=None) -> ConcreteDataset`
+- `put(ConcreteDataset, DatasetMetatype, Path) -> Uri`
+
+.. _ScratchSpace:
+
+ScratchSpace
+------------
+
+An entity that serves as temporary (volitile) storage for any kind of data that is
+not (yet) in a :ref:`RepositoryDatabase` or a :ref:`RepositoryDatastore`.
+
+.. _RepositoryHost:
+
+RepositoryHost
+--------------
+
+Is an entity that is the combination of a :ref:`RepositoryDatabase`, a :ref:`RepositoryDatabase`
+and (optionally) :ref:`ScratchSpace`.
+
+.. _RepositoryRegistry:
+
+RepositoryRegistry
+------------------
+
+Is the software component that sits on top of a :ref:`RepositoryDatabase` and provides the following API:
+
+`addDataset(DatasetRef, Uri, DatasetComponents, Quantum=None) -> None`
+
+  Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
+
+`addQuantum(Quantum) -> None`
+
+  Add a new :ref:`Quantum`.
+
+`find(DatasetRef) -> Uri, DatasetMetatype, DatasetComponents`
+
+  Lookup the location of :ref:`Dataset` associated with a `DatasetRef` in a :ref:`RepositoryDatastore`.
+  Also return its :ref:`DatasetMetatype` and possible :ref:`DatasetComponents`.
+
+`insertDataUnit(DataUnit, replace=False) -> None`
+
+  Insert a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
+
+`makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
+
+  Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a `DataGraph`.
+
+`makePath(DatasetRef) -> Path`
+
+  Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
+  the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
+  (in the case of an object-store for instance).
+ 
+`registerDatasetType(DatasetType, template) -> None`
+
+  Register a new :ref:`DatasetType`.
+  
+  .. todo::
+
+      Clarify what a `template` means.
+
+`subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription` (output undefined)
+
+  Create a subset of a :ref:`Repository`.
+
+
+.. _TransferClient:
+
+TransferClient
+--------------
+
+Is the software component that initiates a transfer of data from a :ref:`RepositoryDatastore` to another :ref:`RepositoryDatastore` or :ref:`ScratchSpace`.
+It has the following API:
+
+- `retrieve({Uri : LocalPath}) -> None`
+  Retrieves :ref:`Datasets <Dataset>` and stores them in the provided `LocalPath`.
+
+.. todo::
+
+    Needs updating
+
+
+.. _InputOutputClient:
+
+InputOutputClient
+-----------------
+
+Is the software componets that clients use to retrieve `Datasets <Dataset>` from a `RepositoryDatastore`.
+It provides the following API:
+
+- `get(Uri) -> ConcreteDatset`
+- `put(ConcreteDataset, Path) -> Uri`
+  store a :ref:`ConcreteDataset` at the location provided by `Path`.
+  Actual storage location may be different and is returned as output `Uri`.
+
+.. todo::
+
+    Needs updating
+
+.. ButlerConfiguration::
+
+
+ButlerConfiguration
+-------------------
+
+Configuration for :ref:`Butler`. Wraps a YAML config file and provides:
+
+- `dataRepositoryTag`.
+
+.. Butler::
+
+Butler
+------
+
+Holds a:
+
+- :ref:`ButlerConfiguration` (`config`);
+- :ref:`RepositoryDatastore` (optional, `RDS`);
+- :ref:`RepositoryDatabase` (optional, `RDB`);
+
+and provides:
+
+* `get(DatasetRef, parameters=None) -> ConcreteDataset`
+
+.. code:: python
+
+    def get(datasetRef, parameters=None):
+        RR = RDB.getRepositoryRegistry(config.dataRepositoryTag)
+        uri, datasetMetatype, datasetComponents = RR.find(datasetRef)
+        parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
+        children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
+        return datasetMetatype.assemble(parent, children, parameters)
+
+* `put(DatasetRef, ConcreteDataset, Quantum) -> None`
+
+.. code:: python
+
+    def put(datasetRef, concreteDataset, quantum=None):
+        RR = RDB.getRepositoryRegistry(config.dataRepositoryTag)
+        path = RR.makePath(datasetRef)
+        datasetMetatype = RR.getDatasetMetatype(datasetRef)
+        uri = RDS.put(concreteDataset, datasetMetatype, path)
+        RR.addDataset(datasetRef, uri, datasetComponents, quantum)
+
+* `getRepositoryRegistry() -> RepositoryRegistry`
+
+.. code:: python
+
+    def getRepositoryRegistry():
+        return RDB.getRepositoryRegistry(config.dataRepositoryTag)
+
+.. StorageButler::
+
+StorageButler
+-------------
+
+Is a :ref:`Butler` that only provides `get` and `put`. It does
+not hold a :ref:`RepositoryDatabase` and may or may not
+hold a :ref:`RepositoryDatastore`.
 
 .. _CommonSchema:
 
@@ -696,216 +891,12 @@ potentially burdensome on implementations.
    operations implements their system should probably influence the details
    (such as how we represent configuration and software environment information).
 
-.. _Interfaces:
-
-Interfaces
-==========
-
-This section describes the different interfaces in the data access system, and the
-relations between them.  The interfaces are abstract (there are multiple realizations
-of them) and may themselves be composite.  The goal being to identify some framework
-for reasoning about requirements, assumptions and limitations.  To be fleshed out
-later into a concrete design.
-
-
-.. _RepositoryDatabase:
-
-RepositoryDatabase
-------------------
-
-A SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides one or more
-realizations of the :ref:`Common Schema <CommonSchema>`.
-
-The interface to this supports the following two methods:
-
-- `getRepositoryRegistry(RepositoryTag) -> RepositoryRegistry`
-  Obtain a :ref:`RepositoryRegistry` for a given :ref:`RepositoryTag`.
-- `merge([RepositoryTag, ...]) -> RepositoryTag`
-  Create a new (virtual, although all repositories are virtual in some sense) :ref:`Repository`
-  with a new :ref:`RepositoryTag` by merging all :ref:`DatasetRefs <DatasetRef>`.
-
-.. note::
-
-   Multiple :ref:`Data Repositories <Repository>`, can be served from a single :ref:`RepositoryDatabase`
-   using tags (TBD if this should be part of the :ref:`CommonSchema`).
-
-
-.. _RepositoryDatastore:
-
-RepositoryDatastore
--------------------
-
-An entity that stores the actual data. This may be a (shared) filesystem, an object store
-or some other system.
-
-The interface to this supports the following methods:
-
-- `get(Uri, parameters=None) -> ConcreteDataset`
-- `put(ConcreteDataset, DatasetMetatype, Path) -> Uri`
-
-.. _ScratchSpace:
-
-ScratchSpace
-------------
-
-An entity that serves as temporary (volitile) storage for any kind of data that is
-not (yet) in a :ref:`RepositoryDatabase` or a :ref:`RepositoryDatastore`.
-
-.. _RepositoryHost:
-
-RepositoryHost
---------------
-
-Is an entity that is the combination of a :ref:`RepositoryDatabase`, a :ref:`RepositoryDatabase`
-and (optionally) :ref:`ScratchSpace`.
-
-.. _RepositoryRegistry:
-
-RepositoryRegistry
-------------------
-
-Is the software component that sits on top of a :ref:`RepositoryDatabase` and provides the following API:
-
-`addDataset(DatasetRef, Uri, DatasetComponents, Quantum=None) -> None`
-
-  Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
-
-`addQuantum(Quantum) -> None`
-
-  Add a new :ref:`Quantum`.
-
-`find(DatasetRef) -> Uri, DatasetMetatype, DatasetComponents`
-
-  Lookup the location of :ref:`Dataset` associated with a `DatasetRef` in a :ref:`RepositoryDatastore`.
-  Also return its :ref:`DatasetMetatype` and possible :ref:`DatasetComponents`.
-
-`insertDataUnit(DataUnit, replace=False) -> None`
-
-  Insert a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
-
-`makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph`
-
-  Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a `DataGraph`.
-
-`makePath(DatasetRef) -> Path`
-
-  Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
-  the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
-  (in the case of an object-store for instance).
- 
-`registerDatasetType(DatasetType, template) -> None`
-
-  Register a new :ref:`DatasetType`.
-  
-  .. todo::
-
-      Clarify what a `template` means.
-
-`subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription` (output undefined)
-
-  Create a subset of a :ref:`Repository`.
-
-
-.. _TransferClient:
-
-TransferClient
---------------
-
-Is the software component that initiates a transfer of data from a :ref:`RepositoryDatastore` to another :ref:`RepositoryDatastore` or :ref:`ScratchSpace`.
-It has the following API:
-
-- `retrieve({Uri : LocalPath}) -> None`
-  Retrieves :ref:`Datasets <Dataset>` and stores them in the provided `LocalPath`.
-
-.. todo::
-
-    Needs updating
-
-
-.. _InputOutputClient:
-
-InputOutputClient
------------------
-
-Is the software componets that clients use to retrieve `Datasets <Dataset>` from a `RepositoryDatastore`.
-It provides the following API:
-
-- `get(Uri) -> ConcreteDatset`
-- `put(ConcreteDataset, Path) -> Uri`
-  store a :ref:`ConcreteDataset` at the location provided by `Path`.
-  Actual storage location may be different and is returned as output `Uri`.
-
-.. todo::
-
-    Needs updating
-
-.. ButlerConfiguration::
-
-
-ButlerConfiguration
--------------------
-
-Configuration for :ref:`Butler`. Wraps a YAML config file and provides:
-
-- `dataRepositoryTag`.
-
-.. Butler::
-
-Butler
-------
-
-Holds a:
-
-- :ref:`ButlerConfiguration` (`config`);
-- :ref:`RepositoryDatastore` (optional, `RDS`);
-- :ref:`RepositoryDatabase` (optional, `RDB`);
-
-and provides:
-
-* `get(DatasetRef, parameters=None) -> ConcreteDataset`
-
-.. code:: python
-
-    def get(datasetRef, parameters=None):
-        RR = RDB.getRepositoryRegistry(config.dataRepositoryTag)
-        uri, datasetMetatype, datasetComponents = RR.find(datasetRef)
-        parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
-        children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
-        return datasetMetatype.assemble(parent, children, parameters)
-
-* `put(DatasetRef, ConcreteDataset, Quantum) -> None`
-
-.. code:: python
-
-    def put(datasetRef, concreteDataset, quantum=None):
-        RR = RDB.getRepositoryRegistry(config.dataRepositoryTag)
-        path = RR.makePath(datasetRef)
-        datasetMetatype = RR.getDatasetMetatype(datasetRef)
-        uri = RDS.put(concreteDataset, datasetMetatype, path)
-        RR.addDataset(datasetRef, uri, datasetComponents, quantum)
-
-* `getRepositoryRegistry() -> RepositoryRegistry`
-
-.. code:: python
-
-    def getRepositoryRegistry():
-        return RDB.getRepositoryRegistry(config.dataRepositoryTag)
-
-.. StorageButler::
-
-StorageButler
--------------
-
-Is a :ref:`Butler` that only provides `get` and `put`. It does
-not hold a :ref:`RepositoryDatabase` and may or may not
-hold a :ref:`RepositoryDatastore`.
-
 .. _Provides:
 
 Provides
 ========
 
-The following :ref:`Interfaces` should be provided.
+The following :ref:`interfaces <concepts_and_interfaces>` should be provided.
 
 Archive
 *******
