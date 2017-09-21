@@ -56,7 +56,7 @@
 Purpose
 =======
 
-This document describes a possible abstract design for the buter to facilitate discussions. It does not map directly to actual code, but rather serves to clarify our thinking on the concepts.
+This document describes a possible design for the LSST data access system.
 
 
 .. _Components:
