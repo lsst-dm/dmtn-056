@@ -14,7 +14,8 @@
 Purpose
 =======
 
-This document describes a possible design for the LSST data access system.
+This document describes a possible design for data access APIs.
+At this time it is purely meant to facilitate discussion in the Butler Working Group.
 
 
 .. _concepts_and_interfaces:
