@@ -718,8 +718,11 @@ realizations of the :ref:`Common Schema <CommonSchema>`.
 
 The interface to this supports the following two methods:
 
-- `getRegistry(RepositoryTag) -> Registry`
+- `getRepositoryRegistry(RepositoryTag) -> RepositoryRegistry`
+  Obtain a :ref:`RepositoryRegistry` for a given :ref:`RepositoryTag`.
 - `merge([RepositoryTag, ...]) -> RepositoryTag`
+  Create a new (virtual, although all repositories are virtual in some sense) :ref:`Repository`
+  with a new :ref:`RepositoryTag` by merging all :ref:`DatasetRefs <DatasetRef>`.
 
 .. note::
 
@@ -863,7 +866,7 @@ and provides:
 
 .. code:: python
 
-    def get(self, datasetRef, parameters):
+    def get(datasetRef, parameters):
         RR = RDB.getRepositoryRegistry(config.dataRepositoryTag)
         uri, datasetMetatype, components = RR.find(datasetRef)
         parent = RDS.get(uri, datsetMetatype) if uri else None
@@ -874,7 +877,7 @@ and provides:
 
 .. code:: python
 
-    def put(self, datasetRef, concreteDataset, quantum=None):
+    def put(datasetRef, concreteDataset, quantum=None):
         RR = RDB.getRepositoryRegistry(config.dataRepositoryTag)
         path = RR.makePath(datasetRef)
         datasetMetatype = RR.getDatasetMetatype(datasetRef)
@@ -885,7 +888,7 @@ and provides:
 
 .. code:: python
 
-    def getRepositoryRegistry(self):
+    def getRepositoryRegistry():
         return RDB.getRepositoryRegistry(config.dataRepositoryTag)
 
 .. StorageButler::
