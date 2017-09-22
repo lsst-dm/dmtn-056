@@ -161,24 +161,24 @@ realization of the :ref:`Common Schema <CommonSchema>`.
 API
 ^^^
 
-``addDatasetType(DatasetType, template) -> None``
+``addDatasetType(RepositoryTag, DatasetType, template) -> None``
   Add a new :ref:`DatasetType`.
 
   .. todo::
     Clarify ``template``, isn't this just a :ref:`DatasetMetatype`?
-``addDataset(DatasetRef, Uri, DatasetComponents, Quantum=None) -> None``
+``addDataset(RepositoryTag, DatasetRef, Uri, DatasetComponents, Quantum=None) -> None``
   Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
-``addQuantum(Quantum) -> None``
+``addQuantum(RepositoryTag, Quantum) -> None``
   Add a new :ref:`Quantum`.
-``addDataUnit(DataUnit, replace=False) -> None``
+``addDataUnit(RepositoryTag, DataUnit, replace=False) -> None``
   Add a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
-``find(DatasetRef) -> Uri, DatasetMetatype, DatasetComponents``
+``find(RepositoryTag, DatasetRef) -> Uri, DatasetMetatype, DatasetComponents``
   Lookup the location of the :ref:`Dataset` associated with the given `DatasetRef`
   in a :ref:`RepositoryDatastore`.  Also return its :ref:`DatasetMetatype` and
   (optional) :ref:`DatasetComponents`.
-``makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph``
+``makeDataGraph(RepositoryTag, DatasetExpression, [DatasetType, ...]) -> DataGraph``
   Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a `DataGraph`.
-``makePath(DatasetRef) -> Path``
+``makePath(RepositoryTag, DatasetRef) -> Path``
   Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
   the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
   (in the case of an object-store for instance).
@@ -188,16 +188,6 @@ API
   Create a new :ref:`Repository` from a series of existing ones.
   The ordering matters, such that identical :ref:`DatasetRefs <DatasetRef>` override,
   with those earlier in the list remaining.
-
-.. todo::
-
-  ``subset`` and ``merge`` operate accross repositories, where the rest
-  (mostly, but not always) operate on one.
-
-  Decide how to best express this.  One option would be to give a ``RepositoryTag=None``,
-  with a corresponding ``setCurrentRepository(RepositoryTag)``.  Another is to have a
-  separate, per-repository ``Registry`` (but sometimes you really need do do things accross
-  repositories).
 
 
 .. _RepositoryDatastore:
@@ -247,8 +237,8 @@ ButlerConfiguration
 
 Configuration for :ref:`Butler`. Wraps a YAML config file and provides:
 
-API
-^^^
+Fields
+^^^^^^
 
 ``repositoryTag``
   A :ref:`RepositoryTag`.
@@ -275,7 +265,7 @@ API
 .. code:: python
 
     def get(datasetRef, parameters=None):
-        uri, datasetMetatype, datasetComponents = RDB.find(datasetRef)
+        uri, datasetMetatype, datasetComponents = RDB.find(config.repositoryTag, datasetRef)
         parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
         children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
         return datasetMetatype.assemble(parent, children, parameters)
@@ -285,10 +275,10 @@ API
 .. code:: python
 
     def put(datasetRef, concreteDataset, quantum=None):
-        path = RDB.makePath(datasetRef)
-        datasetMetatype = RDB.getDatasetMetatype(datasetRef)
+        path = RDB.makePath(config.repositoryTag, datasetRef)
+        datasetMetatype = RDB.getDatasetMetatype(config.repositoryTag, datasetRef)
         uri = RDS.put(concreteDataset, datasetMetatype, path)
-        RDB.addDataset(datasetRef, uri, datasetComponents, quantum)
+        RDB.addDataset(config.repositoryTag, datasetRef, uri, datasetComponents, quantum)
 
 .. StorageButler::
 
