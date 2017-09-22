@@ -111,6 +111,7 @@ CREATE TABLE MasterCalib (
     camera_id int NOT NULL,
     FOREIGN KEY (camera_id) REFERENCES Camera (camera_id),
     FOREIGN KEY (physical_filter_id) REFERENCES PhysicalFilter (physical_filter_id),
+    -- TODO: first_visit and last_visit are not in here!
     CONSTRAINT UNIQUE (first_visit, last_visit, camera_id, physical_filter_id)
 );
 
@@ -167,6 +168,9 @@ CREATE TABLE VisitPatchJoin (
 --
 -- Dataset and DatasetType records are both associated with RepositoryTags.
 -- DatasetMetatypes are global (to the full codebase, not just a Database).
+-- TODO: global DatasetMetatypes clashes with the requirement to serialize
+-- any Python object given a serialization function.
+--
 -- Other tables here are associated with RepositoryTags implicitly through
 -- Dataset and DatasetType.
 --========================================================================
@@ -196,6 +200,7 @@ CREATE TABLE DatasetType (
     FOREIGN KEY (dataset_metatype_id) REFERENCES DatasetMetatype (dataset_metatype_id)
 );
 
+-- TODO: I don't understand what this table is for
 CREATE TABLE DatasetTypeUnits (
     dataset_type_id int PRIMARY KEY,
     unit_name varchar NOT NULL
@@ -219,6 +224,7 @@ CREATE TABLE Dataset (
     producer_id int,
     FOREIGN KEY (producer_id) REFERENCES Quantum (quantum_id),
     FOREIGN KEY (parent_dataset_id) REFERENCES Dataset (dataset_id)
+    -- TODO: What about dataset_type_id?
 );
 
 --------------------------------------------------------------------------
