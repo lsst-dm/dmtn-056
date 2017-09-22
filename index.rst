@@ -240,8 +240,12 @@ Configuration for :ref:`Butler`. Wraps a YAML config file and provides:
 Fields
 ^^^^^^
 
-``repositoryTag``
-  A :ref:`RepositoryTag`.
+``inputRepositories : [RepositoryTag, ...]``
+  An ordered list of :ref:`RepositoryTags <RepositoryTag>` to use for input
+  (first :ref:`Dataset` found is used).
+``outputRepositories : [RepositoryTag, ...]``
+  A list of :ref:`RepositoryTags <RepositoryTag>` to use for output
+  (the same output goes to all :ref:`repositories <Repository>`).
 
 .. Butler::
 
@@ -265,20 +269,26 @@ API
 .. code:: python
 
     def get(datasetRef, parameters=None):
-        uri, datasetMetatype, datasetComponents = RDB.find(config.repositoryTag, datasetRef)
-        parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
-        children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
-        return datasetMetatype.assemble(parent, children, parameters)
+        for repositoryTag in config.inputRepositories:
+            try:
+                uri, datasetMetatype, datasetComponents = RDB.find(repositoryTag, datasetRef)
+                parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
+                children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
+                return datasetMetatype.assemble(parent, children, parameters)
+            except NotFoundError:
+                continue
+            raise NotFoundError("DatasetRef {} not found in any input repository".format(datasetRef))
 
 ``put(DatasetRef, ConcreteDataset, Quantum) -> None``
 
 .. code:: python
 
     def put(datasetRef, concreteDataset, quantum=None):
-        path = RDB.makePath(config.repositoryTag, datasetRef)
-        datasetMetatype = RDB.getDatasetMetatype(config.repositoryTag, datasetRef)
-        uri = RDS.put(concreteDataset, datasetMetatype, path)
-        RDB.addDataset(config.repositoryTag, datasetRef, uri, datasetComponents, quantum)
+        for repositoryTag in config.outputRepositories:
+            path = RDB.makePath(repositoryTag, datasetRef)
+            datasetMetatype = RDB.getDatasetMetatype(repositoryTag, datasetRef)
+            uri = RDS.put(concreteDataset, datasetMetatype, path)
+            RDB.addDataset(repositoryTag, datasetRef, uri, datasetComponents, quantum)
 
 .. StorageButler::
 
