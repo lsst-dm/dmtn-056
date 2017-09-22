@@ -289,10 +289,17 @@ API
 
     def put(datasetRef, concreteDataset, quantum=None):
         for repositoryTag in config.outputRepositories:
-            path = RDB.makePath(repositoryTag, datasetRef)
             datasetMetatype = RDB.getDatasetMetatype(repositoryTag, datasetRef)
+            path = RDB.makePath(repositoryTag, datasetRef)
             uri = RDS.put(concreteDataset, datasetMetatype, path)
             RDB.addDataset(repositoryTag, datasetRef, uri, datasetComponents, quantum)
+
+.. todo::
+
+  Given the similarity in output, we could just use ``find`` to obtain the :ref:`Uri` and
+  :ref:`DatasetMetatype` for things that don't yet exist.
+  Then we don't need ``makePath`` (and possibly ``getDatasetMetatype``) anymore, which
+  would be cleaner IMHO (I don't like ``makePath`` much, it feels like too much internal exposure).
 
 .. StorageButler::
 
