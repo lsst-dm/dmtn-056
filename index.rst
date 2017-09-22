@@ -165,7 +165,7 @@ API
   Add a new :ref:`DatasetType`.
 
   .. todo::
-    Clarify ``template``.
+    Clarify ``template``, isn't this just a :ref:`DatasetMetatype`?
 ``addDataset(DatasetRef, Uri, DatasetComponents, Quantum=None) -> None``
   Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
 ``addQuantum(Quantum) -> None``
@@ -215,6 +215,9 @@ API
   Load a :ref:`ConcreteDataset` from the store.
 ``put(ConcreteDataset, DatasetMetatype, Path) -> Uri``
   Write a :ref:`ConcreteDataset` to the store.
+``retrieve({Uri (from) : Uri (to)}) -> None``
+  Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
+  Does not have to go through the process of creating a :ref:`ConcreteDataset`.
 
 .. _ScratchSpace:
 
@@ -232,44 +235,6 @@ RepositoryHost
 Is an entity that is the combination of a :ref:`RepositoryDatabase`, a :ref:`RepositoryDatabase`
 and (optionally) :ref:`ScratchSpace`.
 
-
-.. _TransferClient:
-
-TransferClient
---------------
-
-Is the software component that initiates a transfer of data from a :ref:`RepositoryDatastore` to another :ref:`RepositoryDatastore` or :ref:`ScratchSpace`.
-
-API
-^^^
-
-``retrieve({Uri : LocalPath}) -> None``
-  Retrieves :ref:`Datasets <Dataset>` and stores them in the provided `LocalPath`.
-
-.. todo::
-
-    Needs updating
-
-
-.. _InputOutputClient:
-
-InputOutputClient
------------------
-
-Is the software componets that clients use to retrieve `Datasets <Dataset>` from a `RepositoryDatastore`.
-
-API
-^^^
-
-``get(Uri) -> ConcreteDatset``
-  Load a :ref:`ConcreteDataset` from a `Uri`.
-``put(ConcreteDataset, Path) -> Uri``
-  Store a :ref:`ConcreteDataset` at the location provided by `Path`.
-  Actual storage location may be different and is returned as output `Uri`.
-
-.. todo::
-
-    Needs updating
 
 .. ButlerConfiguration::
 
