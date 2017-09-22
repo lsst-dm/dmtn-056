@@ -155,22 +155,49 @@ The entries in the dictionary are of `str : (Uri, DatasetMetatype)` type.
 RepositoryDatabase
 ------------------
 
-A SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides one or more
-realizations of the :ref:`Common Schema <CommonSchema>`.
+A SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides a
+realization of the :ref:`Common Schema <CommonSchema>`.
 
 API
 ^^^
 
-``getRepositoryRegistry(RepositoryTag) -> RepositoryRegistry``
-  Obtain a :ref:`RepositoryRegistry` for a given :ref:`RepositoryTag`.
+``addDatasetType(DatasetType, template) -> None``
+  Add a new :ref:`DatasetType`.
+
+  .. todo::
+    Clarify ``template``.
+``addDataset(DatasetRef, Uri, DatasetComponents, Quantum=None) -> None``
+  Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
+``addQuantum(Quantum) -> None``
+  Add a new :ref:`Quantum`.
+``addDataUnit(DataUnit, replace=False) -> None``
+  Add a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
+``find(DatasetRef) -> Uri, DatasetMetatype, DatasetComponents``
+  Lookup the location of the :ref:`Dataset` associated with the given `DatasetRef`
+  in a :ref:`RepositoryDatastore`.  Also return its :ref:`DatasetMetatype` and
+  (optional) :ref:`DatasetComponents`.
+``makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph``
+  Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a `DataGraph`.
+``makePath(DatasetRef) -> Path``
+  Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
+  the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
+  (in the case of an object-store for instance).
+``subset(RepositoryTag, DatasetExpression, [DatasetType, ...]) -> RepositoryTag``
+  Create a new :ref:`Repository` by subsetting an existing one.
 ``merge([RepositoryTag, ...]) -> RepositoryTag``
-  Create a new (virtual, although all repositories are virtual in some sense) :ref:`Repository`
-  with a new :ref:`RepositoryTag` by merging all :ref:`DatasetRefs <DatasetRef>`.
+  Create a new :ref:`Repository` from a series of existing ones.
+  The ordering matters, such that identical :ref:`DatasetRefs <DatasetRef>` override,
+  with those earlier in the list remaining.
 
-.. note::
+.. todo::
 
-   Multiple :ref:`Data Repositories <Repository>`, can be served from a single :ref:`RepositoryDatabase`
-   using tags (TBD if this should be part of the :ref:`CommonSchema`).
+  ``subset`` and ``merge`` operate accross repositories, where the rest
+  (mostly, but not always) operate on one.
+
+  Decide how to best express this.  One option would be to give a ``RepositoryTag=None``,
+  with a corresponding ``setCurrentRepository(RepositoryTag)``.  Another is to have a
+  separate, per-repository ``Registry`` (but sometimes you really need do do things accross
+  repositories).
 
 
 .. _RepositoryDatastore:
@@ -204,41 +231,6 @@ RepositoryHost
 
 Is an entity that is the combination of a :ref:`RepositoryDatabase`, a :ref:`RepositoryDatabase`
 and (optionally) :ref:`ScratchSpace`.
-
-.. _RepositoryRegistry:
-
-RepositoryRegistry
-------------------
-
-Is the software component that sits on top of a :ref:`RepositoryDatabase`.
-
-API
-^^^
-
-``addDataset(DatasetRef, Uri, DatasetComponents, Quantum=None) -> None``
-  Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
-``addQuantum(Quantum) -> None``
-  Add a new :ref:`Quantum`.
-``find(DatasetRef) -> Uri, DatasetMetatype, DatasetComponents``
-  Lookup the location of :ref:`Dataset` associated with a `DatasetRef` in a :ref:`RepositoryDatastore`.
-  Also return its :ref:`DatasetMetatype` and possible :ref:`DatasetComponents`.
-``insertDataUnit(DataUnit, replace=False) -> None``
-  Insert a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
-``makeDataGraph(DatasetExpression, [DatasetType, ...]) -> DataGraph``
-  Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a `DataGraph`.
-``makePath(DatasetRef) -> Path``
-  Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
-  the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
-  (in the case of an object-store for instance).
-``registerDatasetType(DatasetType, template) -> None``
-  Register a new :ref:`DatasetType`.
-``subsetRepository(DatasetExpression, [DatasetType, ...]) -> RepositorySubsetDescription``
-  Create a subset of a :ref:`Repository`.
-
-  .. todo::
-
-      - Clarify what a `template` means.
-      - Define `RepositorySubsetDescription`
 
 
 .. _TransferClient:
@@ -315,8 +307,7 @@ API
 .. code:: python
 
     def get(datasetRef, parameters=None):
-        RR = RDB.getRepositoryRegistry(config.repositoryTag)
-        uri, datasetMetatype, datasetComponents = RR.find(datasetRef)
+        uri, datasetMetatype, datasetComponents = RDB.find(datasetRef)
         parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
         children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
         return datasetMetatype.assemble(parent, children, parameters)
@@ -326,18 +317,10 @@ API
 .. code:: python
 
     def put(datasetRef, concreteDataset, quantum=None):
-        RR = RDB.getRepositoryRegistry(config.repositoryTag)
-        path = RR.makePath(datasetRef)
-        datasetMetatype = RR.getDatasetMetatype(datasetRef)
+        path = RDB.makePath(datasetRef)
+        datasetMetatype = RDB.getDatasetMetatype(datasetRef)
         uri = RDS.put(concreteDataset, datasetMetatype, path)
-        RR.addDataset(datasetRef, uri, datasetComponents, quantum)
-
-``getRepositoryRegistry() -> RepositoryRegistry``
-
-.. code:: python
-
-    def getRepositoryRegistry():
-        return RDB.getRepositoryRegistry(config.repositoryTag)
+        RDB.addDataset(datasetRef, uri, datasetComponents, quantum)
 
 .. StorageButler::
 
