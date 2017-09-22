@@ -102,7 +102,7 @@ Repository
 An entity that has the following three properties:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
-- Has a unique identifier (i.e. :ref:`RepositoryTag`).
+- Has a unique, human readable, identifier (i.e. :ref:`RepositoryTag`).
 - Provides enough info to obtain a globally (across repositories) unique :ref:`Uri` given a :ref:`DatasetRef`.
 
 
@@ -112,6 +112,10 @@ RepositoryTag
 -------------
 
 Unique identifier of a :ref:`Repository` within a :ref:`RepositoryDatabase`.
+
+.. note::
+
+  That such tags need to be storable in a :ref:`ButlerConfiguration` file.
 
 
 .. _DatasetExpression:
