@@ -219,6 +219,9 @@ API
   Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
   Does not have to go through the process of creating a :ref:`ConcreteDataset`.
 
+  .. todo::
+    How does this handle composites?
+
 .. _ScratchSpace:
 
 ScratchSpace
