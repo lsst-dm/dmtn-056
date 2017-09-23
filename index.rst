@@ -182,6 +182,13 @@ API
   (optional) :ref:`DatasetComponents`.
 ``makeDataGraph(RepositoryTag, DatasetExpression, [DatasetType, ...]) -> DataGraph``
   Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a :ref:`DataGraph`.
+
+  .. todo::
+    Should we also supply a ``findAll`` or something to give you just a list
+    of :ref:`Datasets <Dataset>`?  Or should the :ref:`Datagraph` be iterable
+    (I guess it already is) such that one can loop over the results of a query
+    and retrieve all relevant :ref:`Datasets <Dataset>`?
+
 ``makePath(RepositoryTag, DatasetRef) -> Path``
   Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
   the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
@@ -192,7 +199,16 @@ API
   Create a new :ref:`Repository` from a series of existing ones.
   The ordering matters, such that identical :ref:`DatasetRefs <DatasetRef>` override,
   with those earlier in the list remaining.
+``export(RepositoryTag) -> str``
+  Export contents of :ref:`RepositoryDatabase` for a given :ref:`RepositoryTag` in a text
+  format that can be imported into a different database.
 
+  .. todo::
+    This may not be the most efficient way of doing things.  But we should provide some generic
+    way of transporting repositories between databases.
+
+``import(str)``
+  Import (previously exported) contents into the (possibly empty) :ref:`RepositoryDatabase`.
 
 .. _RepositoryDatastore:
 
