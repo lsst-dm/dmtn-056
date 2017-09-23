@@ -181,7 +181,7 @@ API
   in a :ref:`RepositoryDatastore`.  Also return its :ref:`DatasetMetatype` and
   (optional) :ref:`DatasetComponents`.
 ``makeDataGraph(RepositoryTag, DatasetExpression, [DatasetType, ...]) -> DataGraph``
-  Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a `DataGraph`.
+  Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a :ref:`DataGraph`.
 ``makePath(RepositoryTag, DatasetRef) -> Path``
   Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
   the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
