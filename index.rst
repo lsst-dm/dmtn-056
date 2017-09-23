@@ -330,7 +330,7 @@ fields shown here.  The SQL dialect used to construct queries against the
 Common Schema is TBD; because different implementations may use different
 database systems, we can in general only support a limited common dialect.
 
-The relationship between databases and :ref:`DataRepositories
+The relationship between databases and :ref:`Repositories
 <Repository>` may be one-to-many or one-to-one in different
 implementations, but the Common Schema only provides a view to a single
 :ref:`Repository` (except for the tables in the :ref:`Provenance
