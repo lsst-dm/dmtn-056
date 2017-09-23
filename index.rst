@@ -206,9 +206,16 @@ API
 ^^^
 
 ``get(Uri, parameters=None) -> ConcreteDataset``
-  Load a :ref:`ConcreteDataset` from the store.
+  Load a :ref:`ConcreteDataset` from the store.  Optional ``parameters`` may specify
+  things like regions.
 ``put(ConcreteDataset, DatasetMetatype, Path) -> Uri``
-  Write a :ref:`ConcreteDataset` to the store.
+  Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
+  The :ref:`DatasetMetatype` is used to determine the serialization format.
+  The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned.
+
+  .. note::
+    This is needed because some :ref:`datastores <RepositoryDatastore>` may need to modify the :ref:`Uri`.
+    Such is the case for object stores (which can return a hash) for instance.
 ``retrieve({Uri (from) : Uri (to)}) -> None``
   Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
   Does not have to go through the process of creating a :ref:`ConcreteDataset`.
