@@ -90,29 +90,29 @@ A unit of work.
 DatasetRef
 ----------
 
-A unique identifier for a :ref:`Dataset` across :ref:`Data Repositories <Repository>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
+A unique identifier for a :ref:`Dataset` across :ref:`Data Repositories <Collection>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
 
 In the :ref:`Common Schema <CommonSchema>`, a :ref:`DatasetRef` is a row in the table for its :ref:`DatasetType`, with a foreign key field pointing to a :ref:`DataUnit` row for each element in tuple of :ref:`DataUnits <DataUnit>`.
 
 
-.. _Repository:
+.. _Collection:
 
-Repository
+Collection
 ----------
 
 An entity that has the following three properties:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
-- Has a unique, human readable, identifier (i.e. :ref:`RepositoryTag`).
+- Has a unique, human readable, identifier (i.e. :ref:`CollectionTag`).
 - Provides enough info to obtain a globally (across repositories) unique :ref:`Uri` given a :ref:`DatasetRef`.
 
 
-.. _RepositoryTag:
+.. _CollectionTag:
 
-RepositoryTag
+CollectionTag
 -------------
 
-Unique identifier of a :ref:`Repository` within a :ref:`RepositoryDatabase`.
+Unique identifier of a :ref:`Collection` within a :ref:`Database`.
 
 .. note::
 
@@ -141,10 +141,10 @@ A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUni
 Uri
 ---
 
-A standard Uniform Resource Identifier pointing to a :ref:`ConcreteDataset` in a :ref:`RepositoryDatastore`.
+A standard Uniform Resource Identifier pointing to a :ref:`ConcreteDataset` in a :ref:`Datastore`.
 
 The :ref:`Dataset` pointed to may be **primary** or a :ref:`Component <DatasetComponents>` of a **composite**, but should always be serializable on its own.
-When supported by the :ref:`RepositoryDatastore` the query part of the Uri (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
+When supported by the :ref:`Datastore` the query part of the Uri (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
 
 .. _DatasetComponents:
 
@@ -155,41 +155,25 @@ A dictionary of named components in a **composite** :ref:`Dataset`.
 The entries in the dictionary are of `str : (Uri, DatasetMetatype)` type.
 
 
-.. _RepositoryDatabase:
+.. _Database:
 
-RepositoryDatabase
-------------------
+Database
+--------
 
 Holds metadata, relationships, and provenance for managed :ref:`Datasets <Dataset>`.
 
 Typically a SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides a
 realization of the :ref:`Common Schema <CommonSchema>`.
 
-.. _RepositoryDatastore:
+.. _Datastore:
 
-RepositoryDatastore
--------------------
+Datastore
+---------
 
 Holds persisted :ref:`Datasets <Dataset>`.
 
 This may be a (shared) filesystem, an object store
 or some other system.
-
-.. _ScratchSpace:
-
-ScratchSpace
-------------
-
-An entity that serves as temporary (volitile) storage for any kind of data that is
-not (yet) in a :ref:`RepositoryDatabase` or a :ref:`RepositoryDatastore`.
-
-.. _RepositoryHost:
-
-RepositoryHost
---------------
-
-Is an entity that is the combination of a :ref:`RepositoryDatabase`, a :ref:`RepositoryDatabase`
-and (optionally) :ref:`ScratchSpace`.
 
 
 .. _ButlerConfiguration:
@@ -213,8 +197,8 @@ StorageButler
 -------------
 
 Is a :ref:`Butler` that only provides the IO methods `get` and `put`.
-It does not hold a :ref:`RepositoryDatabase` and may or may not
-hold a :ref:`RepositoryDatastore`.
+It does not hold a :ref:`Database` and may or may not
+hold a :ref:`Datastore`.
 
 .. _Operations:
 
@@ -230,7 +214,7 @@ the framework structure.
     :scale: 75%
 
 Users primarily interact with a particular :ref:`Butler` instance that 
-**provides access to a single** :ref:`Repository`.
+**provides access to a single** :ref:`Collection`.
 
 They can use this instance to:
 
@@ -240,13 +224,13 @@ They can use this instance to:
   :ref:`DataUnits <DataUnit>` and :ref:`Quanta <Quantum>`, corresponding
   to a (limited) SQL query.
 
-The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`RepositoryDatabase`
-and **one or more instances** of :ref:`RepositoryDatastore`, to which it delegates the calls.
+The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Database`
+and **one or more instances** of :ref:`Datastore`, to which it delegates the calls.
 
 These compenents constitute a separation of concerns:
 
-* :ref:`RepositoryDatabase` has no knowledge of how :ref:`Datasets <Dataset>` are actually stored, and
-* :ref:`RepositoryDatastore` has no knowledge of how :ref:`Datasets <Dataset>` are related and their scientific meaning (i.e. knows nothing about :ref:`Repositories <Repository>`, :ref:`DataUnits <DataUnit>` and :ref:`DatasetRefs <DatasetRef>`).
+* :ref:`Database` has no knowledge of how :ref:`Datasets <Dataset>` are actually stored, and
+* :ref:`Datastore` has no knowledge of how :ref:`Datasets <Dataset>` are related and their scientific meaning (i.e. knows nothing about :ref:`Repositories <Collection>`, :ref:`DataUnits <DataUnit>` and :ref:`DatasetRefs <DatasetRef>`).
 
 This separation of conserns is a key feature of the design and allows for different
 implementations (or backends) to be easily swapped out, potentially even at runtime.
@@ -256,13 +240,13 @@ Communication between the components is mitigated by the:
 * :ref:`Uri` that records **where** a :ref:`Dataset` is stored, and the
 * :ref:`DatasetMetatype` that holds information about **how** a :ref:`Dataset` can be stored.
 
-The :ref:`RepositoryDatabase` is responsible for providing the :ref:`DatasetMetatype` for
-to be stored :ref:`Datasets <Dataset>` and the :ref:`RepositoryDatastore` is responsible
+The :ref:`Database` is responsible for providing the :ref:`DatasetMetatype` for
+to be stored :ref:`Datasets <Dataset>` and the :ref:`Datastore` is responsible
 for providing the :ref:`Uri` from where it can be subsequently retrieved.
 
 .. note::
 
-    Both the :ref:`RepositoryDatabase` and the :ref:`RepositoryDatastore` typically each
+    Both the :ref:`Database` and the :ref:`Datastore` typically each
     come as a client/server pair.  In some cases the server part may be a direct backend,
     such as a SQL server or a filesystem, that does not require any extra software daemon.
     But for some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a
@@ -287,27 +271,27 @@ DatasetMetatype
 ``assemble(ConcreteDataset, components={name : ConcreteDataset}, parameters=None) -> ConcreteDataset``
   Assemble a new :ref:`ConcreteDataset` from a primary (parent) and an optional collection of components (children).
 
-.. _API_RepositoryDatabase:
+.. _API_Database:
 
-RepositoryDatabase
-------------------
+Database
+--------
 
-``addDatasetType(RepositoryTag, DatasetType, template) -> None``
+``addDatasetType(CollectionTag, DatasetType, template) -> None``
   Add a new :ref:`DatasetType`.
 
   .. todo::
     Clarify ``template``, isn't this just a :ref:`DatasetMetatype`?
-``addDataset(RepositoryTag, DatasetRef, Uri, DatasetComponents, Quantum=None) -> None``
+``addDataset(CollectionTag, DatasetRef, Uri, DatasetComponents, Quantum=None) -> None``
   Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
-``addQuantum(RepositoryTag, Quantum) -> None``
+``addQuantum(CollectionTag, Quantum) -> None``
   Add a new :ref:`Quantum`.
-``addDataUnit(RepositoryTag, DataUnit, replace=False) -> None``
+``addDataUnit(CollectionTag, DataUnit, replace=False) -> None``
   Add a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
-``find(RepositoryTag, DatasetRef) -> Uri, DatasetMetatype, DatasetComponents``
+``find(CollectionTag, DatasetRef) -> Uri, DatasetMetatype, DatasetComponents``
   Lookup the location of the :ref:`Dataset` associated with the given `DatasetRef`
-  in a :ref:`RepositoryDatastore`.  Also return its :ref:`DatasetMetatype` and
+  in a :ref:`Datastore`.  Also return its :ref:`DatasetMetatype` and
   (optional) :ref:`DatasetComponents`.
-``makeDataGraph(RepositoryTag, DatasetExpression, [DatasetType, ...]) -> DataGraph``
+``makeDataGraph(CollectionTag, DatasetExpression, [DatasetType, ...]) -> DataGraph``
   Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a :ref:`DataGraph`.
 
   .. todo::
@@ -316,18 +300,18 @@ RepositoryDatabase
     (I guess it already is) such that one can loop over the results of a query
     and retrieve all relevant :ref:`Datasets <Dataset>`?
 
-``makePath(RepositoryTag, DatasetRef) -> Path``
+``makePath(CollectionTag, DatasetRef) -> Path``
   Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
-  the :ref:`RepositoryDatastore` will likely have to deviate from the provided path
+  the :ref:`Datastore` will likely have to deviate from the provided path
   (in the case of an object-store for instance).
-``subset(RepositoryTag, DatasetExpression, [DatasetType, ...]) -> RepositoryTag``
-  Create a new :ref:`Repository` by subsetting an existing one.
-``merge([RepositoryTag, ...]) -> RepositoryTag``
-  Create a new :ref:`Repository` from a series of existing ones.
+``subset(CollectionTag, DatasetExpression, [DatasetType, ...]) -> CollectionTag``
+  Create a new :ref:`Collection` by subsetting an existing one.
+``merge([CollectionTag, ...]) -> CollectionTag``
+  Create a new :ref:`Collection` from a series of existing ones.
   The ordering matters, such that identical :ref:`DatasetRefs <DatasetRef>` override,
   with those earlier in the list remaining.
-``export(RepositoryTag) -> str``
-  Export contents of :ref:`RepositoryDatabase` for a given :ref:`RepositoryTag` in a text
+``export(CollectionTag) -> str``
+  Export contents of :ref:`Database` for a given :ref:`CollectionTag` in a text
   format that can be imported into a different database.
 
   .. todo::
@@ -335,11 +319,11 @@ RepositoryDatabase
     way of transporting repositories between databases.
 
 ``import(str)``
-  Import (previously exported) contents into the (possibly empty) :ref:`RepositoryDatabase`.
+  Import (previously exported) contents into the (possibly empty) :ref:`Database`.
 
-.. _API_RepositoryDatastore:
+.. _API_Datastore:
 
-RepositoryDatastore
+Datastore
 -------------------
 
 ``get(Uri, parameters=None) -> ConcreteDataset``
@@ -351,7 +335,7 @@ RepositoryDatastore
   The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned.
 
   .. note::
-    This is needed because some :ref:`datastores <RepositoryDatastore>` may need to modify the :ref:`Uri`.
+    This is needed because some :ref:`datastores <Datastore>` may need to modify the :ref:`Uri`.
     Such is the case for object stores (which can return a hash) for instance.
 ``retrieve({Uri (from) : Uri (to)}) -> None``
   Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
@@ -368,12 +352,12 @@ ButlerConfiguration
 Fields
 ^^^^^^
 
-``inputRepositories : [RepositoryTag, ...]``
-  An ordered list of :ref:`RepositoryTags <RepositoryTag>` to use for input
+``inputRepositories : [CollectionTag, ...]``
+  An ordered list of :ref:`CollectionTags <CollectionTag>` to use for input
   (first :ref:`Dataset` found is used).
-``outputRepositories : [RepositoryTag, ...]``
-  A list of :ref:`RepositoryTags <RepositoryTag>` to use for output
-  (the same output goes to all :ref:`repositories <Repository>`).
+``outputRepositories : [CollectionTag, ...]``
+  A list of :ref:`CollectionTags <CollectionTag>` to use for output
+  (the same output goes to all :ref:`repositories <Collection>`).
 
 .. _API_Butler:
 
@@ -386,9 +370,9 @@ Fields
 ``config``
   a :ref:`ButlerConfiguration`
 ``RDS``
-  a :ref:`RepositoryDatastore` (optional)
+  a :ref:`Datastore` (optional)
 ``RDB``
-  a :ref:`RepositoryDatabase` (optional)
+  a :ref:`Database` (optional)
 
 Methods
 ^^^^^^^
@@ -434,25 +418,25 @@ Common Schema
 
 The Common Schema is a set of conceptual SQL tables (which may be implemented
 as views) that can be used to retrieve :ref:`DataUnit` and :ref:`Dataset`
-metadata in any :ref:`Repository`.  Implementations may choose to add
+metadata in any :ref:`Collection`.  Implementations may choose to add
 fields to any of the tables described below, but they must have at least the
 fields shown here.  The SQL dialect used to construct queries against the
 Common Schema is TBD; because different implementations may use different
 database systems, we can in general only support a limited common dialect.
 
 The relationship between databases and :ref:`Repositories
-<Repository>` may be one-to-many or one-to-one in different
+<Collection>` may be one-to-many or one-to-one in different
 implementations, but the Common Schema only provides a view to a single
-:ref:`Repository` (except for the tables in the :ref:`Provenance
+:ref:`Collection` (except for the tables in the :ref:`Provenance
 <cs_provenance>` section).  As a result, for most implementations that take
 the one- to-many approach, at least some of the conceptual tables below must
 be implemented as views that select only the entries that correspond to a
-particular :ref:`Repository`.  We will refer to them as "tables" in the
+particular :ref:`Collection`.  We will refer to them as "tables" in the
 rest of this system only for brevity.
 
 The common schema is only intended to be used for SELECT queries.  Operations
 that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dataset>` (or
-types thereof) to/from a :ref:`Repository` will be supported through 
+types thereof) to/from a :ref:`Collection` will be supported through 
 Python APIs, but the SQL behind these APIs will in general be specific to the
 actual (private) schema used to implement the data repository and possibly the
 database system and its associated SQL dialect.
@@ -801,12 +785,12 @@ Datasets
 --------
 
 Because the :ref:`DatasetTypes <DatasetType>` present in a
-:ref:`Repository` may vary from repository to repository, the
+:ref:`Collection` may vary from repository to repository, the
 :ref:`Dataset` tables in the Common Schema are defined dynamically according to
 a set of rules:
 
  - There is a table for each :ref:`DatasetType`, with entries corresponding to
-   :ref:`Datasets <Dataset>` that are present in the :ref:`Repository` (and
+   :ref:`Datasets <Dataset>` that are present in the :ref:`Collection` (and
    only these).
 
  - The name of the table should be the name of the :ref:`DatasetType`.
@@ -844,11 +828,11 @@ multi-file composite datasets, this field should be NULL, and another table
 Provenance
 ----------
 
-Provenance queries frequently involve crossing :ref:`Repository` boundaries;
+Provenance queries frequently involve crossing :ref:`Collection` boundaries;
 the inputs to a task that produced a particular :ref:`Dataset` may not be
 present in the same repository that contains that :ref:`Dataset`.  As a result,
 the tables in this section are not restricted to the contents of a single
-:ref:`Repository`.
+:ref:`Collection`.
 
 +-----------------+--------+----------------------------------------+
 | *DatasetType*                                                     |
@@ -877,7 +861,7 @@ section, with the following differences:
    field).
 
  - The Dataset table must contain entries for at least all :ref:`Datasets
-   <Dataset>` in the :ref:`Repository`, but it may contain entries for
+   <Dataset>` in the :ref:`Collection`, but it may contain entries for
    additional :ref:`Datasets <Dataset>` as well.
 
  - These add the ``producer_id`` field, which records the Quantum that produced
@@ -916,13 +900,13 @@ Dataset table itself, while the separate join table DatasetConsumers is
 used to record the Quantum entries that utilized a Dataset entry.
 
 There is no guarantee that the full provenance of a :ref:`Dataset` is captured
-by these tables in a particular :ref:`Repository`, unless the :ref:`Dataset`
+by these tables in a particular :ref:`Collection`, unless the :ref:`Dataset`
 and all of its dependencies (any datasets consumed by its producer Quantum,
-recursively) are also in the :ref:`Repository`.  When this is not the case,
+recursively) are also in the :ref:`Collection`.  When this is not the case,
 the provenance information *may* be present (with dependencies included in the
 Dataset table), or the ``Dataset.producer_id`` field may be null.  The Dataset
 table may also contain entries that are not related at all to those in the
-:ref:`Repository`; we have no obvious use for such a restriction, and it is
+:ref:`Collection`; we have no obvious use for such a restriction, and it is
 potentially burdensome on implementations.
 
 .. note::
