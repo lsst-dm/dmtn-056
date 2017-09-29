@@ -64,7 +64,7 @@ DataUnit
 
 Represents a discrete unit of data (e.g. a particular visit, tract, or filter).
 
-In the :ref:`Common Schema <CommonSchema>`, a :ref:`DataUnit` is a row in the table for its :ref:`DataUnitType`.  :ref:`DataUnits <DataUnit>` must be shared across different repositories (which may be backed by different database systems), so their primary keys in the :ref:`CommonSchema` must not be database-specific quantities such as autoincrement fields.
+In the :ref:`Common Schema <CommonSchema>`, a :ref:`DataUnit` is a row in the table for its :ref:`DataUnitType`.  :ref:`DataUnits <DataUnit>` must be shared across different collections (which may be backed by different database systems), so their primary keys in the :ref:`CommonSchema` must not be database-specific quantities such as autoincrement fields.
 
 
 .. _DataUnitType:
@@ -104,7 +104,7 @@ An entity that has the following three properties:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
 - Has a unique, human readable, identifier (i.e. :ref:`CollectionTag`).
-- Provides enough info to obtain a globally (across repositories) unique :ref:`Uri` given a :ref:`DatasetRef`.
+- Provides enough info to obtain a globally (across collections) unique :ref:`Uri` given a :ref:`DatasetRef`.
 
 
 .. _CollectionTag:
@@ -189,7 +189,7 @@ Configuration for :ref:`Butler`.
 Butler
 ------
 
-Provides access to a single repository.
+Provides access to a single collection.
 
 .. _StorageButler:
 
@@ -316,7 +316,7 @@ Database
 
   .. todo::
     This may not be the most efficient way of doing things.  But we should provide some generic
-    way of transporting repositories between databases.
+    way of transporting collections between databases.
 
 ``import(str)``
   Import (previously exported) contents into the (possibly empty) :ref:`Database`.
@@ -357,7 +357,7 @@ Fields
   (first :ref:`Dataset` found is used).
 ``outputRepositories : [CollectionTag, ...]``
   A list of :ref:`CollectionTags <CollectionTag>` to use for output
-  (the same output goes to all :ref:`repositories <Collection>`).
+  (the same output goes to all :ref:`collections <Collection>`).
 
 .. _API_Butler:
 
@@ -382,26 +382,26 @@ Methods
 .. code:: python
 
     def get(datasetRef, parameters=None):
-        for repositoryTag in config.inputRepositories:
+        for collectionTag in config.inputRepositories:
             try:
-                uri, datasetMetatype, datasetComponents = RDB.find(repositoryTag, datasetRef)
+                uri, datasetMetatype, datasetComponents = RDB.find(collectionTag, datasetRef)
                 parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
                 children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
                 return datasetMetatype.assemble(parent, children, parameters)
             except NotFoundError:
                 continue
-            raise NotFoundError("DatasetRef {} not found in any input repository".format(datasetRef))
+            raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
 
 ``put(DatasetRef, ConcreteDataset, Quantum) -> None``
 
 .. code:: python
 
     def put(datasetRef, concreteDataset, quantum=None):
-        for repositoryTag in config.outputRepositories:
-            datasetMetatype = RDB.getDatasetMetatype(repositoryTag, datasetRef)
-            path = RDB.makePath(repositoryTag, datasetRef)
+        for collectionTag in config.outputRepositories:
+            datasetMetatype = RDB.getDatasetMetatype(collectionTag, datasetRef)
+            path = RDB.makePath(collectionTag, datasetRef)
             uri = RDS.put(concreteDataset, datasetMetatype, path)
-            RDB.addDataset(repositoryTag, datasetRef, uri, datasetComponents, quantum)
+            RDB.addDataset(collectionTag, datasetRef, uri, datasetComponents, quantum)
 
 .. todo::
 
@@ -438,7 +438,7 @@ The common schema is only intended to be used for SELECT queries.  Operations
 that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dataset>` (or
 types thereof) to/from a :ref:`Collection` will be supported through 
 Python APIs, but the SQL behind these APIs will in general be specific to the
-actual (private) schema used to implement the data repository and possibly the
+actual (private) schema used to implement the data collection and possibly the
 database system and its associated SQL dialect.
 
 .. _cs_camera_dataunits:
@@ -785,7 +785,7 @@ Datasets
 --------
 
 Because the :ref:`DatasetTypes <DatasetType>` present in a
-:ref:`Collection` may vary from repository to repository, the
+:ref:`Collection` may vary from collection to collection, the
 :ref:`Dataset` tables in the Common Schema are defined dynamically according to
 a set of rules:
 
@@ -830,7 +830,7 @@ Provenance
 
 Provenance queries frequently involve crossing :ref:`Collection` boundaries;
 the inputs to a task that produced a particular :ref:`Dataset` may not be
-present in the same repository that contains that :ref:`Dataset`.  As a result,
+present in the same collection that contains that :ref:`Dataset`.  As a result,
 the tables in this section are not restricted to the contents of a single
 :ref:`Collection`.
 
