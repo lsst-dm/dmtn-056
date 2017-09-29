@@ -77,6 +77,14 @@ The conceptual type of a :ref:`DataUnit` (such as visit, tract, or filter).
 In the :ref:`Common Schema <CommonSchema>`, each :ref:`DataUnitType` is a table that the holds :ref:`DataUnits <DataUnit>` of that type as its rows.
 
 
+.. _Quantum:
+
+Quantum
+-------
+
+A unit of work.
+
+
 .. _DatasetRef:
 
 DatasetRef
@@ -184,7 +192,7 @@ Is an entity that is the combination of a :ref:`RepositoryDatabase`, a :ref:`Rep
 and (optionally) :ref:`ScratchSpace`.
 
 
-.. ButlerConfiguration::
+.. _ButlerConfiguration:
 
 
 ButlerConfiguration
@@ -192,14 +200,14 @@ ButlerConfiguration
 
 Configuration for :ref:`Butler`.
 
-.. Butler::
+.. _Butler:
 
 Butler
 ------
 
 Provides access to a single repository.
 
-.. StorageButler::
+.. _StorageButler:
 
 StorageButler
 -------------
@@ -213,7 +221,52 @@ hold a :ref:`RepositoryDatastore`.
 Operations
 ==========
 
-Here we describe the various operations that can be performed.
+In order to understand how operations are performed it is helpful to examine
+the framework structure.
+
+.. _framework_structure:
+
+.. image:: images/concepts.png
+    :scale: 75%
+
+Users primarily interact with a particular :ref:`Butler` instance that 
+**provides access to a single** :ref:`Repository`.
+
+They can use this instance to:
+
+* Load a :ref:`Dataset` associated with a particular :ref:`DatasetRef`,
+* Store a :ref:`Dataset` associated with a particular :ref:`DatasetRef`, and
+* Obtain a :ref:`DataGraph`, which is a related set of :ref:`DatasetRefs <DatasetRef>`,
+  :ref:`DataUnits <DataUnit>` and :ref:`Quanta <Quantum>`, corresponding
+  to a (limited) SQL query.
+
+The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`RepositoryDatabase`
+and **one or more instances** of :ref:`RepositoryDatastore`, to which it delegates the calls.
+
+These compenents constitute a separation of concerns:
+
+* :ref:`RepositoryDatabase` has no knowledge of how :ref:`Datasets <Dataset>` are actually stored, and
+* :ref:`RepositoryDatastore` has no knowledge of how :ref:`Datasets <Dataset>` are related and their scientific meaning (i.e. knows nothing about :ref:`Repositories <Repository>`, :ref:`DataUnits <DataUnit>` and :ref:`DatasetRefs <DatasetRef>`).
+
+This separation of conserns is a key feature of the design and allows for different
+implementations (or backends) to be easily swapped out, potentially even at runtime.
+
+Communication between the components is mitigated by the:
+
+* :ref:`Uri` that records **where** a :ref:`Dataset` is stored, and the
+* :ref:`DatasetMetatype` that holds information about **how** a :ref:`Dataset` can be stored.
+
+The :ref:`RepositoryDatabase` is responsible for providing the :ref:`DatasetMetatype` for
+to be stored :ref:`Datasets <Dataset>` and the :ref:`RepositoryDatastore` is responsible
+for providing the :ref:`Uri` from where it can be subsequently retrieved.
+
+.. note::
+
+    Both the :ref:`RepositoryDatabase` and the :ref:`RepositoryDatastore` typically each
+    come as a client/server pair.  In some cases the server part may be a direct backend,
+    such as a SQL server or a filesystem, that does not require any extra software daemon.
+    But for some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a
+    daemon will be required.
 
 .. _API:
 
