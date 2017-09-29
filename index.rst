@@ -17,11 +17,10 @@ Purpose
 This document describes a possible design for data access APIs.
 At this time it is purely meant to facilitate discussion in the Butler Working Group.
 
+.. _Overview:
 
-.. _concepts_and_interfaces:
-
-Concepts and Interfaces
-=======================
+Overview
+========
 
 This section describes the different concepts and interfaces in the data access system,
 and the relations between them.
@@ -57,12 +56,6 @@ DatasetMetatype
 ---------------
 
 A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`ConcreteDatasets <ConcreteDataset>` and can be saved to the same file format(s).
-
-API
-^^^
-
-``assemble(ConcreteDataset, components={name : ConcreteDataset}, parameters=None) -> ConcreteDataset``
-  Assemble a new :ref:`ConcreteDataset` from a primary (parent) and an optional collection of components (children).
 
 .. _DataUnit:
 
@@ -159,11 +152,92 @@ The entries in the dictionary are of `str : (Uri, DatasetMetatype)` type.
 RepositoryDatabase
 ------------------
 
-A SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides a
+Holds metadata, relationships, and provenance for managed :ref:`Datasets <Dataset>`.
+
+Typically a SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides a
 realization of the :ref:`Common Schema <CommonSchema>`.
 
+.. _RepositoryDatastore:
+
+RepositoryDatastore
+-------------------
+
+Holds persisted :ref:`Datasets <Dataset>`.
+
+This may be a (shared) filesystem, an object store
+or some other system.
+
+.. _ScratchSpace:
+
+ScratchSpace
+------------
+
+An entity that serves as temporary (volitile) storage for any kind of data that is
+not (yet) in a :ref:`RepositoryDatabase` or a :ref:`RepositoryDatastore`.
+
+.. _RepositoryHost:
+
+RepositoryHost
+--------------
+
+Is an entity that is the combination of a :ref:`RepositoryDatabase`, a :ref:`RepositoryDatabase`
+and (optionally) :ref:`ScratchSpace`.
+
+
+.. ButlerConfiguration::
+
+
+ButlerConfiguration
+-------------------
+
+Configuration for :ref:`Butler`.
+
+.. Butler::
+
+Butler
+------
+
+Provides access to a single repository.
+
+.. StorageButler::
+
+StorageButler
+-------------
+
+Is a :ref:`Butler` that only provides the IO methods `get` and `put`.
+It does not hold a :ref:`RepositoryDatabase` and may or may not
+hold a :ref:`RepositoryDatastore`.
+
+.. _Operations:
+
+Operations
+==========
+
+Here we describe the various operations that can be performed.
+
+.. _API:
+
 API
-^^^
+===
+
+This section describes the API.
+
+.. note::
+
+    That not all concepts map to an actual class.
+
+.. _API_DatasetMetatype:
+
+DatasetMetatype
+---------------
+
+``assemble(ConcreteDataset, components={name : ConcreteDataset}, parameters=None) -> ConcreteDataset``
+  Assemble a new :ref:`ConcreteDataset` from a primary (parent) and an optional collection of components (children).
+
+.. _API_RepositoryDatabase:
+
+RepositoryDatabase
+------------------
 
 ``addDatasetType(RepositoryTag, DatasetType, template) -> None``
   Add a new :ref:`DatasetType`.
@@ -210,16 +284,10 @@ API
 ``import(str)``
   Import (previously exported) contents into the (possibly empty) :ref:`RepositoryDatabase`.
 
-.. _RepositoryDatastore:
+.. _API_RepositoryDatastore:
 
 RepositoryDatastore
 -------------------
-
-An entity that stores the actual data. This may be a (shared) filesystem, an object store
-or some other system.
-
-API
-^^^
 
 ``get(Uri, parameters=None) -> ConcreteDataset``
   Load a :ref:`ConcreteDataset` from the store.  Optional ``parameters`` may specify
@@ -239,30 +307,10 @@ API
   .. todo::
     How does this handle composites?
 
-.. _ScratchSpace:
-
-ScratchSpace
-------------
-
-An entity that serves as temporary (volitile) storage for any kind of data that is
-not (yet) in a :ref:`RepositoryDatabase` or a :ref:`RepositoryDatastore`.
-
-.. _RepositoryHost:
-
-RepositoryHost
---------------
-
-Is an entity that is the combination of a :ref:`RepositoryDatabase`, a :ref:`RepositoryDatabase`
-and (optionally) :ref:`ScratchSpace`.
-
-
-.. ButlerConfiguration::
-
+.. _API_ButlerConfiguration:
 
 ButlerConfiguration
 -------------------
-
-Configuration for :ref:`Butler`. Wraps a YAML config file and provides:
 
 Fields
 ^^^^^^
@@ -274,7 +322,7 @@ Fields
   A list of :ref:`RepositoryTags <RepositoryTag>` to use for output
   (the same output goes to all :ref:`repositories <Repository>`).
 
-.. Butler::
+.. _API_Butler:
 
 Butler
 ------
@@ -289,8 +337,9 @@ Fields
 ``RDB``
   a :ref:`RepositoryDatabase` (optional)
 
-API
-^^^
+Methods
+^^^^^^^
+
 ``get(DatasetRef, parameters=None) -> ConcreteDataset``
 
 .. code:: python
@@ -324,14 +373,6 @@ API
   Then we don't need ``makePath`` (and possibly ``getDatasetMetatype``) anymore, which
   would be cleaner IMHO (I don't like ``makePath`` much, it feels like too much internal exposure).
 
-.. StorageButler::
-
-StorageButler
--------------
-
-Is a :ref:`Butler` that only provides `get` and `put`. It does
-not hold a :ref:`RepositoryDatabase` and may or may not
-hold a :ref:`RepositoryDatastore`.
 
 .. _CommonSchema:
 
