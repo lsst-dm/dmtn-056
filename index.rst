@@ -90,7 +90,7 @@ A unit of work.
 DatasetRef
 ----------
 
-A unique identifier for a :ref:`Dataset` across :ref:`Data Repositories <Collection>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
+A unique identifier for a :ref:`Dataset` across :ref:`Data Collections <Collection>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
 
 In the :ref:`Common Schema <CommonSchema>`, a :ref:`DatasetRef` is a row in the table for its :ref:`DatasetType`, with a foreign key field pointing to a :ref:`DataUnit` row for each element in tuple of :ref:`DataUnits <DataUnit>`.
 
@@ -230,7 +230,7 @@ and **one or more instances** of :ref:`Datastore`, to which it delegates the cal
 These compenents constitute a separation of concerns:
 
 * :ref:`Database` has no knowledge of how :ref:`Datasets <Dataset>` are actually stored, and
-* :ref:`Datastore` has no knowledge of how :ref:`Datasets <Dataset>` are related and their scientific meaning (i.e. knows nothing about :ref:`Repositories <Collection>`, :ref:`DataUnits <DataUnit>` and :ref:`DatasetRefs <DatasetRef>`).
+* :ref:`Datastore` has no knowledge of how :ref:`Datasets <Dataset>` are related and their scientific meaning (i.e. knows nothing about :ref:`Collections <Collection>`, :ref:`DataUnits <DataUnit>` and :ref:`DatasetRefs <DatasetRef>`).
 
 This separation of conserns is a key feature of the design and allows for different
 implementations (or backends) to be easily swapped out, potentially even at runtime.
@@ -251,6 +251,53 @@ for providing the :ref:`Uri` from where it can be subsequently retrieved.
     such as a SQL server or a filesystem, that does not require any extra software daemon.
     But for some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a
     daemon will be required.
+
+
+Basic IO
+--------
+
+.. digraph:: basic_get_part1
+
+    user [label="User"];
+    butler [label="Butler"];
+    registry_client [label="Registry Client"];
+    registry_server [label="Registry Server"];
+
+    dataset_ref [label="DatasetRef",shape=box];
+    find [label=".find()\n CollectionTag + DatsetRef",shape=box];
+    sql [label="SQL",shape=box];
+    uri [label="Uri",shape=box];
+
+    user -> dataset_ref;
+    dataset_ref -> butler;
+    butler -> find;
+    find -> registry_client;
+    registry_client -> sql;
+    sql -> registry_server;
+    registry_server -> sql;
+    registry_client -> uri;
+    uri -> butler;
+
+.. digraph:: basic_get_part2
+
+    user [label="User"];
+    butler [label="Butler"];
+    datastore_client [label="Datastore Client"];
+    datastore_server [label="Datstore Server"];
+
+    uri [label="Uri",shape=box];
+    http_get [label="HTTP GET",shape=box];
+    file [label="File",shape=box];
+    concrete_dataset [label="ConcreteDataset",shape=box];
+
+    butler -> uri;
+    uri -> datastore_client;
+    datastore_client -> http_get;
+    http_get -> datastore_server;
+    datastore_server -> file;
+    file -> datastore_client;
+    datastore_client -> concrete_dataset;
+    concrete_dataset -> user;
 
 .. _API:
 
@@ -352,10 +399,10 @@ ButlerConfiguration
 Fields
 ^^^^^^
 
-``inputRepositories : [CollectionTag, ...]``
+``inputCollections : [CollectionTag, ...]``
   An ordered list of :ref:`CollectionTags <CollectionTag>` to use for input
   (first :ref:`Dataset` found is used).
-``outputRepositories : [CollectionTag, ...]``
+``outputCollections : [CollectionTag, ...]``
   A list of :ref:`CollectionTags <CollectionTag>` to use for output
   (the same output goes to all :ref:`collections <Collection>`).
 
@@ -382,7 +429,7 @@ Methods
 .. code:: python
 
     def get(datasetRef, parameters=None):
-        for collectionTag in config.inputRepositories:
+        for collectionTag in config.inputCollections:
             try:
                 uri, datasetMetatype, datasetComponents = RDB.find(collectionTag, datasetRef)
                 parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
@@ -397,7 +444,7 @@ Methods
 .. code:: python
 
     def put(datasetRef, concreteDataset, quantum=None):
-        for collectionTag in config.outputRepositories:
+        for collectionTag in config.outputCollections:
             datasetMetatype = RDB.getDatasetMetatype(collectionTag, datasetRef)
             path = RDB.makePath(collectionTag, datasetRef)
             uri = RDS.put(concreteDataset, datasetMetatype, path)
@@ -424,7 +471,7 @@ fields shown here.  The SQL dialect used to construct queries against the
 Common Schema is TBD; because different implementations may use different
 database systems, we can in general only support a limited common dialect.
 
-The relationship between databases and :ref:`Repositories
+The relationship between databases and :ref:`Collections
 <Collection>` may be one-to-many or one-to-one in different
 implementations, but the Common Schema only provides a view to a single
 :ref:`Collection` (except for the tables in the :ref:`Provenance
