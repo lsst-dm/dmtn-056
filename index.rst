@@ -261,6 +261,8 @@ for providing the :ref:`Uri` from where it can be subsequently retrieved.
     daemon will be required.
 
 
+.. _basic_io:
+
 Basic IO
 --------
 
@@ -275,12 +277,14 @@ The user has a :ref:`DatasetRef`, constructed or obtained by a query and wishes 
 This proceeds allong the following steps:
 
 1. User calls: ``butler.get(datasetRef)``.
-2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag` it was configured with (i.e. ``butler.registry.get(butler.config.collectionTag, datasetRef)``).
+2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag` it was configured with (i.e. ``butler.registry.find(butler.config.collectionTag, datasetRef)``).
 3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`Uri` and the :ref:`DatasetMetatype` of the stored :ref:`Dataset`.
 4. :ref:`Butler` forwards the request, with both the :ref:`Uri` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(uri, datasetMetatype)``).
 5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`Uri`.
 6. Using the :ref:`DatasetMetatype`, to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`ConcreteDataset` and returns it to the :ref:`Butler`.
 7. :ref:`Butler` then returns the :ref:`ConcreteDataset` to the user.
+
+See :ref:`the API documentation <Butler_get>` for more information.
 
 .. note::
 
@@ -308,6 +312,34 @@ This proceeds allong the following steps:
 7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
 8. :ref:`Butler` returns the :ref:`Uri` to the user.
 
+See :ref:`the API documentation <Butler_put>` for more information.
+
+.. _composites:
+
+Composites
+----------
+
+A :ref:`Dataset` can be **composite**, in which case it consists of a **parent** :ref:`Dataset` and one or more child :ref:`Datasets <Dataset>`.  An example would be an ``Exposure`` which consists of a ``Wcs`` a ``Mask`` and an ``Image``.  There are several ways this may be stored by the :ref:`Datastore`:
+
+* As part of the parent :ref:`Dataset` (e.g. the full ``Exposure`` is written to a single FITS file).
+* As a set of entities without a parent (e.g. only the ``Wcs``, ``Mask`` and ``Image`` are written separately and the ``Exposure`` needs to be composed from them).
+* As a mix of the two extremes (e.g. the ``Mask`` and ``Image`` are part of the ``Exposure`` file but the ``Wcs`` is written to a separate file).
+
+In either case the user expects to be able to read an individual component, and in case the components are stored separately the transfer should be efficient.
+
+In addition, it is desirable to **override** parts of a composite :ref:`Dataset` (e.g. updated metadata).
+
+To support this the :ref:`Registry` is also responsible for storing the component :ref:`Datasets <Dataset>` of the **composite**.
+
+The ``registry.find()`` call therefore not only returns the :ref:`Uri` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a :ref:`DatasetComponents` dictionary of ``name : (Uri, DatasetMetatype)`` specifying its **children**.
+
+The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`ConcreteDatasets <ConcreteDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`ConcreteDataset`.
+
+This process is most easily understood by reading the API documentation for :ref:`butler.get <Butler_get>` and :ref:`butler.put <Butler_put>`.
+
+.. note::
+
+    Only one level of composition is supported.
 
 .. _API:
 
@@ -386,10 +418,10 @@ Datastore
 ``get(Uri, parameters=None) -> ConcreteDataset``
   Load a :ref:`ConcreteDataset` from the store.  Optional ``parameters`` may specify
   things like regions.
-``put(ConcreteDataset, DatasetMetatype, Path) -> Uri``
+``put(ConcreteDataset, DatasetMetatype, Path) -> Uri, DatasetComponents``
   Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
   The :ref:`DatasetMetatype` is used to determine the serialization format.
-  The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned.
+  The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned as are the possible :ref:`DatasetComponents`.
 
   .. note::
     This is needed because some :ref:`datastores <Datastore>` may need to modify the :ref:`Uri`.
@@ -434,6 +466,8 @@ Fields
 Methods
 ^^^^^^^
 
+.. _Butler_get:
+
 ``get(DatasetRef, parameters=None) -> ConcreteDataset``
 
 .. code:: python
@@ -449,6 +483,8 @@ Methods
                 continue
             raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
 
+.. _Butler_put:
+
 ``put(DatasetRef, ConcreteDataset, Quantum) -> None``
 
 .. code:: python
@@ -457,7 +493,7 @@ Methods
         for collectionTag in config.outputCollections:
             datasetMetatype = RDB.getDatasetMetatype(collectionTag, datasetRef)
             path = RDB.makePath(collectionTag, datasetRef)
-            uri = RDS.put(concreteDataset, datasetMetatype, path)
+            uri, datasetComponents = RDS.put(concreteDataset, datasetMetatype, path)
             RDB.addDataset(collectionTag, datasetRef, uri, datasetComponents, quantum)
 
 .. todo::
