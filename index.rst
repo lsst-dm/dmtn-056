@@ -6,24 +6,15 @@
 
    **This technote is not yet published.**
 
-   For now, a WIP scratch pad for new data access APIs.
-
-
-.. _Purpose:
-
-Purpose
-=======
-
-This document describes a possible design for data access APIs.
-At this time it is purely meant to facilitate discussion in the Butler Working Group.
+    This document describes a possible design for data access APIs.
+    At this time it is purely meant to facilitate discussion in the Butler Working Group.
 
 .. _Overview:
 
 Overview
 ========
 
-This section describes the different concepts and interfaces in the data access system,
-and the relations between them.
+This section describes the different concepts and interfaces in the data access system, and the relations between them.
 
 
 .. _Dataset:
@@ -100,11 +91,11 @@ In the :ref:`Common Schema <CommonSchema>`, a :ref:`DatasetRef` is a row in the 
 Collection
 ----------
 
-An entity that has the following three properties:
+An entity that contains :ref:`Datasets <Dataset>` with the following three properties:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
-- Has a unique, human readable, identifier (i.e. :ref:`CollectionTag`).
-- Provides enough info to obtain a globally (across collections) unique :ref:`Uri` given a :ref:`DatasetRef`.
+- Has a unique, human-readable identifier (i.e. :ref:`CollectionTag`).
+- Provides enough information to obtain a globally (across collections) unique :ref:`Uri` given a :ref:`DatasetRef`.
 
 
 .. _CollectionTag:
@@ -124,7 +115,7 @@ Unique identifier of a :ref:`Collection` within a :ref:`Registry`.
 DatasetExpression
 -----------------
 
-Is an expression (SQL query against a :ref:`Common Schema <CommonSchema>`) that can be evaluated to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
+An expression (SQL query against the :ref:`Common Schema <CommonSchema>`) that can be evaluated to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
 
 An open question is if it is sufficient to only allow users to vary the ``WHERE`` clause of the SQL query, or if custom joins are also required.
 
@@ -135,6 +126,14 @@ DataGraph
 ---------
 
 A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
+
+
+.. _QuantumGraph:
+
+QuantumGraph
+------------
+
+A directed acyclic graph in which the nodes are :ref:`Datasets <Dataset>` and :ref:`Quantums <Quantum>`, and the edges are the relations between them.  This can be used to describe the to-be-executed processing defined by SuperTask preflight, or the provenance of already-produced :ref:`Datasets <Dataset>`.
 
 .. _Uri:
 
@@ -343,22 +342,50 @@ This process is most easily understood by reading the API documentation for :ref
 
 .. _API:
 
-API
-===
+Python API
+==========
 
-This section describes the API.
+This section describes the Python API.
 
 .. note::
 
-    That not all concepts map to an actual class.
+    Not all concepts map to an actual class.
 
-.. _API_DatasetMetatype:
+.. py:class:: DatasetMetatype
 
-DatasetMetatype
----------------
+    An abstract base class whose subclasses are :ref:`DatasetMetatypes <DatasetMetatype>`.
 
-``assemble(ConcreteDataset, components={name : ConcreteDataset}, parameters=None) -> ConcreteDataset``
-  Assemble a new :ref:`ConcreteDataset` from a primary (parent) and an optional collection of components (children).
+    .. py:attribute:: registry
+
+        A dictionary holding all :py:class:`DatasetMetatype` subclasses,
+        keyed by their :py:attr:`name` attributes.
+
+    .. py:attribute:: name
+
+        Virtual attribute: must be provided by derived classes.
+
+        A string name that uniquely identifies the derived class.
+
+    .. py:attribute:: components
+
+        Virtual attribute: must be provided by derived classes.
+
+        A dictionary that maps component names to the :py:class:`DatasetMetatype` subclasses for those components.  Should be empty (or ``None``?) if the :ref:`DatasetMetatype` is not a composite.
+
+    .. py:method:: assemble(parent, components, parameters=None)
+
+        Assemble a compound :ref:`ConcreteDataset`.
+
+        Virtual method: must be implemented by derived classes.
+
+        :param ConcreteDataset parent: An instance of the compound :ref:`ConcreteDataset` to be returned, or None.  If no components are provided, this is the :ref:`ConcreteDataset` that will be returned.
+
+        :param dict components: A dictionary whose keys are a subset of the keys in the :py:attr:`components` class attribute and whose values are instances of the component ConcreteDataset type.
+
+        :param dict parameters: details TBD; may be used for parameterized subsets of :ref:`Datasets <Dataset>`.
+
+        :return: a :ref:`ConcreteDataset` matching `parent` with components replaced by those in `components`.
+
 
 .. _API_Registry:
 

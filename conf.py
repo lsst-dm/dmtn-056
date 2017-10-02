@@ -21,3 +21,8 @@ g.update(confs)
 #
 #     intersphinx_mapping['python'] = ('https://docs.python.org/3', None)
 extensions.append('sphinx.ext.graphviz')
+
+nitpick_ignore = [
+    ("py:class", "dict"),
+    ("py:class", "ConcreteDataset")
+]
