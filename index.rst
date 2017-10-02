@@ -146,6 +146,14 @@ A standard Uniform Resource Identifier pointing to a :ref:`ConcreteDataset` in a
 The :ref:`Dataset` pointed to may be **primary** or a :ref:`Component <DatasetComponents>` of a **composite**, but should always be serializable on its own.
 When supported by the :ref:`Datastore` the query part of the Uri (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
 
+.. _Path:
+
+Path
+----
+
+The **path** part of a :ref:`Uri`. Typically provided as a hint to the :ref:`Datastore` to suggest a storage location/naming. The actual :ref:`Uri` used for storage is not required to respect the hint (e.g. for object stores).
+
+
 .. _DatasetComponents:
 
 DatasetComponents
@@ -282,6 +290,24 @@ This proceeds allong the following steps:
 .. note::
 
     The serialized version sent over the wire doesn't have to correspond to the format stored on disk in the :ref:`Datastore` server.  As long as it is serialized in the form expected by the client.
+
+Basic ``put``
+^^^^^^^^^^^^^
+
+The user has a :ref:`ConcreteDataset` and wishes to store this at a particular :ref:`DatasetRef`.
+
+This proceeds allong the following steps:
+
+1. User calls: ``butler.put(datasetRef, concreteDataset)``.
+2. :ref:`Butler` first obtains the correct :ref:`DatasetMetatype` from the :ref:`Registry` by calling ``butler.registry.getDatasetMetatype(butler.config.collectionTag, datasetRef)``.
+3. :ref:`Butler` obtains a :ref:`Path` from the :ref:`Registry` by calling ``butler.registry.makePath(butler.config.collectionTag, datasetRef)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.
+4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(concreteDataset, datasetMetatype, path)``.
+5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`ConcreteDataset` and sends it to the :ref:`Datastore` server.
+   Depending on the type of server it may get back the actual :ref:`Uri` or the client can generate it itself.
+6. :ref:`Datastore` returns the actual :ref:`Uri` to the :ref:`Butler`.
+7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
+8. :ref:`Butler` returns the :ref:`Uri` to the user.
+
 
 .. _API:
 
