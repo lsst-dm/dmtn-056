@@ -6,24 +6,15 @@
 
    **This technote is not yet published.**
 
-   For now, a WIP scratch pad for new data access APIs.
-
-
-.. _Purpose:
-
-Purpose
-=======
-
-This document describes a possible design for data access APIs.
-At this time it is purely meant to facilitate discussion in the Butler Working Group.
+    This document describes a possible design for data access APIs.
+    At this time it is purely meant to facilitate discussion in the Butler Working Group.
 
 .. _Overview:
 
 Overview
 ========
 
-This section describes the different concepts and interfaces in the data access system,
-and the relations between them.
+This section describes the different concepts and interfaces in the data access system, and the relations between them.
 
 
 .. _Dataset:
