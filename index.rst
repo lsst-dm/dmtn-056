@@ -112,7 +112,7 @@ An entity that has the following three properties:
 CollectionTag
 -------------
 
-Unique identifier of a :ref:`Collection` within a :ref:`Database`.
+Unique identifier of a :ref:`Collection` within a :ref:`Registry`.
 
 .. note::
 
@@ -155,9 +155,9 @@ A dictionary of named components in a **composite** :ref:`Dataset`.
 The entries in the dictionary are of `str : (Uri, DatasetMetatype)` type.
 
 
-.. _Database:
+.. _Registry:
 
-Database
+Registry
 --------
 
 Holds metadata, relationships, and provenance for managed :ref:`Datasets <Dataset>`.
@@ -197,7 +197,7 @@ StorageButler
 -------------
 
 Is a :ref:`Butler` that only provides the IO methods `get` and `put`.
-It does not hold a :ref:`Database` and may or may not
+It does not hold a :ref:`Registry` and may or may not
 hold a :ref:`Datastore`.
 
 .. _Operations:
@@ -224,12 +224,12 @@ They can use this instance to:
   :ref:`DataUnits <DataUnit>` and :ref:`Quanta <Quantum>`, corresponding
   to a (limited) SQL query.
 
-The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Database`
+The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Registry`
 and **one or more instances** of :ref:`Datastore`, to which it delegates the calls.
 
 These compenents constitute a separation of concerns:
 
-* :ref:`Database` has no knowledge of how :ref:`Datasets <Dataset>` are actually stored, and
+* :ref:`Registry` has no knowledge of how :ref:`Datasets <Dataset>` are actually stored, and
 * :ref:`Datastore` has no knowledge of how :ref:`Datasets <Dataset>` are related and their scientific meaning (i.e. knows nothing about :ref:`Collections <Collection>`, :ref:`DataUnits <DataUnit>` and :ref:`DatasetRefs <DatasetRef>`).
 
 This separation of conserns is a key feature of the design and allows for different
@@ -240,13 +240,13 @@ Communication between the components is mitigated by the:
 * :ref:`Uri` that records **where** a :ref:`Dataset` is stored, and the
 * :ref:`DatasetMetatype` that holds information about **how** a :ref:`Dataset` can be stored.
 
-The :ref:`Database` is responsible for providing the :ref:`DatasetMetatype` for
+The :ref:`Registry` is responsible for providing the :ref:`DatasetMetatype` for
 to be stored :ref:`Datasets <Dataset>` and the :ref:`Datastore` is responsible
 for providing the :ref:`Uri` from where it can be subsequently retrieved.
 
 .. note::
 
-    Both the :ref:`Database` and the :ref:`Datastore` typically each
+    Both the :ref:`Registry` and the :ref:`Datastore` typically each
     come as a client/server pair.  In some cases the server part may be a direct backend,
     such as a SQL server or a filesystem, that does not require any extra software daemon.
     But for some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a
@@ -256,6 +256,32 @@ for providing the :ref:`Uri` from where it can be subsequently retrieved.
 Basic IO
 --------
 
+To see how the various components interact we first examine a basic ``get`` and ``put`` operations for the basic case of a non-composite :ref:`Dataset`.
+We assume that the :ref:`Butler` is configured with an external :ref:`Registry` and :ref:`Datastore`, both consisting of a client-server pair.
+
+Basic ``get``
+^^^^^^^^^^^^^
+
+The user has a :ref:`DatasetRef`, constructed or obtained by a query and wishes to retrieve the associated :ref:`ConcreteDataset`.
+
+This proceeds allong the following steps:
+
+1. User calls: ``butler.get(datasetRef)``.
+2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag` it was configured with (i.e. ``butler.registry.get(butler.config.collectionTag, datasetRef)``).
+3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`Uri` and the :ref:`DatasetMetatype` of the stored :ref:`Dataset`.
+4. :ref:`Butler` forwards the request, with both the :ref:`Uri` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(uri, datasetMetatype)``).
+5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`Uri`.
+6. Using the :ref:`DatasetMetatype`, to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`ConcreteDataset` and returns it to the :ref:`Butler`.
+7. :ref:`Butler` then returns the :ref:`ConcreteDataset` to the user.
+
+.. note::
+
+    The :ref:`Datastore` request can be a simple ``HTTP GET`` request for a stored FITS file, or something more complicated.
+    In the former case the materialization would be a simple FITS read (e.g. of a ``calexp``), with the reader determined by the :ref:`DatasetMetatype` retrieved from the :ref:`Registry`.
+
+.. note::
+
+    The serialized version sent over the wire doesn't have to correspond to the format stored on disk in the :ref:`Datastore` server.  As long as it is serialized in the form expected by the client.
 
 .. _API:
 
@@ -276,9 +302,9 @@ DatasetMetatype
 ``assemble(ConcreteDataset, components={name : ConcreteDataset}, parameters=None) -> ConcreteDataset``
   Assemble a new :ref:`ConcreteDataset` from a primary (parent) and an optional collection of components (children).
 
-.. _API_Database:
+.. _API_Registry:
 
-Database
+Registry
 --------
 
 ``addDatasetType(CollectionTag, DatasetType, template) -> None``
@@ -316,7 +342,7 @@ Database
   The ordering matters, such that identical :ref:`DatasetRefs <DatasetRef>` override,
   with those earlier in the list remaining.
 ``export(CollectionTag) -> str``
-  Export contents of :ref:`Database` for a given :ref:`CollectionTag` in a text
+  Export contents of :ref:`Registry` for a given :ref:`CollectionTag` in a text
   format that can be imported into a different database.
 
   .. todo::
@@ -324,7 +350,7 @@ Database
     way of transporting collections between databases.
 
 ``import(str)``
-  Import (previously exported) contents into the (possibly empty) :ref:`Database`.
+  Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
 
 .. _API_Datastore:
 
@@ -377,7 +403,7 @@ Fields
 ``RDS``
   a :ref:`Datastore` (optional)
 ``RDB``
-  a :ref:`Database` (optional)
+  a :ref:`Registry` (optional)
 
 Methods
 ^^^^^^^
