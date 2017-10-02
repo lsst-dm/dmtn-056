@@ -256,48 +256,6 @@ for providing the :ref:`Uri` from where it can be subsequently retrieved.
 Basic IO
 --------
 
-.. digraph:: basic_get_part1
-
-    user [label="User"];
-    butler [label="Butler"];
-    registry_client [label="Registry Client"];
-    registry_server [label="Registry Server"];
-
-    dataset_ref [label="DatasetRef",shape=box];
-    find [label=".find()\n CollectionTag + DatsetRef",shape=box];
-    sql [label="SQL",shape=box];
-    uri [label="Uri",shape=box];
-
-    user -> dataset_ref;
-    dataset_ref -> butler;
-    butler -> find;
-    find -> registry_client;
-    registry_client -> sql;
-    sql -> registry_server;
-    registry_server -> sql;
-    registry_client -> uri;
-    uri -> butler;
-
-.. digraph:: basic_get_part2
-
-    user [label="User"];
-    butler [label="Butler"];
-    datastore_client [label="Datastore Client"];
-    datastore_server [label="Datstore Server"];
-
-    uri [label="Uri",shape=box];
-    http_get [label="HTTP GET",shape=box];
-    file [label="File",shape=box];
-    concrete_dataset [label="ConcreteDataset",shape=box];
-
-    butler -> uri;
-    uri -> datastore_client;
-    datastore_client -> http_get;
-    http_get -> datastore_server;
-    datastore_server -> file;
-    file -> datastore_client;
-    datastore_client -> concrete_dataset;
-    concrete_dataset -> user;
 
 .. _API:
 
