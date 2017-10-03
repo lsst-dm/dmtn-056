@@ -170,15 +170,11 @@ In addition, it is desirable to **override** parts of a composite :ref:`Dataset`
 
 To support this the :ref:`Registry` is also responsible for storing the component :ref:`Datasets <Dataset>` of the **composite**.
 
-The ``registry.find()`` call therefore not only returns the :ref:`Uri` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a `DatasetComponents` dictionary of ``name : (Uri, DatasetMetatype)`` specifying its **children**.
+The ``registry.find()`` call therefore not only returns the :ref:`Uri` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a `DatasetComponents` dictionary of ``name : DatasetRef`` specifying its **children**.
 
 The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`ConcreteDatasets <ConcreteDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`ConcreteDataset`.
 
 This process is most easily understood by reading the API documentation for :py:meth:`butler.get <Butler.get>` and :py:meth:`butler.put <Butler.put>`.
-
-.. note::
-
-    Only one level of composition is supported.
 
 .. _API:
 
@@ -539,13 +535,13 @@ Configuration for :ref:`Butler`.
 
 .. py:class:: ButlerConfiguration
 
-    .. py:attribute:: inputCollections
+    .. py:attribute:: inputCollection
 
-        An ordered list of :ref:`CollectionTags <CollectionTag>` to use for input (first :ref:`Dataset` found is used).
+        The :ref:`CollectionTag` of the input collection.
 
-    .. py:attribute:: outputCollections
+    .. py:attribute:: outputCollection
 
-        A list of :ref:`CollectionTags <CollectionTag>` to use for output (the same output goes to all :ref:`collections <Collection>`).
+        The :ref:`CollectionTag` of the output collection.
 
 
 .. _Butler:
@@ -575,26 +571,24 @@ Provides access to a single collection.
 
         .. code:: python
 
-            for collectionTag in config.inputCollections:
-                try:
-                    uri, datasetMetatype, datasetComponents = RDB.find(collectionTag, datasetRef)
-                    parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
-                    children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
-                    return datasetMetatype.assemble(parent, children, parameters)
-                except NotFoundError:
-                    continue
-                raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
+            try:
+                uri, datasetMetatype, datasetComponents = RDB.find(self.config.inputCollection, datasetRef)
+                parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
+                children = {name : self.get(childDatasetRef, parameters) for name, childDatasetRef in datasetComponents.items()}
+                return datasetMetatype.assemble(parent, children, parameters)
+            except NotFoundError:
+                continue
+            raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
 
     .. py:method:: put(DatasetRef, ConcreteDataset, Quantum) -> None
         Implemented as:
 
         .. code:: python
 
-            for collectionTag in config.outputCollections:
-                datasetMetatype = RDB.getDatasetMetatype(collectionTag, datasetRef)
-                path = RDB.makePath(collectionTag, datasetRef)
-                uri = RDS.put(concreteDataset, datasetMetatype, path)
-                RDB.addDataset(collectionTag, datasetRef, uri, datasetComponents, quantum)
+            datasetMetatype = RDB.getDatasetMetatype(self.config.outputCollection, datasetRef)
+            path = RDB.makePath(self.config.outputCollection, datasetRef)
+            uri = RDS.put(concreteDataset, datasetMetatype, path)
+            RDB.addDataset(self.config.outputCollection, datasetRef, uri, datasetComponents, quantum)
 
         .. todo::
 
