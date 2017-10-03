@@ -574,6 +574,7 @@ Provides access to a single collection.
             try:
                 uri, datasetMetatype, datasetComponents = RDB.find(self.config.inputCollection, datasetRef)
                 parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
+                # Recurse to obtain child components
                 children = {name : self.get(childDatasetRef, parameters) for name, childDatasetRef in datasetComponents.items()}
                 return datasetMetatype.assemble(parent, children, parameters)
             except NotFoundError:
