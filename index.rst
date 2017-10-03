@@ -283,7 +283,7 @@ This proceeds allong the following steps:
 6. Using the :ref:`DatasetMetatype`, to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`ConcreteDataset` and returns it to the :ref:`Butler`.
 7. :ref:`Butler` then returns the :ref:`ConcreteDataset` to the user.
 
-See :ref:`the API documentation <Butler_get>` for more information.
+See :py:meth:`the API documentation <Butler.get>` for more information.
 
 .. note::
 
@@ -311,7 +311,7 @@ This proceeds allong the following steps:
 7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
 8. :ref:`Butler` returns the :ref:`Uri` to the user.
 
-See :ref:`the API documentation <Butler_put>` for more information.
+See :py:class:`the API documentation <Butler.put>` for more information.
 
 .. _composites:
 
@@ -334,7 +334,7 @@ The ``registry.find()`` call therefore not only returns the :ref:`Uri` and :ref:
 
 The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`ConcreteDatasets <ConcreteDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`ConcreteDataset`.
 
-This process is most easily understood by reading the API documentation for :ref:`butler.get <Butler_get>` and :ref:`butler.put <Butler_put>`.
+This process is most easily understood by reading the API documentation for :py:meth:`butler.get <Butler.get>` and :py:meth:`butler.put <Butler.put>`.
 
 .. note::
 
@@ -357,20 +357,23 @@ This section describes the Python API.
 
     .. py:attribute:: registry
 
+        Concrete class attribute: provided by the base class.
+
         A dictionary holding all :py:class:`DatasetMetatype` subclasses,
         keyed by their :py:attr:`name` attributes.
 
     .. py:attribute:: name
 
-        Virtual attribute: must be provided by derived classes.
+        Virtual class attribute: must be provided by derived classes.
 
         A string name that uniquely identifies the derived class.
 
     .. py:attribute:: components
 
-        Virtual attribute: must be provided by derived classes.
+        Virtual class attribute: must be provided by derived classes.
 
-        A dictionary that maps component names to the :py:class:`DatasetMetatype` subclasses for those components.  Should be empty (or ``None``?) if the :ref:`DatasetMetatype` is not a composite.
+        A dictionary that maps component names to the :py:class:`DatasetMetatype` subclasses for those components.
+        Should be empty (or ``None``?) if the :ref:`DatasetMetatype` is not a composite.
 
     .. py:method:: assemble(parent, components, parameters=None)
 
@@ -378,7 +381,9 @@ This section describes the Python API.
 
         Virtual method: must be implemented by derived classes.
 
-        :param ConcreteDataset parent: An instance of the compound :ref:`ConcreteDataset` to be returned, or None.  If no components are provided, this is the :ref:`ConcreteDataset` that will be returned.
+        :param ConcreteDataset parent:
+            An instance of the compound :ref:`ConcreteDataset` to be returned, or None.
+            If no components are provided, this is the :ref:`ConcreteDataset` that will be returned.
 
         :param dict components: A dictionary whose keys are a subset of the keys in the :py:attr:`components` class attribute and whose values are instances of the component ConcreteDataset type.
 
@@ -387,61 +392,15 @@ This section describes the Python API.
         :return: a :ref:`ConcreteDataset` matching `parent` with components replaced by those in `components`.
 
 
-.. _API_Registry:
+.. py:class:: Registry
 
-Registry
---------
+    .. py:method:: addDatasetType(CollectionTag, DatasetType, template) -> None
 
-``addDatasetType(CollectionTag, DatasetType, template) -> None``
-  Add a new :ref:`DatasetType`.
+        Add a new :ref:`DatasetType`.
 
-  .. todo::
-    Clarify ``template``, isn't this just a :ref:`DatasetMetatype`?
-``addDataset(CollectionTag, DatasetRef, Uri, DatasetComponents, Quantum=None) -> None``
-  Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
-``addQuantum(CollectionTag, Quantum) -> None``
-  Add a new :ref:`Quantum`.
-``addDataUnit(CollectionTag, DataUnit, replace=False) -> None``
-  Add a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
-``find(CollectionTag, DatasetRef) -> Uri, DatasetMetatype, DatasetComponents``
-  Lookup the location of the :ref:`Dataset` associated with the given `DatasetRef`
-  in a :ref:`Datastore`.  Also return its :ref:`DatasetMetatype` and
-  (optional) :ref:`DatasetComponents`.
-``makeDataGraph(CollectionTag, DatasetExpression, [DatasetType, ...]) -> DataGraph``
-  Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a :ref:`DataGraph`.
+          .. todo::
 
-  .. todo::
-    Should we also supply a ``findAll`` or something to give you just a list
-    of :ref:`Datasets <Dataset>`?  Or should the :ref:`Datagraph` be iterable
-    (I guess it already is) such that one can loop over the results of a query
-    and retrieve all relevant :ref:`Datasets <Dataset>`?
-
-``makePath(CollectionTag, DatasetRef) -> Path``
-  Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since
-  the :ref:`Datastore` will likely have to deviate from the provided path
-  (in the case of an object-store for instance).
-``subset(CollectionTag, DatasetExpression, [DatasetType, ...]) -> CollectionTag``
-  Create a new :ref:`Collection` by subsetting an existing one.
-``merge([CollectionTag, ...]) -> CollectionTag``
-  Create a new :ref:`Collection` from a series of existing ones.
-  The ordering matters, such that identical :ref:`DatasetRefs <DatasetRef>` override,
-  with those earlier in the list remaining.
-``export(CollectionTag) -> str``
-  Export contents of :ref:`Registry` for a given :ref:`CollectionTag` in a text
-  format that can be imported into a different database.
-
-  .. todo::
-    This may not be the most efficient way of doing things.  But we should provide some generic
-    way of transporting collections between databases.
-
-``import(str)``
-  Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
-
-.. _API_Datastore:
-
-Datastore
--------------------
-
+<<<<<<< HEAD
 ``get(Uri, parameters=None) -> ConcreteDataset``
   Load a :ref:`ConcreteDataset` from the store.  Optional ``parameters`` may specify
   things like regions.
@@ -449,86 +408,151 @@ Datastore
   Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
   The :ref:`DatasetMetatype` is used to determine the serialization format.
   The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned as are the possible :ref:`DatasetComponents`.
+=======
+            Define DatasetType as a class; may remove the need for the template arguments.
+>>>>>>> Convert more of the API section to improved markup.
 
-  .. note::
-    This is needed because some :ref:`datastores <Datastore>` may need to modify the :ref:`Uri`.
-    Such is the case for object stores (which can return a hash) for instance.
-``retrieve({Uri (from) : Uri (to)}) -> None``
-  Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
-  Does not have to go through the process of creating a :ref:`ConcreteDataset`.
+    .. py:method:: addDataset(CollectionTag, DatasetRef, Uri, DatasetComponents, Quantum=None) -> None
 
-  .. todo::
-    How does this handle composites?
+        Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
 
-.. _API_ButlerConfiguration:
+    .. py:method:: addQuantum(CollectionTag, Quantum) -> None
 
-ButlerConfiguration
--------------------
+        Add a new :ref:`Quantum`.
 
-Fields
-^^^^^^
+    .. py:method:: addDataUnit(CollectionTag, DataUnit, replace=False) -> None
 
-``inputCollections : [CollectionTag, ...]``
-  An ordered list of :ref:`CollectionTags <CollectionTag>` to use for input
-  (first :ref:`Dataset` found is used).
-``outputCollections : [CollectionTag, ...]``
-  A list of :ref:`CollectionTags <CollectionTag>` to use for output
-  (the same output goes to all :ref:`collections <Collection>`).
+        Add a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
 
-.. _API_Butler:
+    .. py:method:: find(CollectionTag, DatasetRef) -> Uri, DatasetMetatype, DatasetComponents
 
-Butler
-------
+        Lookup the location of the :ref:`Dataset` associated with the given `DatasetRef` in a :ref:`Datastore`.
+        Also return its :ref:`DatasetMetatype` and (optional) :ref:`DatasetComponents`.
 
-Fields
-^^^^^^
+    .. py:method:: makeDataGraph(CollectionTag, DatasetExpression, [DatasetType, ...]) -> DataGraph
 
-``config``
-  a :ref:`ButlerConfiguration`
-``RDS``
-  a :ref:`Datastore` (optional)
-``RDB``
-  a :ref:`Registry` (optional)
+        Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a :ref:`DataGraph`.
 
-Methods
-^^^^^^^
+        .. todo::
+            Should we also supply a ``findAll`` or something to give you just a list
+            of :ref:`Datasets <Dataset>`?  Or should the :ref:`DataGraph` be iterable
+            (I guess it already is) such that one can loop over the results of a query
+            and retrieve all relevant :ref:`Datasets <Dataset>`?
 
-.. _Butler_get:
+    .. py:method:: makePath(CollectionTag, DatasetRef) -> Path
 
-``get(DatasetRef, parameters=None) -> ConcreteDataset``
+        Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since the
+        :ref:`Datastore` will likely have to deviate from the provided path
+        (in the case of an object-store for instance).
 
-.. code:: python
+    .. py:method:: subset(CollectionTag, DatasetExpression, [DatasetType, ...]) -> CollectionTag
 
-    def get(datasetRef, parameters=None):
-        for collectionTag in config.inputCollections:
-            try:
-                uri, datasetMetatype, datasetComponents = RDB.find(collectionTag, datasetRef)
-                parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
-                children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
-                return datasetMetatype.assemble(parent, children, parameters)
-            except NotFoundError:
-                continue
-            raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
+        Create a new :ref:`Collection` by subsetting an existing one.
 
-.. _Butler_put:
+    .. py:method:: merge([CollectionTag, ...]) -> CollectionTag
 
-``put(DatasetRef, ConcreteDataset, Quantum) -> None``
+        Create a new :ref:`Collection` from a series of existing ones.
 
-.. code:: python
+        The ordering matters, such that identical :ref:`DatasetRefs <DatasetRef>` override,
+        with those earlier in the list remaining.
 
-    def put(datasetRef, concreteDataset, quantum=None):
-        for collectionTag in config.outputCollections:
-            datasetMetatype = RDB.getDatasetMetatype(collectionTag, datasetRef)
-            path = RDB.makePath(collectionTag, datasetRef)
-            uri, datasetComponents = RDS.put(concreteDataset, datasetMetatype, path)
-            RDB.addDataset(collectionTag, datasetRef, uri, datasetComponents, quantum)
+    .. py:method:: export(CollectionTag) -> str
 
-.. todo::
+        Export contents of :ref:`Registry` for a given :ref:`CollectionTag` in a text
+        format that can be imported into a different database.
 
-  Given the similarity in output, we could just use ``find`` to obtain the :ref:`Uri` and
-  :ref:`DatasetMetatype` for things that don't yet exist.
-  Then we don't need ``makePath`` (and possibly ``getDatasetMetatype``) anymore, which
-  would be cleaner IMHO (I don't like ``makePath`` much, it feels like too much internal exposure).
+        .. todo::
+            This may not be the most efficient way of doing things.  But we should provide some generic
+            way of transporting collections between databases.
+
+    .. py:method:: import(str)
+
+        Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
+
+
+.. py:class:: Datastore
+
+    .. py:method:: get(uri, parameters=None) -> ConcreteDataset
+
+        Load a :ref:`ConcreteDataset` from the store.  Optional ``parameters`` may specify things like regions.
+
+    .. py:method:: put(ConcreteDataset, DatasetMetatype, Path) -> Uri
+
+        Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
+        The :ref:`DatasetMetatype` is used to determine the serialization format.
+        The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned.
+
+        .. note::
+            This is needed because some :ref:`datastores <Datastore>` may need to modify the :ref:`Uri`.
+            Such is the case for object stores (which can return a hash) for instance.
+
+    .. py:method:: retrieve({Uri (from) : Uri (to)}) -> None
+
+        Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
+        Does not have to go through the process of creating a :ref:`ConcreteDataset`.
+
+        .. todo::
+            How does this handle composites?
+
+
+.. py:class:: ButlerConfiguration
+
+    .. py:attribute:: inputCollections
+
+        An ordered list of :ref:`CollectionTags <CollectionTag>` to use for input (first :ref:`Dataset` found is used).
+
+    .. py:attribute:: outputCollections
+
+        A list of :ref:`CollectionTags <CollectionTag>` to use for output (the same output goes to all :ref:`collections <Collection>`).
+
+
+.. py:class:: Butler
+
+    .. py:attribute:: config
+
+        a :py:class:`ButlerConfiguration` instance
+
+    .. py:attribute:: datastore
+
+        a :py:class:`Datastore` instance
+
+    .. py:attribute:: registry
+
+        a :py:class:`Registry` instance
+
+    .. py:method:: get(DatasetRef, parameters=None) -> ConcreteDataset
+
+        Implemented as:
+
+        .. code:: python
+
+            for collectionTag in config.inputCollections:
+                try:
+                    uri, datasetMetatype, datasetComponents = RDB.find(collectionTag, datasetRef)
+                    parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
+                    children = {name : RDS.get(childUri, childMeta, parameters) for name, (childUri, childMeta) in datasetComponents.items()}
+                    return datasetMetatype.assemble(parent, children, parameters)
+                except NotFoundError:
+                    continue
+                raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
+
+    .. py:method:: put(DatasetRef, ConcreteDataset, Quantum) -> None
+        Implemented as:
+
+        .. code:: python
+
+            for collectionTag in config.outputCollections:
+                datasetMetatype = RDB.getDatasetMetatype(collectionTag, datasetRef)
+                path = RDB.makePath(collectionTag, datasetRef)
+                uri = RDS.put(concreteDataset, datasetMetatype, path)
+                RDB.addDataset(collectionTag, datasetRef, uri, datasetComponents, quantum)
+
+        .. todo::
+
+            Given the similarity in output, we could just use ``find`` to obtain the :ref:`Uri` and
+            :ref:`DatasetMetatype` for things that don't yet exist.
+            Then we don't need ``makePath`` (and possibly ``getDatasetMetatype``) anymore, which
+            would be cleaner IMHO (I don't like ``makePath`` much, it feels like too much internal exposure).
 
 
 .. _CommonSchema:
