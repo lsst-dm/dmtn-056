@@ -604,30 +604,21 @@ Provides access to a single collection.
 Common Schema
 =============
 
-The Common Schema is a set of conceptual SQL tables (which may be implemented
-as views) that can be used to retrieve :ref:`DataUnit` and :ref:`Dataset`
-metadata in any :ref:`Collection`.  Implementations may choose to add
-fields to any of the tables described below, but they must have at least the
-fields shown here.  The SQL dialect used to construct queries against the
-Common Schema is TBD; because different implementations may use different
-database systems, we can in general only support a limited common dialect.
+.. warning::
 
-The relationship between databases and :ref:`Collections
-<Collection>` may be one-to-many or one-to-one in different
-implementations, but the Common Schema only provides a view to a single
-:ref:`Collection` (except for the tables in the :ref:`Provenance
-<cs_provenance>` section).  As a result, for most implementations that take
-the one- to-many approach, at least some of the conceptual tables below must
-be implemented as views that select only the entries that correspond to a
-particular :ref:`Collection`.  We will refer to them as "tables" in the
-rest of this system only for brevity.
+    This section is out of date.  The ``common-schema-dev/db_full.sql`` file
+    in the source repository for this technote currently contains the
+    authoritative description of the commmon schema.
 
-The common schema is only intended to be used for SELECT queries.  Operations
-that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dataset>` (or
-types thereof) to/from a :ref:`Collection` will be supported through 
-Python APIs, but the SQL behind these APIs will in general be specific to the
-actual (private) schema used to implement the data collection and possibly the
-database system and its associated SQL dialect.
+
+The Common Schema is a set of conceptual SQL tables (which may be implemented as views) that can be used to retrieve :ref:`DataUnit`, :ref:`Dataset`, and
+:ref:`Quantum` metadata in any :ref:`Registry`.
+Implementations may choose to add fields to any of the tables described below, but they must have at least
+the fields shown here.
+The SQL dialect used to construct queries against the Common Schema is TBD; because different implementations may use different database systems, we can in general only support a limited common dialect.
+
+The common schema is only intended to be used for SELECT queries.
+Operations that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dataset>` (or types thereof) to/from a :ref:`Registry` will be supported through Python APIs, but the SQL behind these APIs may be specific to the actual (private) schema used to implement the data collection and possibly the database system and its associated SQL dialect.
 
 .. _cs_camera_dataunits:
 
@@ -969,13 +960,12 @@ tables when the two entities overlap as defined by their ``region`` fields.
 
 .. _cs_datasets:
 
-Datasets
---------
+Views for DatasetExpressions
+----------------------------
 
-Because the :ref:`DatasetTypes <DatasetType>` present in a
-:ref:`Collection` may vary from collection to collection, the
-:ref:`Dataset` tables in the Common Schema are defined dynamically according to
-a set of rules:
+:: todo:
+
+    Rewrite this section to describe views created on-the-fly by Registry.makeDataGraph, rather than something intrinsic to the Common Schema.
 
  - There is a table for each :ref:`DatasetType`, with entries corresponding to
    :ref:`Datasets <Dataset>` that are present in the :ref:`Collection` (and
@@ -1016,11 +1006,10 @@ multi-file composite datasets, this field should be NULL, and another table
 Provenance
 ----------
 
-Provenance queries frequently involve crossing :ref:`Collection` boundaries;
-the inputs to a task that produced a particular :ref:`Dataset` may not be
-present in the same collection that contains that :ref:`Dataset`.  As a result,
-the tables in this section are not restricted to the contents of a single
-:ref:`Collection`.
+
+.. todo::
+
+    Should DatasetTypes be associated with Collections?
 
 +-----------------+--------+----------------------------------------+
 | *DatasetType*                                                     |
