@@ -625,11 +625,19 @@ DatasetMetatype
 A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`ConcreteDatasets <ConcreteDataset>` and can be saved to the same file format(s).
 
 
+Transition
+^^^^^^^^^^
+
+The allowed values for "storage" entries in v14 Butler policy files are analogous to DatasetMetatypes.
+
+Python API
+^^^^^^^^^^
+
 .. py:class:: DatasetMetatype
 
     An abstract base class whose subclasses are :ref:`DatasetMetatypes <DatasetMetatype>`.
 
-    .. py:attribute:: registry
+    .. py:attribute:: subclasses
 
         Concrete class attribute: provided by the base class.
 
@@ -665,16 +673,42 @@ A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory 
 
         :return: a :ref:`ConcreteDataset` matching `parent` with components replaced by those in `components`.
 
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+The DatasetType table holds DatasetMetatype names in a ``varchar`` field.
+As a name is sufficient to retreive the rest of the DatasetMetatype definition in Python, the additional information is not duplicated in SQL.
+
+.. todo::
+
+    Add links when anchors for tables are present.
+
 
 .. _Registry:
 
 Registry
 --------
 
-Holds metadata, relationships, and provenance for managed :ref:`Datasets <Dataset>`.
+A database that holds metadata, relationships, and provenance for managed :ref:`Datasets <Dataset>`.
 
-Typically a SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides a
+A registry is typically a SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides a
 realization of the :ref:`Common Schema <CommonSchema>`.
+
+In some important contexts (e.g. processing data staged to scratch space), only a small subset of the full Registry interface is needed, and we may be able to utilize a simple key-value database instead.
+
+Many Registry implementations will consist of both a client and a server (though the server will frequently be just a database server with no additional code).
+
+Transition
+^^^^^^^^^^
+
+The v14 Butler's Mapper class contains a Registry object that is also implemented as a SQL database, but the new Registry concept differs in several important ways:
+
+ - new Registries can hold multiple Collections, instead of being identified strictly with a single Data Repository;
+ - new Registries also assume some of the responsibilities of the v14 Butler's Mapper;
+ - new Registries have a much richer set of tables, permitting many more types of queries.
+
+Python API
+^^^^^^^^^^
 
 .. py:class:: Registry
 
@@ -743,17 +777,30 @@ realization of the :ref:`Common Schema <CommonSchema>`.
 
         Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
 
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+A Registry provides an interface for queryingt the :ref:`CommonSchema`, and hence has no representation within that schema.
+
 
 .. _Datastore:
 
 Datastore
 ---------
 
-Holds persisted :ref:`Datasets <Dataset>`.
+A system that holds persisted :ref:`Datasets <Dataset>` and can read and optionally write them.
 
-This may be a (shared) filesystem, an object store
-or some other system.
+This may be based on a (shared) filesystem, an object store or some other system.
 
+Many Datastore implementations will consist of both a client and a server.
+
+Transition
+^^^^^^^^^^
+
+Datastore represents a refactoring of some responsibilities previously held by the v14 Butler and Mapper objects.
+
+Python API
+^^^^^^^^^^
 
 .. py:class:: Datastore
 
@@ -780,6 +827,11 @@ or some other system.
         .. todo::
             How does this handle composites?
 
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+Datastores are not represented in SQL at all.
+
 
 .. _ButlerConfiguration:
 
@@ -804,7 +856,18 @@ Configuration for :ref:`Butler`.
 Butler
 ------
 
-Provides access to a single collection.
+A high level object that provides access to the :ref:`Datasets <Dataset>` in a single :ref:`Collection`.
+
+
+Transition
+^^^^^^^^^^
+
+The new Butler plays essentially the same role as the v14 Butler.
+
+Python API
+^^^^^^^^^^
+
+Butler is a concrete, final Python class in the current design; all extensibility is provided by the :ref:`Registry` and :ref:`Datastore` instances it holds.
 
 .. py:class:: Butler
 
@@ -837,6 +900,7 @@ Provides access to a single collection.
             raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
 
     .. py:method:: put(DatasetRef, ConcreteDataset, Quantum) -> None
+
         Implemented as:
 
         .. code:: python
@@ -852,6 +916,11 @@ Provides access to a single collection.
             :ref:`DatasetMetatype` for things that don't yet exist.
             Then we don't need ``makePath`` (and possibly ``getDatasetMetatype``) anymore, which
             would be cleaner IMHO (I don't like ``makePath`` much, it feels like too much internal exposure).
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+Butler provides a limited interface for executing SQL queries against the :ref:`Registry` it holds, and hence does not have any SQL representation itself.
 
 
 .. _CommonSchema:
