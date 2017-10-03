@@ -194,6 +194,15 @@ A Dataset may be *composite*, which means it contains one or more named *compone
 
 Example: a "calexp" for a single visit and sensor produced by a processing run.
 
+Transition
+^^^^^^^^^^
+
+The Dataset concept has essentially the same meaning that it did in the v14 Butler.
+
+
+A Dataset is analogous to an Open Provenance Model "artifact".
+
+
 Python API
 ^^^^^^^^^^
 
@@ -220,8 +229,13 @@ In addition to a name, a DatasetType includes:
 
  - a template string that can be used to construct a :ref:`Path`;
  - a tuple of :ref:`DataUnitTypes <DataUnitType>` that define the structure of :ref:`DatasetRefs <DatasetRef>`;
- - a Python class object that determines the type of its :ref:`ConcreteDataset <ConcreteDataset>`
+ - a Python class object that determines the type of its :ref:`ConcreteDataset <ConcreteDataset>`;
  - a :ref:`DatasetMetatype` that determines how :ref:`Datasets <Dataset>` are stored and composed.
+
+Transition
+^^^^^^^^^^
+
+The DatasetType concept has essentially the same meaning that it did in the v14 Butler.
 
 Python API
 ^^^^^^^^^^
@@ -247,12 +261,31 @@ SQL Representation
 
     Fill in SQL interface
 
+
 .. _ConcreteDataset:
 
 ConcreteDataset
 ---------------
 
-The in-memory manifestation of a :ref:`Dataset` (e.g. an ``afw::image::Exposure`` with the contents of a particular ``calexp``).
+The in-memory manifestation of a :ref:`Dataset`
+
+Example: an ``afw.image.Exposure`` instance with the contents of a particular ``calexp``.
+
+Transition
+^^^^^^^^^^
+
+The "python" and "persistable" entries in v14 Butler dataset policy files refer to Python and C++ ConcreteDataset types, respectively.
+
+Python API
+^^^^^^^^^^
+
+While all ConcreteDatasets are Python objects, they have no common class or interface.
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+ConcreteDatasets exist only in Python and do not have any SQL representation.
+
 
 
 .. _DataUnit:
@@ -260,10 +293,34 @@ The in-memory manifestation of a :ref:`Dataset` (e.g. an ``afw::image::Exposure`
 DataUnit
 --------
 
-Represents a discrete unit of data (e.g. a particular visit, tract, or filter).
+A discrete abstract unit of data that can be associated with metadata or used to label a :ref:`Dataset`.
 
-In the :ref:`Common Schema <CommonSchema>`, a :ref:`DataUnit` is a row in the table for its :ref:`DataUnitType`.  :ref:`DataUnits <DataUnit>` must be shared across different collections (which may be backed by different database systems), so their primary keys in the :ref:`CommonSchema` must not be database-specific quantities such as autoincrement fields.
+Examples: individual Visits, Tracts, or Filters.
 
+
+Transition
+^^^^^^^^^^
+
+The string keys of data ID dictionaries passed to the v14 Butler are similar to DataUnits.
+
+Python API
+^^^^^^^^^^
+
+.. todo::
+
+    Fill in the Python interface.
+
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+A :ref:`DataUnit` is a row in the table for its :ref:`DataUnitType`.
+
+:ref:`DataUnits <DataUnit>` must be shared across different :ref:`Registries <Registry>` , so their primary keys must not be database-specific quantities such as autoincrement fields.
+
+.. todo::
+
+    Add links once Common Schema has link anchors for different tables.
 
 
 .. _DataUnitType:
@@ -271,9 +328,30 @@ In the :ref:`Common Schema <CommonSchema>`, a :ref:`DataUnit` is a row in the ta
 DataUnitType
 ------------
 
-The conceptual type of a :ref:`DataUnit` (such as visit, tract, or filter).
+The conceptual type of a :ref:`DataUnit`, which defines what relationships it has with other DataUnitTypes and the fields of any metadata associated with it.
 
-In the :ref:`Common Schema <CommonSchema>`, each :ref:`DataUnitType` is a table that the holds :ref:`DataUnits <DataUnit>` of that type as its rows.
+Examples: Visit, Tract, or Filter
+
+Transition
+^^^^^^^^^^
+
+The DataUnitType concept does not exist in the v14 Butler.
+
+Python API
+^^^^^^^^^^
+
+.. todo::
+
+    Fill in the Python interface.
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+Each :ref:`DataUnitType` is a table that the holds :ref:`DataUnits <DataUnit>` of that type as its rows.
+
+.. todo::
+
+    Add links once Common Schema has link anchors for different tables.
 
 
 .. _Quantum:
@@ -281,7 +359,30 @@ In the :ref:`Common Schema <CommonSchema>`, each :ref:`DataUnitType` is a table 
 Quantum
 -------
 
-A unit of work.
+A discrete unit of work that may depend on one or more :ref:`Datasets <Dataset>` and produce one or more :ref:`Datasets <Dataset>`.
+
+Most Quanta will be executions of a particular SuperTask's ``runQuantum`` method, but they can also be used to represent discrete units of work performed manually by human operators or other software agents.
+
+Transition
+^^^^^^^^^^
+
+The Quantum concept does not exist in the v14 Butler.
+
+A Quantum is analogous to an Open Provenance Model "process".
+
+Python API
+^^^^^^^^^^
+
+.. todo::
+
+    Link to SuperTask design documents: same object should be usable for both purposes.
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+.. todo::
+
+    Fill in SQL interface
 
 
 .. _DatasetRef:
@@ -289,9 +390,27 @@ A unit of work.
 DatasetRef
 ----------
 
-A unique identifier for a :ref:`Dataset` across :ref:`Data Collections <Collection>`.  A :ref:`DatasetRef` is conceptually just combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
+An identifier for a :ref:`Dataset` that can be used across different :ref:`Collections <Collection>` and :ref:`Registries <Registry>`.
+A :ref:`DatasetRef` is effectively the combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
 
-In the :ref:`Common Schema <CommonSchema>`, a :ref:`DatasetRef` is a row in the table for its :ref:`DatasetType`, with a foreign key field pointing to a :ref:`DataUnit` row for each element in tuple of :ref:`DataUnits <DataUnit>`.
+Transition
+^^^^^^^^^^
+
+The v14 Butler's DataRef class played a similar role.
+
+Python API
+^^^^^^^^^^
+
+.. todo::
+
+    Link to SuperTask design documents: same object should be usable for both purposes.
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+.. todo::
+
+    Fill in SQL interface
 
 
 .. _Collection:
@@ -299,11 +418,29 @@ In the :ref:`Common Schema <CommonSchema>`, a :ref:`DatasetRef` is a row in the 
 Collection
 ----------
 
-An entity that contains :ref:`Datasets <Dataset>` with the following three properties:
+An entity that contains :ref:`Datasets <Dataset>`, with the following conditions:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
 - Has a unique, human-readable identifier (i.e. :ref:`CollectionTag`).
-- Provides enough information to obtain a globally (across collections) unique :ref:`Uri` given a :ref:`DatasetRef`.
+- Can be used to obtain a globally (across Collections) unique :ref:`Uri` given a :ref:`DatasetRef`.
+
+Transition
+^^^^^^^^^^
+
+The v14 Butler's Data Repository concept plays a similar role in many contexts, but with a very different implementation and a very different relationship to the :ref:`Registry` concept.
+
+Python API
+^^^^^^^^^^
+
+There is no direct Python representation of a Collection.
+
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+.. todo::
+
+    Fill in SQL interface
 
 
 .. _CollectionTag:
@@ -311,11 +448,28 @@ An entity that contains :ref:`Datasets <Dataset>` with the following three prope
 CollectionTag
 -------------
 
-Unique identifier of a :ref:`Collection` within a :ref:`Registry`.
+A unique identifier of a :ref:`Collection` within a :ref:`Registry`.
 
 .. note::
 
   That such tags need to be storable in a :ref:`ButlerConfiguration` file.
+
+Transition
+^^^^^^^^^^
+
+A path to a directory containing a v14 Butler Data Repository played a similar role.
+
+Python API
+^^^^^^^^^^
+
+A CollectionTag can probably be implemented as a simple string in Python.
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+.. todo::
+
+    Fill in SQL interface
 
 
 .. _DatasetExpression:
@@ -323,9 +477,27 @@ Unique identifier of a :ref:`Collection` within a :ref:`Registry`.
 DatasetExpression
 -----------------
 
-An expression (SQL query against the :ref:`Common Schema <CommonSchema>`) that can be evaluated to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
+An expression forming part of a SQL query that can be evaluated to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
 
 An open question is if it is sufficient to only allow users to vary the ``WHERE`` clause of the SQL query, or if custom joins are also required.
+
+Transition
+^^^^^^^^^^
+
+DatasetExpressions replace the command-line argument syntax used to specifiy data IDs to ``CmdLineTasks`` in the v14 stack.
+
+Python API
+^^^^^^^^^^
+
+A DatasetExpression is just a ``str``.
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+.. todo::
+
+    Fill in SQL interface
+
 
 
 .. _DataGraph:
@@ -335,13 +507,55 @@ DataGraph
 
 A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUnits <DataUnit>`, and the edges are the relations between them.
 
+Transition
+^^^^^^^^^^
+
+No similar concept exists in the v14 Butler.
+
+Python API
+^^^^^^^^^^
+
+.. todo::
+
+    Link to SuperTask docs, or move the authoritative description here.
+
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+.. todo::
+
+    Fill in SQL interface
+
 
 .. _QuantumGraph:
 
 QuantumGraph
 ------------
 
-A directed acyclic graph in which the nodes are :ref:`Datasets <Dataset>` and :ref:`Quantums <Quantum>`, and the edges are the relations between them.  This can be used to describe the to-be-executed processing defined by SuperTask preflight, or the provenance of already-produced :ref:`Datasets <Dataset>`.
+A directed acyclic graph in which the nodes are :ref:`Datasets <Dataset>` and :ref:`Quantums <Quantum>`, and the edges are the relations between them.
+This can be used to describe the to-be-executed processing defined by SuperTask preflight, or the provenance of already-produced :ref:`Datasets <Dataset>`.
+
+Transition
+^^^^^^^^^^
+
+No similar concept exists in the v14 Butler.
+
+Python API
+^^^^^^^^^^
+
+.. todo::
+
+    Link to SuperTask docs, or move the authoritative description here.
+
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+.. todo::
+
+    Fill in SQL interface
+
 
 .. _Uri:
 
@@ -353,13 +567,54 @@ A standard Uniform Resource Identifier pointing to a :ref:`ConcreteDataset` in a
 The :ref:`Dataset` pointed to may be **primary** or a component of a **composite**, but should always be serializable on its own.
 When supported by the :ref:`Datastore` the query part of the Uri (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
 
+Transition
+^^^^^^^^^^
+
+No similar concept exists in the v14 Butler.
+
+Python API
+^^^^^^^^^^
+
+We can probably assume a URI will be represented as a simple string initially.
+
+It may be useful to create a class type to enforce grammar and/or provide convenience operations in the future.
+
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+URIs are stored as a field in the Dataset table.
+
+.. todo::
+
+    Add links when anchors for tables are present.
+
 
 .. _Path:
 
 Path
 ----
 
-The **path** part of a :ref:`Uri`. Typically provided as a hint to the :ref:`Datastore` to suggest a storage location/naming. The actual :ref:`Uri` used for storage is not required to respect the hint (e.g. for object stores).
+The part of a :ref:`Uri` that refers to location **within** a :ref:`Datastore`
+
+Typically provided as a hint to the :ref:`Datastore` to suggest a storage location/naming.
+The actual :ref:`Uri` used for storage is not required to respect the hint (e.g. for object stores).
+
+Transition
+^^^^^^^^^^
+
+No similar concept exists in the v14 Butler.
+
+Python API
+^^^^^^^^^^
+
+Paths are represented by simple Python strings.
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+Paths do not appear in SQL at all.
+
 
 
 .. _DatasetMetatype:
