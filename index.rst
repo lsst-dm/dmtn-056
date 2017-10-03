@@ -190,7 +190,27 @@ Reference
 Dataset
 -------
 
-Represents a single entity of data, with associated metadata (e.g. a particular ``calexp`` for a particular instrument corresponding to a particular visit and sensor).
+A Dataset is a discrete entity of stored data, possibly with associated metadata.
+
+Datasets are uniquely identified by either a :ref:`Uri` or the combination of a :ref:`CollectionTag` and a :ref:`DatasetRef`.
+
+A Dataset may be *composite*, which means it contains one or more named *component* Datasets.
+
+Example: a "calexp" for a single visit and sensor produced by a processing run.
+
+Python API
+^^^^^^^^^^
+
+.. todo::
+
+    Fill in the Python interface.
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+.. todo::
+
+    Fill in how Datasets are represented in SQL.
 
 
 .. _DatasetType:
@@ -198,8 +218,38 @@ Represents a single entity of data, with associated metadata (e.g. a particular 
 DatasetType
 -----------
 
-The conceptual type of which :ref:`Datasets <Dataset>` are instances (e.g. ``calexp``).
+A named category of :ref:`Datasets <Dataset>` that defines how they are organized, related, and stored.
 
+In addition to a name, a DatasetType includes:
+
+ - a template string that can be used to construct a :ref:`Path`;
+ - a tuple of :ref:`DataUnitTypes <DataUnitType>` that define the structure of :ref:`DatasetRefs <DatasetRef>`;
+ - a Python class object that determines the type of its :ref:`ConcreteDataset <ConcreteDataset>`
+ - a :ref:`DatasetMetatype` that determines how :ref:`Datasets <Dataset>` are stored and composed.
+
+Python API
+^^^^^^^^^^
+
+In Python, a DatasetType is a dynamically-generated subclass of :py:class:`DatasetType`, with class attributes for each of the above elements:
+
+.. py:class:: DatasetType
+
+    .. py:attribute:: template
+
+        Virtual class attribute: must be provided by derived classes.
+
+        A string with ``str.format``-style replacement patterns that can be used to create a :ref:`Path` from a :ref:`CollectionTag` and a :ref:`DatasetRef`.
+
+.. todo::
+
+    Fill in remaining Python interface
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+.. todo::
+
+    Fill in SQL interface
 
 .. _ConcreteDataset:
 
