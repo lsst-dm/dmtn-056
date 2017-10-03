@@ -27,7 +27,7 @@ The in-memory manifestation of a :ref:`Dataset` (e.g. as a Python object) is cal
 :ref:`ConcreteDataset`.  The :ref:`Butler` is the user-facing interface employed to
 load, store, and query :ref:`ConcreteDatasets <ConcreteDataset>` and their relations.
 
-Relations between :ref:`Datsets <Dataset>`, :ref:`Quanta <Quantum>`, and locations
+Relations between :ref:`Datasets <Dataset>`, :ref:`Quanta <Quantum>`, and locations
 for stored objects are kept in a SQL database which implements the :ref:`Common Schema <CommonSchema>`.
 The :ref:`Registry` class provides an interface to such a database.
 
@@ -35,15 +35,15 @@ In the database, the :ref:`Datasets <Dataset>` are grouped into :ref:`Collection
 which are identified by a :ref:`CollectionTag`.
 Within a given :ref:`Collection` a :ref:`Dataset` is uniquely identified by a :ref:`DatasetRef`.
 
-Conceptually a :ref:`DatsetRef` is a combination of a :ref:`DatasetType` (e.g. ``calexp``)
+Conceptually a :ref:`DatasetRef` is a combination of a :ref:`DatasetType` (e.g. ``calexp``)
 and a set of :ref:`DataUnits <DataUnit>`.  A :ref:`DataUnit` is a discrete unit of
 data (e.g. a particular visit, tract, or filter).
 
-A :ref:`DatasetRef` is thus a label that refers to different-but-related :ref:`Datsets <Dataset>`
+A :ref:`DatasetRef` is thus a label that refers to different-but-related :ref:`Datasets <Dataset>`
 in different :ref:`Collections <Collection>`. An example is a ``calexp`` for a particular visit
 and CCD produced in different processing runs (with each processing run thus being a :ref:`Collection`).
 
-Storing the :ref:`Datsets <Dataset>` themselves, as opposed to information about them, is the
+Storing the :ref:`Datasets <Dataset>` themselves, as opposed to information about them, is the
 responsibility of the :ref:`Datastore`.
 
 An overview of the framework structure can be seen in the following figure:
@@ -450,7 +450,7 @@ realization of the :ref:`Common Schema <CommonSchema>`.
 
     .. py:method:: makeDataGraph(CollectionTag, DatasetExpression, [DatasetType, ...]) -> DataGraph
 
-        Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatsetTypes <DatasetType>` and return a :ref:`DataGraph`.
+        Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatasetTypes <DatasetType>` and return a :ref:`DataGraph`.
 
         .. todo::
             Should we also supply a ``findAll`` or something to give you just a list
@@ -573,7 +573,7 @@ Provides access to a single collection.
 
             try:
                 uri, datasetMetatype, datasetComponents = RDB.find(self.config.inputCollection, datasetRef)
-                parent = RDS.get(uri, datsetMetatype, parameters) if uri else None
+                parent = RDS.get(uri, datasetMetatype, parameters) if uri else None
                 # Recurse to obtain child components
                 children = {name : self.get(childDatasetRef, parameters) for name, childDatasetRef in datasetComponents.items()}
                 return datasetMetatype.assemble(parent, children, parameters)
