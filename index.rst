@@ -65,6 +65,96 @@ for providing the :ref:`Uri` from where it can be subsequently retrieved.
 
 
 
+.. _Operations:
+
+Operations
+==========
+
+.. _basic_io:
+
+Basic IO
+--------
+
+To see how the various components interact we first examine a basic ``get`` and ``put`` operations for the basic case of a non-composite :ref:`Dataset`.
+We assume that the :ref:`Butler` is configured with an external :ref:`Registry` and :ref:`Datastore`, both consisting of a client-server pair.
+
+Basic ``get``
+^^^^^^^^^^^^^
+
+The user has a :ref:`DatasetRef`, constructed or obtained by a query and wishes to retrieve the associated :ref:`ConcreteDataset`.
+
+This proceeds allong the following steps:
+
+1. User calls: ``butler.get(datasetRef)``.
+2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag` it was configured with (i.e. ``butler.registry.find(butler.config.collectionTag, datasetRef)``).
+3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`Uri` and the :ref:`DatasetMetatype` of the stored :ref:`Dataset`.
+4. :ref:`Butler` forwards the request, with both the :ref:`Uri` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(uri, datasetMetatype)``).
+5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`Uri`.
+6. Using the :ref:`DatasetMetatype`, to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`ConcreteDataset` and returns it to the :ref:`Butler`.
+7. :ref:`Butler` then returns the :ref:`ConcreteDataset` to the user.
+
+See :py:meth:`the API documentation <Butler.get>` for more information.
+
+.. note::
+
+    The :ref:`Datastore` request can be a simple ``HTTP GET`` request for a stored FITS file, or something more complicated.
+    In the former case the materialization would be a simple FITS read (e.g. of a ``calexp``), with the reader determined by the :ref:`DatasetMetatype` retrieved from the :ref:`Registry`.
+
+.. note::
+
+    The serialized version sent over the wire doesn't have to correspond to the format stored on disk in the :ref:`Datastore` server.  As long as it is serialized in the form expected by the client.
+
+Basic ``put``
+^^^^^^^^^^^^^
+
+The user has a :ref:`ConcreteDataset` and wishes to store this at a particular :ref:`DatasetRef`.
+
+This proceeds allong the following steps:
+
+1. User calls: ``butler.put(datasetRef, concreteDataset)``.
+2. :ref:`Butler` first obtains the correct :ref:`DatasetMetatype` from the :ref:`Registry` by calling ``butler.registry.getDatasetMetatype(butler.config.collectionTag, datasetRef)``.
+3. :ref:`Butler` obtains a :ref:`Path` from the :ref:`Registry` by calling ``butler.registry.makePath(butler.config.collectionTag, datasetRef)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.
+4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(concreteDataset, datasetMetatype, path)``.
+5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`ConcreteDataset` and sends it to the :ref:`Datastore` server.
+   Depending on the type of server it may get back the actual :ref:`Uri` or the client can generate it itself.
+6. :ref:`Datastore` returns the actual :ref:`Uri` to the :ref:`Butler`.
+7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
+8. :ref:`Butler` returns the :ref:`Uri` to the user.
+
+See :py:class:`the API documentation <Butler.put>` for more information.
+
+.. _composites:
+
+Composites
+----------
+
+A :ref:`Dataset` can be **composite**, in which case it consists of a **parent** :ref:`Dataset` and one or more child :ref:`Datasets <Dataset>`.  An example would be an ``Exposure`` which consists of a ``Wcs`` a ``Mask`` and an ``Image``.  There are several ways this may be stored by the :ref:`Datastore`:
+
+* As part of the parent :ref:`Dataset` (e.g. the full ``Exposure`` is written to a single FITS file).
+* As a set of entities without a parent (e.g. only the ``Wcs``, ``Mask`` and ``Image`` are written separately and the ``Exposure`` needs to be composed from them).
+* As a mix of the two extremes (e.g. the ``Mask`` and ``Image`` are part of the ``Exposure`` file but the ``Wcs`` is written to a separate file).
+
+In either case the user expects to be able to read an individual component, and in case the components are stored separately the transfer should be efficient.
+
+In addition, it is desirable to **override** parts of a composite :ref:`Dataset` (e.g. updated metadata).
+
+To support this the :ref:`Registry` is also responsible for storing the component :ref:`Datasets <Dataset>` of the **composite**.
+
+The ``registry.find()`` call therefore not only returns the :ref:`Uri` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a `DatasetComponents` dictionary of ``name : (Uri, DatasetMetatype)`` specifying its **children**.
+
+The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`ConcreteDatasets <ConcreteDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`ConcreteDataset`.
+
+This process is most easily understood by reading the API documentation for :py:meth:`butler.get <Butler.get>` and :py:meth:`butler.put <Butler.put>`.
+
+.. note::
+
+    Only one level of composition is supported.
+
+.. _API:
+
+Reference
+=========
+
 .. _Dataset:
 
 Dataset
@@ -89,13 +179,6 @@ ConcreteDataset
 The in-memory manifestation of a :ref:`Dataset` (e.g. an ``afw::image::Exposure`` with the contents of a particular ``calexp``).
 
 
-.. _DatasetMetatype:
-
-DatasetMetatype
----------------
-
-A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`ConcreteDatasets <ConcreteDataset>` and can be saved to the same file format(s).
-
 .. _DataUnit:
 
 DataUnit
@@ -104,6 +187,7 @@ DataUnit
 Represents a discrete unit of data (e.g. a particular visit, tract, or filter).
 
 In the :ref:`Common Schema <CommonSchema>`, a :ref:`DataUnit` is a row in the table for its :ref:`DataUnitType`.  :ref:`DataUnits <DataUnit>` must be shared across different collections (which may be backed by different database systems), so their primary keys in the :ref:`CommonSchema` must not be database-specific quantities such as autoincrement fields.
+
 
 
 .. _DataUnitType:
@@ -190,8 +274,9 @@ Uri
 
 A standard Uniform Resource Identifier pointing to a :ref:`ConcreteDataset` in a :ref:`Datastore`.
 
-The :ref:`Dataset` pointed to may be **primary** or a :ref:`Component <DatasetComponents>` of a **composite**, but should always be serializable on its own.
+The :ref:`Dataset` pointed to may be **primary** or a component of a **composite**, but should always be serializable on its own.
 When supported by the :ref:`Datastore` the query part of the Uri (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
+
 
 .. _Path:
 
@@ -201,155 +286,13 @@ Path
 The **path** part of a :ref:`Uri`. Typically provided as a hint to the :ref:`Datastore` to suggest a storage location/naming. The actual :ref:`Uri` used for storage is not required to respect the hint (e.g. for object stores).
 
 
-.. _DatasetComponents:
+.. _DatasetMetatype:
 
-DatasetComponents
------------------
+DatasetMetatype
+---------------
 
-A dictionary of named components in a **composite** :ref:`Dataset`.
-The entries in the dictionary are of `str : (Uri, DatasetMetatype)` type.
+A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`ConcreteDatasets <ConcreteDataset>` and can be saved to the same file format(s).
 
-
-.. _Registry:
-
-Registry
---------
-
-Holds metadata, relationships, and provenance for managed :ref:`Datasets <Dataset>`.
-
-Typically a SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides a
-realization of the :ref:`Common Schema <CommonSchema>`.
-
-.. _Datastore:
-
-Datastore
----------
-
-Holds persisted :ref:`Datasets <Dataset>`.
-
-This may be a (shared) filesystem, an object store
-or some other system.
-
-
-.. _ButlerConfiguration:
-
-
-ButlerConfiguration
--------------------
-
-Configuration for :ref:`Butler`.
-
-.. _Butler:
-
-Butler
-------
-
-Provides access to a single collection.
-
-.. _StorageButler:
-
-StorageButler
--------------
-
-Is a :ref:`Butler` that only provides the IO methods `get` and `put`.
-It does not hold a :ref:`Registry` and may or may not
-hold a :ref:`Datastore`.
-
-.. _Operations:
-
-Operations
-==========
-
-.. _basic_io:
-
-Basic IO
---------
-
-To see how the various components interact we first examine a basic ``get`` and ``put`` operations for the basic case of a non-composite :ref:`Dataset`.
-We assume that the :ref:`Butler` is configured with an external :ref:`Registry` and :ref:`Datastore`, both consisting of a client-server pair.
-
-Basic ``get``
-^^^^^^^^^^^^^
-
-The user has a :ref:`DatasetRef`, constructed or obtained by a query and wishes to retrieve the associated :ref:`ConcreteDataset`.
-
-This proceeds allong the following steps:
-
-1. User calls: ``butler.get(datasetRef)``.
-2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag` it was configured with (i.e. ``butler.registry.find(butler.config.collectionTag, datasetRef)``).
-3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`Uri` and the :ref:`DatasetMetatype` of the stored :ref:`Dataset`.
-4. :ref:`Butler` forwards the request, with both the :ref:`Uri` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(uri, datasetMetatype)``).
-5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`Uri`.
-6. Using the :ref:`DatasetMetatype`, to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`ConcreteDataset` and returns it to the :ref:`Butler`.
-7. :ref:`Butler` then returns the :ref:`ConcreteDataset` to the user.
-
-See :py:meth:`the API documentation <Butler.get>` for more information.
-
-.. note::
-
-    The :ref:`Datastore` request can be a simple ``HTTP GET`` request for a stored FITS file, or something more complicated.
-    In the former case the materialization would be a simple FITS read (e.g. of a ``calexp``), with the reader determined by the :ref:`DatasetMetatype` retrieved from the :ref:`Registry`.
-
-.. note::
-
-    The serialized version sent over the wire doesn't have to correspond to the format stored on disk in the :ref:`Datastore` server.  As long as it is serialized in the form expected by the client.
-
-Basic ``put``
-^^^^^^^^^^^^^
-
-The user has a :ref:`ConcreteDataset` and wishes to store this at a particular :ref:`DatasetRef`.
-
-This proceeds allong the following steps:
-
-1. User calls: ``butler.put(datasetRef, concreteDataset)``.
-2. :ref:`Butler` first obtains the correct :ref:`DatasetMetatype` from the :ref:`Registry` by calling ``butler.registry.getDatasetMetatype(butler.config.collectionTag, datasetRef)``.
-3. :ref:`Butler` obtains a :ref:`Path` from the :ref:`Registry` by calling ``butler.registry.makePath(butler.config.collectionTag, datasetRef)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.
-4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(concreteDataset, datasetMetatype, path)``.
-5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`ConcreteDataset` and sends it to the :ref:`Datastore` server.
-   Depending on the type of server it may get back the actual :ref:`Uri` or the client can generate it itself.
-6. :ref:`Datastore` returns the actual :ref:`Uri` to the :ref:`Butler`.
-7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
-8. :ref:`Butler` returns the :ref:`Uri` to the user.
-
-See :py:class:`the API documentation <Butler.put>` for more information.
-
-.. _composites:
-
-Composites
-----------
-
-A :ref:`Dataset` can be **composite**, in which case it consists of a **parent** :ref:`Dataset` and one or more child :ref:`Datasets <Dataset>`.  An example would be an ``Exposure`` which consists of a ``Wcs`` a ``Mask`` and an ``Image``.  There are several ways this may be stored by the :ref:`Datastore`:
-
-* As part of the parent :ref:`Dataset` (e.g. the full ``Exposure`` is written to a single FITS file).
-* As a set of entities without a parent (e.g. only the ``Wcs``, ``Mask`` and ``Image`` are written separately and the ``Exposure`` needs to be composed from them).
-* As a mix of the two extremes (e.g. the ``Mask`` and ``Image`` are part of the ``Exposure`` file but the ``Wcs`` is written to a separate file).
-
-In either case the user expects to be able to read an individual component, and in case the components are stored separately the transfer should be efficient.
-
-In addition, it is desirable to **override** parts of a composite :ref:`Dataset` (e.g. updated metadata).
-
-To support this the :ref:`Registry` is also responsible for storing the component :ref:`Datasets <Dataset>` of the **composite**.
-
-The ``registry.find()`` call therefore not only returns the :ref:`Uri` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a :ref:`DatasetComponents` dictionary of ``name : (Uri, DatasetMetatype)`` specifying its **children**.
-
-The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`ConcreteDatasets <ConcreteDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`ConcreteDataset`.
-
-This process is most easily understood by reading the API documentation for :py:meth:`butler.get <Butler.get>` and :py:meth:`butler.put <Butler.put>`.
-
-.. note::
-
-    Only one level of composition is supported.
-
-.. _API:
-
-Python API
-==========
-
-This section describes the Python API.
-
-.. note::
-
-    Not all concepts map to an actual class.
 
 .. py:class:: DatasetMetatype
 
@@ -392,6 +335,16 @@ This section describes the Python API.
         :return: a :ref:`ConcreteDataset` matching `parent` with components replaced by those in `components`.
 
 
+.. _Registry:
+
+Registry
+--------
+
+Holds metadata, relationships, and provenance for managed :ref:`Datasets <Dataset>`.
+
+Typically a SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides a
+realization of the :ref:`Common Schema <CommonSchema>`.
+
 .. py:class:: Registry
 
     .. py:method:: addDatasetType(CollectionTag, DatasetType, template) -> None
@@ -417,7 +370,7 @@ This section describes the Python API.
     .. py:method:: find(CollectionTag, DatasetRef) -> Uri, DatasetMetatype, DatasetComponents
 
         Lookup the location of the :ref:`Dataset` associated with the given `DatasetRef` in a :ref:`Datastore`.
-        Also return its :ref:`DatasetMetatype` and (optional) :ref:`DatasetComponents`.
+        Also return its :ref:`DatasetMetatype` and (optional) `DatasetComponents`.
 
     .. py:method:: makeDataGraph(CollectionTag, DatasetExpression, [DatasetType, ...]) -> DataGraph
 
@@ -460,17 +413,29 @@ This section describes the Python API.
         Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
 
 
+.. _Datastore:
+
+Datastore
+---------
+
+Holds persisted :ref:`Datasets <Dataset>`.
+
+This may be a (shared) filesystem, an object store
+or some other system.
+
+
 .. py:class:: Datastore
 
     .. py:method:: get(uri, parameters=None) -> ConcreteDataset
 
-        Load a :ref:`ConcreteDataset` from the store.  Optional ``parameters`` may specify things like regions.
+        Load a :ref:`ConcreteDataset` from the store.
+        Optional ``parameters`` may specify things like regions.
 
     .. py:method:: put(ConcreteDataset, DatasetMetatype, Path) -> Uri
 
         Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
         The :ref:`DatasetMetatype` is used to determine the serialization format.
-        The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned.
+        The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned as are the possible components.
 
         .. note::
             This is needed because some :ref:`datastores <Datastore>` may need to modify the :ref:`Uri`.
@@ -485,6 +450,13 @@ This section describes the Python API.
             How does this handle composites?
 
 
+.. _ButlerConfiguration:
+
+ButlerConfiguration
+-------------------
+
+Configuration for :ref:`Butler`.
+
 .. py:class:: ButlerConfiguration
 
     .. py:attribute:: inputCollections
@@ -495,6 +467,13 @@ This section describes the Python API.
 
         A list of :ref:`CollectionTags <CollectionTag>` to use for output (the same output goes to all :ref:`collections <Collection>`).
 
+
+.. _Butler:
+
+Butler
+------
+
+Provides access to a single collection.
 
 .. py:class:: Butler
 
