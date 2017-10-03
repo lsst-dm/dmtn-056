@@ -464,13 +464,14 @@ This section describes the Python API.
 
     .. py:method:: get(uri, parameters=None) -> ConcreteDataset
 
-        Load a :ref:`ConcreteDataset` from the store.  Optional ``parameters`` may specify things like regions.
+        Load a :ref:`ConcreteDataset` from the store.
+        Optional ``parameters`` may specify things like regions.
 
     .. py:method:: put(ConcreteDataset, DatasetMetatype, Path) -> Uri
 
         Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
         The :ref:`DatasetMetatype` is used to determine the serialization format.
-        The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned.
+        The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned as are the possible :ref:`DatasetComponents`.
 
         .. note::
             This is needed because some :ref:`datastores <Datastore>` may need to modify the :ref:`Uri`.
@@ -483,7 +484,6 @@ This section describes the Python API.
 
         .. todo::
             How does this handle composites?
-
 
 .. py:class:: ButlerConfiguration
 
