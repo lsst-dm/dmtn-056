@@ -400,17 +400,7 @@ This section describes the Python API.
 
           .. todo::
 
-<<<<<<< HEAD
-``get(Uri, parameters=None) -> ConcreteDataset``
-  Load a :ref:`ConcreteDataset` from the store.  Optional ``parameters`` may specify
-  things like regions.
-``put(ConcreteDataset, DatasetMetatype, Path) -> Uri, DatasetComponents``
-  Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
-  The :ref:`DatasetMetatype` is used to determine the serialization format.
-  The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned as are the possible :ref:`DatasetComponents`.
-=======
             Define DatasetType as a class; may remove the need for the template arguments.
->>>>>>> Convert more of the API section to improved markup.
 
     .. py:method:: addDataset(CollectionTag, DatasetRef, Uri, DatasetComponents, Quantum=None) -> None
 
