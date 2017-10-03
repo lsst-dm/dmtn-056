@@ -14,7 +14,55 @@
 Overview
 ========
 
-This section describes the different concepts and interfaces in the data access system, and the relations between them.
+This section describes the different concepts and interfaces in the data access system,
+and the relations between them.  In order to understand how operations are performed
+it is helpful to examine the framework structure.
+
+.. _framework_structure:
+
+.. image:: images/concepts.png
+    :scale: 75%
+
+Users primarily interact with a particular :ref:`Butler` instance that 
+**provides access to a single** :ref:`Collection`.
+
+They can use this instance to:
+
+* Load a :ref:`Dataset` associated with a particular :ref:`DatasetRef`,
+* Store a :ref:`Dataset` associated with a particular :ref:`DatasetRef`, and
+* Obtain a :ref:`DataGraph`, which is a related set of :ref:`DatasetRefs <DatasetRef>`,
+  :ref:`DataUnits <DataUnit>` and :ref:`Quanta <Quantum>`, corresponding
+  to a (limited) SQL query.
+
+The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Registry`
+and **one or more instances** of :ref:`Datastore`, to which it delegates the calls.
+
+These compenents constitute a separation of concerns:
+
+* :ref:`Registry` has no knowledge of how :ref:`Datasets <Dataset>` are actually stored, and
+* :ref:`Datastore` has no knowledge of how :ref:`Datasets <Dataset>` are related and their scientific meaning (i.e. knows nothing about :ref:`Collections <Collection>`, :ref:`DataUnits <DataUnit>` and :ref:`DatasetRefs <DatasetRef>`).
+
+This separation of conserns is a key feature of the design and allows for different
+implementations (or backends) to be easily swapped out, potentially even at runtime.
+
+Communication between the components is mitigated by the:
+
+* :ref:`Uri` that records **where** a :ref:`Dataset` is stored, and the
+* :ref:`DatasetMetatype` that holds information about **how** a :ref:`Dataset` can be stored.
+
+The :ref:`Registry` is responsible for providing the :ref:`DatasetMetatype` for
+to be stored :ref:`Datasets <Dataset>` and the :ref:`Datastore` is responsible
+for providing the :ref:`Uri` from where it can be subsequently retrieved.
+
+.. note::
+
+    Both the :ref:`Registry` and the :ref:`Datastore` typically each
+    come as a client/server pair.  In some cases the server part may be a direct backend,
+    such as a SQL server or a filesystem, that does not require any extra software daemon.
+    But for some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a
+    daemon will be required.
+
+
 
 
 .. _Dataset:
@@ -211,54 +259,6 @@ hold a :ref:`Datastore`.
 
 Operations
 ==========
-
-In order to understand how operations are performed it is helpful to examine
-the framework structure.
-
-.. _framework_structure:
-
-.. image:: images/concepts.png
-    :scale: 75%
-
-Users primarily interact with a particular :ref:`Butler` instance that 
-**provides access to a single** :ref:`Collection`.
-
-They can use this instance to:
-
-* Load a :ref:`Dataset` associated with a particular :ref:`DatasetRef`,
-* Store a :ref:`Dataset` associated with a particular :ref:`DatasetRef`, and
-* Obtain a :ref:`DataGraph`, which is a related set of :ref:`DatasetRefs <DatasetRef>`,
-  :ref:`DataUnits <DataUnit>` and :ref:`Quanta <Quantum>`, corresponding
-  to a (limited) SQL query.
-
-The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Registry`
-and **one or more instances** of :ref:`Datastore`, to which it delegates the calls.
-
-These compenents constitute a separation of concerns:
-
-* :ref:`Registry` has no knowledge of how :ref:`Datasets <Dataset>` are actually stored, and
-* :ref:`Datastore` has no knowledge of how :ref:`Datasets <Dataset>` are related and their scientific meaning (i.e. knows nothing about :ref:`Collections <Collection>`, :ref:`DataUnits <DataUnit>` and :ref:`DatasetRefs <DatasetRef>`).
-
-This separation of conserns is a key feature of the design and allows for different
-implementations (or backends) to be easily swapped out, potentially even at runtime.
-
-Communication between the components is mitigated by the:
-
-* :ref:`Uri` that records **where** a :ref:`Dataset` is stored, and the
-* :ref:`DatasetMetatype` that holds information about **how** a :ref:`Dataset` can be stored.
-
-The :ref:`Registry` is responsible for providing the :ref:`DatasetMetatype` for
-to be stored :ref:`Datasets <Dataset>` and the :ref:`Datastore` is responsible
-for providing the :ref:`Uri` from where it can be subsequently retrieved.
-
-.. note::
-
-    Both the :ref:`Registry` and the :ref:`Datastore` typically each
-    come as a client/server pair.  In some cases the server part may be a direct backend,
-    such as a SQL server or a filesystem, that does not require any extra software daemon.
-    But for some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a
-    daemon will be required.
-
 
 .. _basic_io:
 
