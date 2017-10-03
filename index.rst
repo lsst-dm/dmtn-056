@@ -15,33 +15,33 @@ Overview
 ========
 
 The data access system deals primarily with the storage, retrieval and querying of
-:ref:`Datasets <Dataset>`.  An example of such a :ref:`Dataset` being a particular
+:ref:`Datasets <Dataset>`.  An example of such a :ref:`Dataset` could be a particular
 calibrated exposure (``calexp``) for a particular instrument corresponding to a
-particular visit and sensor.
+particular visit and sensor, produced by a particular processing run.
 
 These :ref:`Datasets <Dataset>` form both the input and output of units of work called
 :ref:`Quanta <Quantum>`, and the data access system is also responsible for tracking the relations
 between them.
 
 The in-memory manifestation of a :ref:`Dataset` (e.g. as a Python object) is called a
-:ref:`ConcreteDataset`.  The :ref:`Butler` is the user facing interface employed to
-load, store and query :ref:`ConcreteDatasets <ConcreteDataset>` and their relations.
+:ref:`ConcreteDataset`.  The :ref:`Butler` is the user-facing interface employed to
+load, store, and query :ref:`ConcreteDatasets <ConcreteDataset>` and their relations.
 
-Relations between :ref:`Datsets <Dataset>`, :ref:`Quanta <Quantum>` and locations
+Relations between :ref:`Datsets <Dataset>`, :ref:`Quanta <Quantum>`, and locations
 for stored objects are kept in a SQL database which implements the :ref:`Common Schema <CommonSchema>`.
-The :ref:`Registry` provides an interface to such a database.
+The :ref:`Registry` class provides an interface to such a database.
 
-In the database the :ref:`Datasets <Dataset>` are grouped into :ref:`Collections <Collection>`,
-which are referenced by a :ref:`CollectionTag`.
-Within a given :ref:`Collection` a :ref:`Dataset` is uniquely identified with its :ref:`DatasetRef`.
+In the database, the :ref:`Datasets <Dataset>` are grouped into :ref:`Collections <Collection>`,
+which are identified by a :ref:`CollectionTag`.
+Within a given :ref:`Collection` a :ref:`Dataset` is uniquely identified by a :ref:`DatasetRef`.
 
 Conceptually a :ref:`DatsetRef` is a combination of a :ref:`DatasetType` (e.g. ``calexp``)
-and a set of :ref:`DataUnits <DataUnit>`.  Where a :ref:`DataUnit` is a discrete unit of
-data (e.g. a particular visit, tract or filter).
+and a set of :ref:`DataUnits <DataUnit>`.  A :ref:`DataUnit` is a discrete unit of
+data (e.g. a particular visit, tract, or filter).
 
 A :ref:`DatasetRef` is thus a label that refers to different-but-related :ref:`Datsets <Dataset>`
 in different :ref:`Collections <Collection>`. An example is a ``calexp`` for a particular visit
-and CCD from different processing runs (with the processing run thus being the :ref:`Collection`).
+and CCD produced in different processing runs (with each processing run thus being a :ref:`Collection`).
 
 Storing the :ref:`Datsets <Dataset>` themselves, as opposed to information about them, is the
 responsibility of the :ref:`Datastore`.
@@ -53,19 +53,19 @@ An overview of the framework structure can be seen in the following figure:
 .. image:: images/concepts.png
     :scale: 75%
 
-Users primarily interact with a particular :ref:`Butler` instance that 
+Users primarily interact with a particular :ref:`Butler` instance that
 **provides access to a single** :ref:`Collection`.
 
 They can use this instance to:
 
 * Load a :ref:`Dataset` associated with a particular :ref:`DatasetRef`,
 * Store a :ref:`Dataset` associated with a particular :ref:`DatasetRef`, and
-* Obtain a :ref:`DataGraph`, which is a related set of :ref:`DatasetRefs <DatasetRef>`,
-  :ref:`DataUnits <DataUnit>` and :ref:`Quanta <Quantum>`, corresponding
-  to a (limited) SQL query.
+* Obtain a :ref:`DataGraph`, which is a related set of :ref:`DatasetRefs <DatasetRef>` and
+  :ref:`DataUnits <DataUnit>` corresponding to a (limited) SQL query.
 
 The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Registry`
-and **one or more instances** of :ref:`Datastore`, to which it delegates the calls.
+and **a single instance** of :ref:`Datastore`, to which it delegates the calls (note, however,
+that this :ref:`Datastore` may delegate to one or more other :ref:`Datastores <Datastore>`).
 
 These components constitute a separation of concerns:
 
@@ -75,7 +75,7 @@ These components constitute a separation of concerns:
 This separation of concerns is a key feature of the design and allows for different
 implementations (or backends) to be easily swapped out, potentially even at runtime.
 
-Communication between the components is mitigated by the:
+Communication between the components is mediated by the:
 
 * :ref:`Uri` that records **where** a :ref:`Dataset` is stored, and the
 * :ref:`DatasetMetatype` that holds information about **how** a :ref:`Dataset` can be stored.
@@ -89,7 +89,7 @@ for providing the :ref:`Uri` from where it can be subsequently retrieved.
     Both the :ref:`Registry` and the :ref:`Datastore` typically each
     come as a client/server pair.  In some cases the server part may be a direct backend,
     such as a SQL server or a filesystem, that does not require any extra software daemon.
-    But for some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a
+    In some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a
     daemon will be required.
 
 
