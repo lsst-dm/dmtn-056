@@ -1029,41 +1029,40 @@ Operations that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dat
 Camera DataUnits
 ================
 
-+------------+--------+-------------+
-| *Camera*                          |
-+============+========+=============+
-| camera_id  | uint64 | PRIMARY KEY |
-+------------+--------+-------------+
-| name       | str    | UNIQUE      |
-+------------+--------+-------------+
++------------+---------+-------------+
+| *Camera*                           |
++============+=========+=============+
+| camera_id  | int     | PRIMARY KEY |
++------------+---------+-------------+
+| name       | varchar | UNIQUE      |
++------------+---------+-------------+
 
 Entries in the Camera table are essentially just sources of raw data with a
 constant layout of PhysicalSensors and a self-constent numbering system for
 Visits.  Different versions of the same camera (due to e.g. changes in
 hardware) should still correspond to a single row in this table.
 
++--------------------+---------+-----------------+
+| *AbstractFilter*                               |
++====================+=========+=================+
+| abstract_filter_id | int     | PRIMARY KEY     |
++--------------------+---------+-----------------+
+| name               | varchar | NOT NULL UNIQUE |
++--------------------+---------+-----------------+
 
-+----------------------+--------+----------------------+
-| *AbstractFilter*                                     |
-+======================+========+======================+
-| abstract_filter_id   | uint64 | PRIMARY KEY          |
-+----------------------+--------+----------------------+
-| name                 | str    | NOT NULL UNIQUE      |
-+----------------------+--------+----------------------+
-
-+----------------------+--------+--------------------------------------------------+
-| *PhysicalFilter*                                                                 |
-+======================+========+==================================================+
-| physical_filter_id   | uint64 | PRIMARY KEY                                      |
-+----------------------+--------+--------------------------------------------------+
-| name                 | str    | NOT NULL                                         |
-+----------------------+--------+--------------------------------------------------+
-| camera_id            | uint64 | NOT NULL REFERENCES Camera (camera_id)           |
-+----------------------+--------+--------------------------------------------------+
-| abstract_filter_id   | uint64 | REFERENCES AbstractFilter (abstract_filter_id)   |
-+----------------------+--------+--------------------------------------------------+
-| UNIQUE (name, camera_id)                                                         |
-+----------------------------------------------------------------------------------+
++--------------------+---------+------------------------------------------------+
+| *PhysicalFilter*                                                              |
++====================+=========+================================================+
+| physical_filter_id | int     | PRIMARY KEY                                    |
++--------------------+---------+------------------------------------------------+
+| name               | varchar | NOT NULL                                       |
++--------------------+---------+------------------------------------------------+
+| camera_id          | int     | NOT NULL, REFERENCES Camera (camera_id)        |
++--------------------+---------+------------------------------------------------+
+| abstract_filter_id | int     | REFERENCES AbstractFilter (abstract_filter_id) |
++--------------------+---------+------------------------------------------------+
+| UNIQUE (name, camera_id)                                                      |
++--------------------+---------+------------------------------------------------+
 
 Entries in the PhysicalFilter table represent the bandpass filters that can be
 associated with a particular visit.  These are different from AbstractFilters,
@@ -1074,25 +1073,23 @@ PhysicalFilter may or may not be associated with a particular AbstractFilter.
 AbstractFilter is the only DataUnit not associated with either a Camera or a
 SkyMap.
 
-+----------------------+--------+-----------------------------------------+
-| *PhysicalSensor*                                                        |
-+======================+========+=========================================+
-| physical_sensor_id   | uint64 | PRIMARY KEY                             |
-+----------------------+--------+-----------------------------------------+
-| number               | uint16 |                                         |
-+----------------------+--------+-----------------------------------------+
-| name                 | str    | NOT NULL                                |
-+----------------------+--------+-----------------------------------------+
-| camera_id            | uint64 | NOT NULL REFERENCES Camera (camera_id)  |
-+----------------------+--------+-----------------------------------------+
-| group                | str    |                                         |
-+----------------------+--------+-----------------------------------------+
-| purpose              | str    | NOT NULL                                |
-+----------------------+--------+-----------------------------------------+
-| UNIQUE (number, camera_id)                                              |
-+-------------------------------------------------------------------------+
-| UNIQUE (name, camera_id)                                                |
-+-------------------------------------------------------------------------+
++--------------------+---------+-----------------------------------------+
+| *PhysicalSensor*   |                                                   |
++====================+=========+=========================================+
+| physical_sensor_id | int     | PRIMARY KEY                             |
++--------------------+---------+-----------------------------------------+
+| name               | varchar | NOT NULL                                |
++--------------------+---------+-----------------------------------------+
+| number             | varchar | NOT NULL                                |
++--------------------+---------+-----------------------------------------+
+| camera_id          | int     | NOT NULL, REFERENCES Camera (camera_id) |
++--------------------+---------+-----------------------------------------+
+| group              | varchar |                                         |
++--------------------+---------+-----------------------------------------+
+| purpose            | varchar |                                         |
++--------------------+---------+-----------------------------------------+
+| CONSTRAINT UNIQUE (name, camera_id)                                    |
++--------------------+---------+-----------------------------------------+
 
 PhysicalSensors actually represent the "slot" for a sensor in a camera,
 independent of both any observations and the actual detector (which may change
@@ -1104,25 +1101,26 @@ Because some cameras identify sensors with string names and other use numbers,
 we provide fields for both; the name may be a stringified integer, and the
 number may be autoincrement.
 
-+----------------------+----------+-----------------------------------------------------------+
-| *Visit*                                                                                     |
-+======================+==========+===========================================================+
-| visit_id             | uint64   | PRIMARY KEY                                               |
-+----------------------+----------+-----------------------------------------------------------+
-| number               | uint64   | NOTNULL                                                   |
-+----------------------+----------+-----------------------------------------------------------+
-| camera_id            | uint64   | NOT NULL REFERENCES Camera (camera_id)                    |
-+----------------------+----------+-----------------------------------------------------------+
-| physical_filter_id   | uint64   | NOT NULL REFERENCES AbstractFilter (abstract_filter_id)   |
-+----------------------+----------+-----------------------------------------------------------+
-| obs_begin            | datetime | NOT NULL                                                  |
-+----------------------+----------+-----------------------------------------------------------+
-| obs_end              | datetime | NOT NULL                                                  |
-+----------------------+----------+-----------------------------------------------------------+
-| region               | blob     |                                                           |
-+----------------------+----------+-----------------------------------------------------------+
-| UNIQUE (number, camera_id)                                                                  |
-+---------------------------------------------------------------------------------------------+
++--------------------+----------+----------------------------------------------------------+
+| *Visit*            |                                                                     |
++====================+==========+==========================================================+
+| visit_id           | int      | PRIMARY KEY                                              |
++--------------------+----------+----------------------------------------------------------+
+| number             | int      | NOT NULL                                                 |
++--------------------+----------+----------------------------------------------------------+
+| camera_id          | int      | NOT NULL, REFERENCES Camera (camera_id)                  |
++--------------------+----------+----------------------------------------------------------+
+| physical_filter_id | int      | NOT NULL, REFERENCES PhysicalFilter (physical_filter_id) |
++--------------------+----------+----------------------------------------------------------+
+| obs_begin          | datetime | NOT NULL                                                 |
++--------------------+----------+----------------------------------------------------------+
+| obs_end            | datetime | NOT NULL                                                 |
++--------------------+----------+----------------------------------------------------------+
+| region             | blob     |                                                          |
++--------------------+----------+----------------------------------------------------------+
+| CONSTRAINT UNIQUE (num, camera_id)                                                       |
++--------------------+----------+----------------------------------------------------------+
+
 
 Entries in the Visit table correspond to observations with the full camera at
 a particular pointing, possibly comprised of multiple exposures (Snaps).  A
@@ -1130,19 +1128,19 @@ Visit's ``region`` field holds an approximate but inclusive representation of
 its position on the sky that can be compared to the ``regions`` of other
 DataUnits.
 
-+----------------------+--------+-----------------------------------------------------------+
-| *ObservedSensor*                                                                          |
-+======================+========+===========================================================+
-| observed_sensor_id   | uint64 | PRIMARY KEY                                               |
-+----------------------+--------+-----------------------------------------------------------+
-| physical_sensor_id   | uint64 | NOT NULL REFERENCES PhysicalSensor (physical_sensor_id)   |
-+----------------------+--------+-----------------------------------------------------------+
-| visit_id             | uint64 | NOT NULL REFERENCES Visit (visit_id)                      |
-+----------------------+--------+-----------------------------------------------------------+
-| region               | blob   |                                                           |
-+----------------------+--------+-----------------------------------------------------------+
-| UNIQUE (physical_sensor_id, visit_id)                                                     |
-+-------------------------------------------------------------------------------------------+
++--------------------+------+----------------------------------------------------------+
+| *ObservedSensor*                                                                     |
++====================+======+==========================================================+
+| observed_sensor_id | int  | PRIMARY KEY                                              |
++--------------------+------+----------------------------------------------------------+
+| visit_id           | int  | NOT NULL, REFERENCES Visit (visit_id)                    |
++--------------------+------+----------------------------------------------------------+
+| physical_sensor_id | int  | NOT NULL, REFERENCES PhysicalSensor (physical_sensor_id) |
++--------------------+------+----------------------------------------------------------+
+| region             | blob |                                                          |
++--------------------+------+----------------------------------------------------------+
+| CONSTRAINT UNIQUE (visit_id, physical_sensor_id)                                     |
++--------------------+------+----------------------------------------------------------+
 
 An ObservedSensor is simply a combination of a Visit and a PhysicalSensor, but
 unlike most other DataUnit combinations (which are not typically DataUnits
@@ -1150,21 +1148,21 @@ themselves), this one is both ubuiquitous and contains additional information:
 a ``region`` that represents the position of the observed sensor image on the
 sky.
 
-+----------------------------+----------+---------------------------------------+
-| *Snap*                                                                        |
-+============================+==========+=======================================+
-| snap_id                    | uint64   | PRIMARY KEY                           |
-+----------------------------+----------+---------------------------------------+
-| number                     | uint16   | NOT NULL                              |
-+----------------------------+----------+---------------------------------------+
-| visit_id                   | uint64   | NOT NULL REFERENCES Visit (visit_id)  |
-+----------------------------+----------+---------------------------------------+
-| obs_begin                  | datetime | NOT NULL                              |
-+----------------------------+----------+---------------------------------------+
-| obs_end                    | datetime | NOT NULL                              |
-+----------------------------+----------+---------------------------------------+
-| UNIQUE (number, visit_id)                                                     |
-+----------------------------+----------+---------------------------------------+
++-----------+----------+------------------------------------------+
+| *Snap*                                                          |
++===========+==========+==========================================+
+| snap_id   | int      | PRIMARY KEY                              |
++-----------+----------+------------------------------------------+
+| visit_id  | int      | PRIMARY KEY, REFERENCES Visit (visit_id) |
++-----------+----------+------------------------------------------+
+| index     | int      | NOT NULL                                 |
++-----------+----------+------------------------------------------+
+| obs_begin | datetime | NOT NULL                                 |
++-----------+----------+------------------------------------------+
+| obs_end   | datetime | NOT NULL                                 |
++-----------+----------+------------------------------------------+
+| CONSTRAINT UNIQUE (visit_id, index)                             |
++-----------+----------+------------------------------------------+
 
 A Snap is a single-exposure subset of a Visit.  Most non-LSST Visits will have
 only a single Snap.
@@ -1174,13 +1172,13 @@ only a single Snap.
 SkyMap DataUnits
 ================
 
-+------------+--------+-------------+
-| *SkyMap*                          |
-+============+========+=============+
-| skymap_id  | uint64 | PRIMARY KEY |
-+------------+--------+-------------+
-| name       | str    | UNIQUE      |
-+------------+--------+-------------+
++-----------+---------+------------------+
+| *SkyMap*                               |
++===========+=========+==================+
+| skymap_id | int     | PRIMARY KEY      |
++-----------+---------+------------------+
+| name      | varchar | NOT NULL, UNIQUE |
++-----------+---------+------------------+
 
 Each SkyMap entry represents a different way to subdivide the sky into tracts
 and patches, including any parameters involved in those defitions (i.e.
@@ -1189,19 +1187,19 @@ different rows).  While SkyMaps need unique, human-readable names, it may also
 be wise to add a hash or pickle of the SkyMap instance that defines the
 mapping to avoid duplicate entries (not yet included).
 
-+-----------------------------+--------+-----------------------------------------+
-| *Tract*                                                                        |
-+=============================+========+=========================================+
-| tract_id                    | uint64 | PRIMARY KEY                             |
-+-----------------------------+--------+-----------------------------------------+
-| number                      | uint16 | NOT NULL                                |
-+-----------------------------+--------+-----------------------------------------+
-| skymap_id                   | uint64 | NOT NULL REFERENCES SkyMap (skymap_id)  |
-+-----------------------------+--------+-----------------------------------------+
-| region                      | blob   |                                         |
-+-----------------------------+--------+-----------------------------------------+
-| UNIQUE (number, skymap_id)                                                     |
-+-----------------------------+--------+-----------------------------------------+
++-----------+------+-----------------------------------------+
+| *Tract*                                                    |
++===========+======+=========================================+
+| tract_id  | int  | PRIMARY KEY                             |
++-----------+------+-----------------------------------------+
+| number    | int  | NOT NULL                                |
++-----------+------+-----------------------------------------+
+| skymap_id | int  | NOT NULL, REFERENCES SkyMap (skymap_id) |
++-----------+------+-----------------------------------------+
+| region    | blob |                                         |
++-----------+------+-----------------------------------------+
+| CONSTRAINT UNIQUE (skymap_id, num)                         |
++-----------+------+-----------------------------------------+
 
 A Tract is a contiguous, simple area on the sky with a 2-d Euclidian
 coordinate system defined by a single map projection.  If the parameters of
@@ -1209,19 +1207,19 @@ the sky projection and the Tract's various bounding boxes can be standardized
 across all SkyMap implementations, it may be useful to include them in the
 table as well.
 
-+---------------------------+--------+----------------------------------------+
-| *Patch*                                                                     |
-+===========================+========+========================================+
-| patch_id                  | uint64 | PRIMARY KEY                            |
-+---------------------------+--------+----------------------------------------+
-| index                     | uint16 | NOT NULL                               |
-+---------------------------+--------+----------------------------------------+
-| tract_id                  | uint64 | NOT NULL REFERENCES SkyMap (tract_id)  |
-+---------------------------+--------+----------------------------------------+
-| region                    | blob   |                                        |
-+---------------------------+--------+----------------------------------------+
-| UNIQUE (index, tract_id)                                                    |
-+---------------------------+--------+----------------------------------------+
++----------+------+--------+------------------------------+
+| *Patch*                                                 |
++==========+======+========+==============================+
+| patch_id | int  | PRIMARY KEY                           |
++----------+------+--------+------------------------------+
+| tract_id | int  | NOT NULL, REFERENCES Tract (tract_id) |
++----------+------+--------+------------------------------+
+| index    | int  | NOT NULL                              |
++----------+------+--------+------------------------------+
+| region   | blob |                                       |
++----------+------+--------+------------------------------+
+| CONSTRAINT UNIQUE (tract_id, index)                     |
++----------+------+--------+------------------------------+
 
 Tracts are subdivided into Patches, which share the Tract coordinate system
 and define similarly-sized regions that overlap by a configurable amount.  As
@@ -1233,37 +1231,17 @@ table in the future.
 Calibration DataUnits
 =====================
 
-+---------------------------+--------+-------------------------------------------------+
-| *CalibRange*                                                                         |
-+===========================+========+=================================================+
-| calib_range_id            | uint64 | PRIMARY KEY                                     |
-+---------------------------+--------+-------------------------------------------------+
-| first_visit               | uint64 | NOT NULL                                        |
-+---------------------------+--------+-------------------------------------------------+
-| last_visit                | uint64 |                                                 |
-+---------------------------+--------+-------------------------------------------------+
-| camera_id                 | uint64 | NOT NULL REFERENCES Camera (camera_id)          |
-+---------------------------+--------+-------------------------------------------------+
-| physical_filter_id        | uint64 | REFERENCES PhysicalFilter (physical_filter_id)  |
-+---------------------------+--------+-------------------------------------------------+
-| UNIQUE (first_visit, last_visit, camera_id, physical_filter_id)                      |
-+---------------------------+--------+-------------------------------------------------+
-
-+------------------------+--------+-----------------------------------------------------------+
-| *SensorCalibRange*                                                                          |
-+========================+========+===========================================================+
-| sensor_calib_range_id  | uint64 | PRIMARY KEY                                               |
-+------------------------+--------+-----------------------------------------------------------+
-| first_visit            | uint64 | NOT NULL                                                  |
-+------------------------+--------+-----------------------------------------------------------+
-| last_visit             | uint64 |                                                           |
-+------------------------+--------+-----------------------------------------------------------+
-| physical_sensor_id     | uint64 | NOT NULL REFERENCES PhysicalSensor (physical_sensor_id)   |
-+------------------------+--------+-----------------------------------------------------------+
-| physical_filter_id     | uint64 | REFERENCES PhysicalFilter (physical_filter_id)            |
-+------------------------+--------+-----------------------------------------------------------+
-| UNIQUE (first_visit, last_visit, camera_id, physical_sensor_id, physical_filter_id)         |
-+------------------------+--------+-----------------------------------------------------------+
++--------------------+-----+----------------------------------------------------------+
+| *MasterCalib*                                                                       |
++====================+=====+==========================================================+
+| master_calib_id    | int | PRIMARY KEY                                              |
++--------------------+-----+----------------------------------------------------------+
+| camera_id          | int | NOT NULL, REFERENCES Camera (camera_id)                  |
++--------------------+-----+----------------------------------------------------------+
+| physical_filter_id | int | NOT NULL, REFERENCES PhysicalFilter (physical_filter_id) |
++--------------------+-----+----------------------------------------------------------+
+| UNIQUE (first_visit, last_visit, camera_id, physical_filter_id)                     |
++--------------------+-----+----------------------------------------------------------+
 
 Master calibration products are defined over a range of Visits from a given
 Camera, though a range of observation dates could be utilized instead.
@@ -1277,92 +1255,257 @@ defined for individual sensors should use ``SensorCalibRange``.
 DataUnit Joins
 ==============
 
-The tables in this section represent many-to-many joins between DataUnits
-defined in the previous section that can be generated programmatically.  These
-join tables have no primary key (at least not as part of the common schema),
-and hence cannot be used to label Datasets.
+The spatial join tables are calculated, and may be implemented as views
+if those calculations can be done within the database efficiently.
+The MasterCalibVisitJoin table is not calculated; its entries should
+be added whenever new MasterCalib entries are added
 
-+------------------+--------+---------------------------------------------------+
-| *CalibRangeJoin*                                                              |
-+==================+========+===================================================+
-| calib_range_id   | uint64 | NOT NULL REFERENCES CalibRange (calib_range_id)   |
-+------------------+--------+---------------------------------------------------+
-| visit_id         | uint64 | NOT NULL REFERENCES Visit (visit_id)              |
-+------------------+--------+---------------------------------------------------+
++-----------------+-----+----------------------------------------------------+
+| *MasterCalibVisitJoin*                                                     |
++=================+=====+====================================================+
+| master_calib_id | int | NOT NULL, REFERENCES MasterCalib (master_calib_id) |
++-----------------+-----+----------------------------------------------------+
+| visit_id        | int | REFERENCES Visit (visit_id)                        |
++-----------------+-----+----------------------------------------------------+
 
-+--------------------------+--------+-----------------------------------------------------------------+
-| *SensorCalibRangeJoin*                                                                              |
-+==========================+========+=================================================================+
-| sensor_calib_range_id    | uint64 | NOT NULL REFERENCES SensorCalibRange (sensor_calib_range_id)    |
-+--------------------------+--------+-----------------------------------------------------------------+
-| observed_sensor_id       | uint64 | NOT NULL REFERENCES ObservedSensor (observed_sensor_id)         |
-+--------------------------+--------+-----------------------------------------------------------------+
++--------------------+-----+----------------------------------------------------------+
+| *SensorTractJoin*                                                                   |
++====================+=====+==========================================================+
+| observed_sensor_id | int | NOT NULL, REFERENCES ObservedSensor (observed_sensor_id) |
++--------------------+-----+----------------------------------------------------------+
+| tract_id           | int | NOT NULL, REFERENCES Tract (tract_id)                    |
++--------------------+-----+----------------------------------------------------------+
+| CONSTRAINT UNIQUE (observed_sensor_id, tract_id)                                    |
++--------------------+-----+----------------------------------------------------------+
 
-The above two tables define the joins between master calibration Datasets and
-the observations they should be used to calibrate.  These can be defined
-directly as views in on the DataUnit tables:
++--------------------+-----+-----------------------------------------------+
+| *SensorPatchJoin*                                                        |
++====================+=====+===============================================+
+| observed_sensor_id | int | NOT NULL, REFERENCES ObservedSensor (unit_id) |
++--------------------+-----+-----------------------------------------------+
+| patch_id           | int | NOT NULL, REFERENCES Patch (unit_id)          |
++--------------------+-----+-----------------------------------------------+
+| CONSTRAINT UNIQUE (observed_sensor_id, patch_id)                         |
++--------------------+-----+-----------------------------------------------+
 
-.. code-block:: sql
++----------+-----+---------------------------------------+
+| *VisitTractJoin*                                       |
++==========+=====+=======================================+
+| visit_id | int | NOT NULL, REFERENCES Visit (visit_id) |
++----------+-----+---------------------------------------+
+| tract_id | int | NOT NULL, REFERENCES Tract (tract_id) |
++----------+-----+---------------------------------------+
+| CONSTRAINT UNIQUE (visit_id, tract_id)                 |
++----------+-----+---------------------------------------+
 
-    CREATE VIEW CalibRangeJoin AS
-        SELECT
-            Visit.visit_id,
-            CalibRange.calib_range_id
-        FROM
-            Visit INNER JOIN CalibRange ON (
-                (Visit.num BETWEEN CalibRange.first_visit AND CalibRange.last_visit)
-                AND Visit.physical_filter_id = CalibRange.physical_filter_id
-            );
++----------+-----+---------------------------------------+
+| *VisitPatchJoin*                                       |
++==========+=====+=======================================+
+| visit_id | int | NOT NULL, REFERENCES Visit (visit_id) |
++----------+-----+---------------------------------------+
+| patch_id | int | NOT NULL, REFERENCES Patch (patch_id) |
++----------+-----+---------------------------------------+
+| CONSTRAINT UNIQUE (visit_id, patch_id)                 |
++----------+-----+---------------------------------------+
 
-    CREATE VIEW SensorCalibRangeJoin
-        SELECT
-            ObservedSensor.observed_sensor_id,
-            SensorCalibRange.sensor_calib_range_id
-        FROM
-            ObservedSensor INNER JOIN Visit ON (ObservedSensor.visit_id = Visit.visit_id)
-            INNER JOIN SensorCalibRange ON (
-                (Visit.num BETWEEN SensorCalibRange.first_visit AND SensorCalibRange.last_visit)
-                AND Visit.physical_filter_id = SensorCalibRange.physical_filter_id
-            );
+.. _cs_datasettypes_and_metatype:
 
-The remaining join tables represent the spatial relationships between
-observations and SkyMap entities; records should only be present in these
-tables when the two entities overlap as defined by their ``region`` fields.
+DatasetTypes and MetaType
+=========================
 
-+----------------------+--------+-----------------------------------------------------------+
-| *SensorPatchJoin*                                                                         |
-+======================+========+===========================================================+
-| observed_sensor_id   | uint64 | NOT NULL REFERENCES ObservedSensor (observed_sensor_id)   |
-+----------------------+--------+-----------------------------------------------------------+
-| patch_id             | uint64 | NOT NULL REFERENCES Patch (patch_id)                      |
-+----------------------+--------+-----------------------------------------------------------+
++-------------+---------+-------------+
+| *DatasetMetatype*                   |
++=============+=========+=============+
+| metatype_id | int     | PRIMARY KEY |
++-------------+---------+-------------+
+| name        | varchar | NOT NULL    |
++-------------+---------+-------------+
 
-+----------------------+--------+-----------------------------------------------------------+
-| *SensorTractJoin*                                                                         |
-+======================+========+===========================================================+
-| observed_sensor_id   | uint64 | NOT NULL REFERENCES ObservedSensor (observed_sensor_id)   |
-+----------------------+--------+-----------------------------------------------------------+
-| tract_id             | uint64 | NOT NULL REFERENCES Tract (tract_id)                      |
-+----------------------+--------+-----------------------------------------------------------+
++----------------+---------+------------------------------------------------------------+
+| *DatasetMetatypeComposition*                                                          |
++================+=========+============================================================+
+| parent_id      | int     | NOT NULL, REFERENCES DatasetMetatype (dataset_metatype_id) |
++----------------+---------+------------------------------------------------------------+
+| component_id   | int     | NOT NULL, REFERENCES DatasetMetatype (dataset_metatype_id) |
++----------------+---------+------------------------------------------------------------+
+| component_name | varchar | NOT NULL                                                   |
++----------------+---------+------------------------------------------------------------+
 
-+------------+--------+----------------------------------------+
-| *VisitPatchJoin*                                             |
-+============+========+========================================+
-| visit_id   | uint64 | NOT NULL REFERENCES Visit (visit_id)   |
-+------------+--------+----------------------------------------+
-| patch_id   | uint64 | NOT NULL REFERENCES Patch (patch_id)   |
-+------------+--------+----------------------------------------+
++---------------------+---------+------------------------------------------------------------+
+| *DatasetType*                                                                              |
++---------------------+---------+------------------------------------------------------------+
+| dataset_type_id     | int     | PRIMARY KEY                                                |
++---------------------+---------+------------------------------------------------------------+
+| name                | varchar | NOT NULL                                                   |
++---------------------+---------+------------------------------------------------------------+
+| template            | varchar |                                                            |
++---------------------+---------+------------------------------------------------------------+
+| dataset_metatype_id | int     | NOT NULL, REFERENCES DatasetMetatype (dataset_metatype_id) |
++---------------------+---------+------------------------------------------------------------+
 
-+------------+--------+----------------------------------------+
-| *VisitTractJoin*                                             |
-+============+========+========================================+
-| visit_id   | uint64 | NOT NULL REFERENCES Visit (visit_id)   |
-+------------+--------+----------------------------------------+
-| tract_id   | uint64 | NOT NULL REFERENCES Tract (tract_id)   |
-+------------+--------+----------------------------------------+
-
++-----------------+---------+-------------+
+| *DatasetTypeUnits*                      |
++=================+=========+=============+
+| dataset_type_id | int     | PRIMARY KEY |
++-----------------+---------+-------------+
+| unit_name       | varchar | NOT NULL    |
++-----------------+---------+-------------+
 
 .. _cs_datasets:
+
+Datasets
+========
+
+There's table for the entire Database, so IDs are unique even across
+Repositories.  The dataref_pack field contains an ID that is unique
+only with a repository, constructed by packing together the associated
+units (the *path* string passed to DataStore.put would be a viable but
+probably inefficient choice).
+
++-------------------+---------+---------------------------------+
+| *Dataset*                                                     |
++-------------------+---------+---------------------------------+
+| dataset_id        | int     | PRIMARY KEY                     |
++-------------------+---------+---------------------------------+
+| dataset_type_id   |         | NOT NULL                        |
++-------------------+---------+---------------------------------+
+| dataref_pack      | binary  | NOT NULL                        |
++-------------------+---------+---------------------------------+
+| uri               | varchar |                                 |
++-------------------+---------+---------------------------------+
+| producer_id       | int     | REFERENCES Quantum (quantum_id) |
++-------------------+---------+---------------------------------+
+| parent_dataset_id | int     | REFERENCES Dataset (dataset_id) |
++-------------------+---------+---------------------------------+
+
+
+.. _cs_composite_datasets:
+
+Composite Datasets
+==================
+
+* If a virtual Dataset was created by writing multiple component Datasets,
+  the parent DatasetType's 'template' field and the parent Dataset's 'uri'
+  field may be null (depending on whether there was a also parent Dataset
+  stored whose components should be overridden).
+  
+* If a single Dataset was written and we're defining virtual components,
+  the component DatasetTypes should have null 'template' fields, but the
+  component Datasets will have non-null 'uri' fields with values created
+  by the Datastore
+
++----------------+-----+-------------------------------------------+
+| *DatasetComposition*                                             |
++================+=====+===========================================+
+| parent_id      | int | NOT NULL, REFERENCES Dataset (dataset_id) |
++----------------+-----+-------------------------------------------+
+| component_id   | int | NOT NULL, REFERENCES Dataset (dataset_id) |
++----------------+-----+-------------------------------------------+
+| component_name | int | NOT NULL                                  |
++----------------+-----+-------------------------------------------+
+
+.. _cs_tags:
+
+Tags
+====
+
+Tags to define multiple repos in a single database
+In a single-repository database, these tables would simply be absent.
+
++-------------------+---------+-------------+
+| *CollectionTag*                           |
++-------------------+---------+-------------+
+| repository_tag_id | int     | PRIMARY KEY |
++-------------------+---------+-------------+
+| name              | varchar | NOT NULL    |
++-------------------+---------+-------------+
+| CONSTRAINT UNIQUE (name)                  |
++-------------------+---------+-------------+
+
++-------------------+-----+-----------------------------------------------------------+
+| *DatasetCollectionTagJoin*                                                          |
++===================+=====+===========================================================+
+| repository_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (repository_tag_id) |
++-------------------+-----+-----------------------------------------------------------+
+| dataset_id        | int | NOT NULL, REFERENCES Dataset (dataset_id)                 |
++-------------------+-----+-----------------------------------------------------------+
+
++-------------------+-----+-----------------------------------------------------------+
+| *DatasetTypeCollectionTagJoin*                                                      |
++===================+=====+===========================================================+
+| repository_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (repository_tag_id) |
++-------------------+-----+-----------------------------------------------------------+
+| dataset_type_id   | int | NOT NULL, REFERENCES DatasetType (dataset_type_id)        |
++-------------------+-----+-----------------------------------------------------------+
+    
+.. _cs_dataset_dataunit_joins:
+
+Dataset-DataUnit joins
+======================
+
++--------------------+-----+----------------------------------------------------------+
+| *PhysicalFilterDatasetJoin*                                                         |
++====================+=====+==========================================================+
+| physical_filter_id | int | NOT NULL, REFERENCES PhysicalFilter (physical_filter_id) |
++--------------------+-----+----------------------------------------------------------+
+| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
++--------------------+-----+----------------------------------------------------------+
+    
++--------------------+-----+----------------------------------------------------------+
+| *PhysicalSensorDatasetJoin*                                                         |
++====================+=====+==========================================================+
+| physical_sensor_id | int | NOT NULL, REFERENCES PhysicalSensor (physical_sensor_id) |
++--------------------+-----+----------------------------------------------------------+
+| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
++--------------------+-----+----------------------------------------------------------+
+
++------------+-----+------------------------------------------------------------------+
+| *VisitDatasetJoin*                                                                  |
++============+=====+==================================================================+
+| visit_id   | int | NOT NULL, REFERENCES Visit (visit_id)                            |
++------------+-----+------------------------------------------------------------------+
+| dataset_id | int | NOT NULL, REFERENCES Dataset (dataset_id)                        |
++------------+-----+------------------------------------------------------------------+
+
++--------------------+-----+----------------------------------------------------------+
+| *ObservedSensorDatasetJoin*                                                         |
++====================+=====+==========================================================+
+| observed_sensor_id | int | NOT NULL, REFERENCES ObservedSensor (observed_sensor_id) |
++--------------------+-----+----------------------------------------------------------+
+| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
++--------------------+-----+----------------------------------------------------------+
+
++------------+-----+------------------------------------------------------------------+
+| *SnapDatasetJoin*                                                                   |
++============+=====+==================================================================+
+| snap_id    | int | NOT NULL, REFERENCES Snap (snap_id)                              |
++------------+-----+------------------------------------------------------------------+
+| dataset_id | int | NOT NULL, REFERENCES Dataset (dataset_id)                        |
++------------+-----+------------------------------------------------------------------+
+
++--------------------+-----+----------------------------------------------------------+
+| *AbstractFilterDatasetJoin*                                                         |
++====================+=====+==========================================================+
+| abstract_filter_id | int | NOT NULL, REFERENCES AbstractFilter (abstract_filter_id) |
++--------------------+-----+----------------------------------------------------------+
+| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
++--------------------+-----+----------------------------------------------------------+
+
++--------------------+-----+----------------------------------------------------------+
+| *TractDatasetJoin*                                                                  |
++====================+=====+==========================================================+
+| tract_id           | int | NOT NULL, REFERENCES Tract (tract_id)                    |
++--------------------+-----+----------------------------------------------------------+
+| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
++--------------------+-----+----------------------------------------------------------+
+
++------------+-----+------------------------------------------------------------------+
+| *PatchDatasetJoin*                                                                  |
++============+=====+==================================================================+
+| patch_id   | int | NOT NULL, REFERENCES Patch (patch_id)                            |
++------------+-----+------------------------------------------------------------------+
+| dataset_id | int | NOT NULL, REFERENCES Dataset (dataset_id)                        |
++------------+-----+------------------------------------------------------------------+
 
 Views for DatasetExpressions
 ============================
@@ -1448,17 +1591,15 @@ section, with the following differences:
  - These add the ``producer_id`` field, which records the Quantum that produced
    the dataset (if applicable).
 
-+-------------+--------+---------------------------------+
-| *Quantum*                                              |
-+=============+========+=================================+
-| quantum_id  | uint64 | PRIMARY KEY                     |
-+-------------+--------+---------------------------------+
-| config_id   | uint64 | REFERENCES Dataset (dataset_id) |
-+-------------+--------+---------------------------------+
-| env_id      | uint64 | REFERENCES Dataset (dataset_id) |
-+-------------+--------+---------------------------------+
-| task_name   | str    |                                 |
-+-------------+--------+---------------------------------+
++----------------------+-------------------------------------------+
+| *Quantum*                                                        |
++======================+===========================================+
+| quantum_id | int     | PRIMARY KEY                               |
++----------------------+-------------------------------------------+
+| task       | varchar |                                           |
++----------------------+-------------------------------------------+
+| config_id  | int     | NOT NULL, REFERENCES Dataset (dataset_id) |
++----------------------+-------------------------------------------+
 
 +-------------+--------+---------------------------------------------+
 | *DatasetConsumer*                                                  |

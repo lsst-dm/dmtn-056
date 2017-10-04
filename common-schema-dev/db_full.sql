@@ -109,6 +109,7 @@ CREATE TABLE Patch (
 CREATE TABLE MasterCalib (
     master_calib_id int PRIMARY KEY,
     camera_id int NOT NULL,
+    physical_filter_id int NOT NULL,
     FOREIGN KEY (camera_id) REFERENCES Camera (camera_id),
     FOREIGN KEY (physical_filter_id) REFERENCES PhysicalFilter (physical_filter_id),
     -- TODO: first_visit and last_visit are not in here!
