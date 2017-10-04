@@ -182,16 +182,41 @@ Transition
 
 The Dataset concept has essentially the same meaning that it did in the v14 Butler.
 
-
 A Dataset is analogous to an Open Provenance Model "artifact".
-
 
 Python API
 ----------
 
-.. todo::
+The Python representation of a :ref:`Dataset` is in some sense a :ref:`ConcreteDataset`, and hence we have no Python "Dataset" class.
 
-    Fill in the Python interface.
+But the equivalent to the complete SQL representation of a Dataset in the :ref:`CommonSchema` is a useful data structure in Python: the :py:class:`DatasetHandle` class.
+
+.. py:class:: DatasetHandle(DatasetRef)
+
+    A concrete, final class whose instances represent :ref:`Datasets <Dataset>`.
+
+    DatasetHandle inherits from :py:class:`DatasetRef`, and can be used in any context where a :py:class:`DatasetRef` is expected.
+
+    DatasetHandle instances are immutable.
+
+    DatasetHandle instances always correspond to :ref:`Datasets <Dataset>` that have already been stored.
+    The only way to obtain a DatasetHandle instance is the :py:class:`Registry` interface.
+    :py:class:`DatasetRef` instances, in contrast, can be directly constructed without a :py:class:`Registry` and can refer to :ref:`Datasets <Dataset>` that have not yet been created.
+
+    .. py:attribute:: uri
+
+        Read-only instance attribute.
+
+        The :ref:`Uri` that holds the location of the :ref:`Dataset` in a :ref:`Datastore`.
+
+    .. py:attribute:: components
+
+        Read-only instance attribute.
+
+        A :py:class:`dict` holding :py:class:`DatasetHandle` instances that correspond to this :ref:`Dataset's <Dataset>` named components.
+
+        Empty (or None?) if the :ref:`Dataset` is not a composite.
+
 
 SQL Representation
 ------------------
@@ -212,7 +237,6 @@ In addition to a name, a DatasetType includes:
 
  - a template string that can be used to construct a :ref:`Path`;
  - a tuple of :ref:`DataUnitTypes <DataUnitType>` that define the structure of :ref:`DatasetRefs <DatasetRef>`;
- - a Python class object that determines the type of its :ref:`ConcreteDataset <ConcreteDataset>`;
  - a :ref:`DatasetMetatype` that determines how :ref:`Datasets <Dataset>` are stored and composed.
 
 Transition
@@ -223,19 +247,51 @@ The DatasetType concept has essentially the same meaning that it did in the v14 
 Python API
 ----------
 
-In Python, a DatasetType is a dynamically-generated subclass of :py:class:`DatasetType`, with class attributes for each of the above elements:
-
 .. py:class:: DatasetType
+
+    A concrete, final class whose instances represent :ref:`DatasetTypes <DatasetType>`.
+
+    DatasetType instances may be constructed without a :ref:`Registry`, but they must be registered via :py:meth:`Registry.registerDatasetType` before corresponding :ref:`Datasets <Dataset>` may be added.
+
+    DatasetType instances are immutable.
+
+    .. note::
+
+        In the current design, :py:class:`DatasetTypes <DatasetType>` are not type objects, and the :py:class:`DatasetRef` class is not an instance of :py:class:`DatasetType`.
+        We could make that the case with a lot of metaprogramming, but this adds a lot of complexity to the code with no obvious benefit.
+        It seems most prudent to just rename the :ref:`DatasetType` concept and class to something that doesn't imply a type-instance relationship in Python.
+
+    .. py:method:: __init__(name, template, units, meta)
+
+        Public constructor.  All arguments correspond directly to instance attributes.
+
+    .. py:attribute:: name
+
+        Read-only instance attribute.
+
+        A string name for the :ref:`Dataset`; must be unique within a :ref:`Registry`.
+
+        .. todo::
+
+            Could/should we make this unique within a :ref:`Collection` instead?
 
     .. py:attribute:: template
 
-        Virtual class attribute: must be provided by derived classes.
+        Read-only instance attribute.
 
         A string with ``str.format``-style replacement patterns that can be used to create a :ref:`Path` from a :ref:`CollectionTag` and a :ref:`DatasetRef`.
 
-.. todo::
+    .. py:attribute:: units
 
-    Fill in remaining Python interface
+        Read-only instance attribute.
+
+        A tuple of :py:class:`DataUnit` subclasses (not instances) that define the :ref:`DatasetRef <DatasetRef>` corresponding to this :ref:`DatasetType`.
+
+    .. py:attribute:: meta
+
+        Read-only instance attribute.
+
+        A :py:class:`DatasetMetatype` subclass (not instance) that defines how this :ref:`DatasetType` is persisted.
 
 SQL Representation
 ------------------
@@ -270,7 +326,6 @@ SQL Representation
 ConcreteDatasets exist only in Python and do not have any SQL representation.
 
 
-
 .. _DataUnit:
 
 DataUnit
@@ -289,9 +344,32 @@ The string keys of data ID dictionaries passed to the v14 Butler are similar to 
 Python API
 ----------
 
+.. py:class:: DataUnit
+
+    An abstract base class whose subclasses represent concrete :ref:`DataUnits <DataUnit>`.
+
+    .. py:attribute:: id
+
+        Read-only pure-virtual instance attribute (must be implemented by subclasses).
+
+        An integer that fully identifies the :ref:`DataUnit` instance, and is used as the primary key in the :ref:`CommonSchema` table for that :ref:`DataUnit`.
+
+    .. py:attribute:: value
+
+        Read-only pure-virtual instance attribute (must be implemented by subclasses).
+
+        An integer or string that identifies the :ref:`DataUnit` when combined with any "foreign key" connections to other :ref:`DataUnits <DataUnit>`.
+        For example, a Visit's number is its value, because it uniquely labels a Visit as long as its Camera (its only foreign key :ref:`DataUnit`) is also specified.
+
+        .. todo::
+
+            Rephrase the above to make it more clear and preferably avoid using the phrase "foreign key", as that's a SQL concept that doesn't have an obvious meaning in Python.
+            We may need to have a Python way to expose the connections to other DataUnits on which a DataUnit's value.
+
 .. todo::
 
-    Fill in the Python interface.
+    Where should we document the concrete DataUnit classes?
+    They're closely related to common schema tables, but the Python API can't be inferred directly from the SQL declarations (and vice versa).
 
 
 SQL Representation
@@ -323,9 +401,7 @@ The DataUnitType concept does not exist in the v14 Butler.
 Python API
 ----------
 
-.. todo::
-
-    Fill in the Python interface.
+A DataUnitType is represented by a concrete :py:class:`DataUnit` subclass (the type object, not an instance thereof).
 
 SQL Representation
 ------------------
@@ -356,9 +432,28 @@ A Quantum is analogous to an Open Provenance Model "process".
 Python API
 ----------
 
-.. todo::
+.. py:class:: Quantum
 
-    Link to SuperTask design documents: same object should be usable for both purposes.
+    .. py:attribute:: predictedInputs
+
+        A dictionary of input datasets that were expected to be used, with :ref:`DatasetType` names as keys and a :py:class:`set` of :py:class:`DatasetRef` instances as values.
+
+        Input :ref:`Datasets <Dataset>` that have already been stored may be :py:class:`DatasetHandles <DatasetHandle>`, and in many contexts may be guaranteed to be.
+
+    .. py:attribute:: actualInputs
+
+        A dictionary of input datasets that were actually used, with the same form as :py:attr:`predictedInputs`.
+
+        All returned sets must be subsets of those in :py:attr:`predictedInputs`.
+
+    .. py:attribute:: outputs
+
+        A dictionary of output datasets, with the same form as :py:attr:`predictedInputs`.
+
+    .. py:attribute:: task
+
+        If the Quantum is associated with a SuperTask, this is the SuperTask instance that produced and should execute this set of inputs and outputs.
+        If not, a str identifier for the operation.  May also be None.
 
 SQL Representation
 ------------------
@@ -384,9 +479,23 @@ The v14 Butler's DataRef class played a similar role.
 Python API
 ----------
 
-.. todo::
+.. py:class:: DatasetRef
 
-    Link to SuperTask design documents: same object should be usable for both purposes.
+    A concrete non-final class whose instances are :ref:`DatasetRefs <DatasetRef>`.
+
+    DatasetRefs are immutable.
+
+    The target of a DatasetRef may or may not exist, making it appropriate for to-be-created :ref:`Dataset <Dataset>`.
+    :py:class:`DatasetHandle` inherits from DatasetRef, and represents a :ref:`Dataset` that is known to exist.
+
+    :py:attribute:: units
+
+        A tuple (or ``frozenset``?) of :py:class:`DataUnit` instances that label the :ref:`DatasetRef` within a :ref:`Collection`.
+
+    :py:attribute:: type
+
+        The :py:class:`DatasetType` associated with the :ref:`Dataset` the :ref:`DatasetRef` points to.
+
 
 SQL Representation
 ------------------
@@ -710,7 +819,7 @@ Python API
 
         Add a :ref:`Dataset` to a :ref:`Collection`.
 
-        This always adds a new :ref:`Dataset`; to associate an existing :py:class:`Dataset` with a new :ref:`Collection`, use :py:meth:`associate`.
+        This always adds a new :ref:`Dataset`; to associate an existing :ref:`Dataset` with a new :ref:`Collection`, use :py:meth:`associate`.
 
         The :ref:`Quantum` that generated the :ref:`Dataset` can optionally be provided to add provenance information.
 
@@ -727,17 +836,17 @@ Python API
             What are the values of the components dict, and where do they come from?
             This isn't in our ``put`` definition; I think it must have been lost in the whiteboard translation.
 
-        :return: a newly-created :py:class:`Dataset` instance.
+        :return: a newly-created :py:class:`DatasetHandle` instance.
 
         :raises: an exception if a :ref:`Dataset` with the given :ref:`DatasetRef` already exists in the given :ref:`Collection`.
 
-    .. py:method:: associate(tag, dataset)
+    .. py:method:: associate(tag, handle)
 
         Add an existing :ref:`Dataset` to an existing :ref:`Collection`.
 
         :param str tag: a :ref:`CollectionTag` indicating the Collection the :ref:`DatasetType` should be associated with.
 
-        :param Dataset dataset: a :py:class:`Dataset` instance that already exists in another :ref:`Collection` in this :ref:`Registry`.
+        :param DatasetHandle handle: a :py:class:`DatasetHandle` instance that already exists in another :ref:`Collection` in this :ref:`Registry`.
 
         :return: None
 
@@ -769,12 +878,12 @@ Python API
 
         :param DatasetRef ref: a :ref:`DatasetRef` that identifies the :ref:`Dataset`.
 
-        :returns: a :py:class:`Dataset` instance
+        :returns: a :py:class:`DatasetHandle` instance
 
         .. todo::
 
-            I've changed this to return a :py:class:`Dataset`, since that aggregates the things we need it to return.
-            It also provides a way to get a `:py:class:`Dataset` instance for an existing :ref:`Dataset`.
+            I've changed this to return a :py:class:`DatasetHandle`, since that aggregates the things we need it to return.
+            It also provides a way to get a `:py:class:`DatasetHandle` instance for an existing :ref:`Dataset`.
             But now we need to update any operations and code snippets that use the old interface.
             We also can't use this to get the DatasetMetatype from a DatasetRef, but that's okay, because we should be able to get that directly from the DatasetRef itself.
 
