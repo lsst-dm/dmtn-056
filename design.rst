@@ -417,7 +417,7 @@ Each :ref:`DataUnitType` is a table that the holds :ref:`DataUnits <DataUnit>` o
 Quantum
 =======
 
-A discrete unit of work that may depend on one or more :ref:`Datasets <Dataset>` and produce one or more :ref:`Datasets <Dataset>`.
+A discrete unit of work that may depend on one or more :ref:`Datasets <Dataset>` and produces one or more :ref:`Datasets <Dataset>`.
 
 Most Quanta will be executions of a particular SuperTask's ``runQuantum`` method, but they can also be used to represent discrete units of work performed manually by human operators or other software agents.
 
