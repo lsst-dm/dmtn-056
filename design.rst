@@ -1029,11 +1029,6 @@ Operations that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dat
 Camera DataUnits
 ================
 
-Entries in the :ref:`Camera <cs_table_Camera>` table are essentially just sources of raw data with a
-constant layout of PhysicalSensors and a self-constent numbering system for
-Visits.  Different versions of the same camera (due to e.g. changes in
-hardware) should still correspond to a single row in this table.
-
 .. _cs_table_Camera:
 
 +------------+---------+-------------+
@@ -1044,15 +1039,20 @@ hardware) should still correspond to a single row in this table.
 | name       | varchar | UNIQUE      |
 +------------+---------+-------------+
 
+Entries in the :ref:`Camera <cs_table_Camera>` table are essentially just sources of raw data with a
+constant layout of PhysicalSensors and a self-constent numbering system for
+Visits.  Different versions of the same camera (due to e.g. changes in
+hardware) should still correspond to a single row in this table.
+
 .. _cs_table_AbstractFilter:
 
-+--------------------+---------+-----------------+
-| *AbstractFilter*                               |
-+====================+=========+=================+
-| abstract_filter_id | int     | PRIMARY KEY     |
-+--------------------+---------+-----------------+
-| name               | varchar | NOT NULL UNIQUE |
-+--------------------+---------+-----------------+
++--------------------+---------+------------------+
+| *AbstractFilter*                                |
++====================+=========+==================+
+| abstract_filter_id | int     | PRIMARY KEY      |
++--------------------+---------+------------------+
+| name               | varchar | NOT NULL, UNIQUE |
++--------------------+---------+------------------+
 
 .. _cs_table_PhysicalFilter:
 
@@ -1067,16 +1067,17 @@ hardware) should still correspond to a single row in this table.
 +--------------------+---------+------------------------------------------------+
 | abstract_filter_id | int     | REFERENCES AbstractFilter (abstract_filter_id) |
 +--------------------+---------+------------------------------------------------+
-| UNIQUE (name, camera_id)                                                      |
+| CONSTRAINT UNIQUE (name, camera_id)                                           |
 +--------------------+---------+------------------------------------------------+
 
-Entries in the PhysicalFilter table represent the bandpass filters that can be
-associated with a particular visit.  These are different from AbstractFilters,
+Entries in the :ref:`PhysicalFilter <cs_table_PhysicalFilter>` table represent
+the bandpass filters that can be associated with a particular visit.
+These are different from :ref:`AbstractFilters <cs_table_AbstractFilters>`,
 which are used to label Datasets that aggregate data from multiple Visits.
-Having these two different DataUnits for filters is necessary to make it
+Having these two different :ref:`DataUnits <DataUnit>` for filters is necessary to make it
 possible to combine data from Visits taken with different filters.  A
 PhysicalFilter may or may not be associated with a particular AbstractFilter.
-AbstractFilter is the only DataUnit not associated with either a Camera or a
+AbstractFilter is the only :ref:`DataUnit` not associated with either a Camera or a
 SkyMap.
 
 .. _cs_table_PhysicalSensor:
@@ -1099,7 +1100,7 @@ SkyMap.
 | CONSTRAINT UNIQUE (name, camera_id)                                    |
 +--------------------+---------+-----------------------------------------+
 
-PhysicalSensors actually represent the "slot" for a sensor in a camera,
+:ref:`PhysicalSensors <cs_table_PhysicalSensor>` actually represent the "slot" for a sensor in a camera,
 independent of both any observations and the actual detector (which may change
 over the life of the camera).  The ``group`` field may mean different things
 for different cameras (such as rafts for LSST, or groups of sensors oriented
@@ -1112,7 +1113,7 @@ number may be autoincrement.
 .. _cs_table_Visit:
 
 +--------------------+----------+----------------------------------------------------------+
-| *Visit*            |                                                                     |
+| *Visit*                                                                                  |
 +====================+==========+==========================================================+
 | visit_id           | int      | PRIMARY KEY                                              |
 +--------------------+----------+----------------------------------------------------------+
@@ -1131,8 +1132,7 @@ number may be autoincrement.
 | CONSTRAINT UNIQUE (num, camera_id)                                                       |
 +--------------------+----------+----------------------------------------------------------+
 
-
-Entries in the Visit table correspond to observations with the full camera at
+Entries in the :ref:`Visit <cs_table_Visit>` table correspond to observations with the full camera at
 a particular pointing, possibly comprised of multiple exposures (Snaps).  A
 Visit's ``region`` field holds an approximate but inclusive representation of
 its position on the sky that can be compared to the ``regions`` of other
@@ -1154,11 +1154,11 @@ DataUnits.
 | CONSTRAINT UNIQUE (visit_id, physical_sensor_id)                                     |
 +--------------------+------+----------------------------------------------------------+
 
-An ObservedSensor is simply a combination of a Visit and a PhysicalSensor, but
-unlike most other DataUnit combinations (which are not typically DataUnits
-themselves), this one is both ubuiquitous and contains additional information:
-a ``region`` that represents the position of the observed sensor image on the
-sky.
+An :ref:`ObservedSensor <cs_table_ObservedSensor>` is simply a combination of
+a Visit and a PhysicalSensor, but unlike most other :ref:`DataUnit` combinations (which
+are not typically :ref:`DataUnits <DataUnit>` themselves), this one is both ubuiquitous
+and contains additional information: a ``region`` that represents the position of the
+observed sensor image on the sky.
 
 .. _cs_table_Snap:
 
@@ -1178,8 +1178,11 @@ sky.
 | CONSTRAINT UNIQUE (visit_id, index)                             |
 +-----------+----------+------------------------------------------+
 
-A Snap is a single-exposure subset of a Visit.  Most non-LSST Visits will have
-only a single Snap.
+A :ref:`Snap <cs_table_Snap>` is a single-exposure subset of a Visit.
+
+.. note::
+
+    Most non-LSST Visits will have only a single Snap.
 
 .. _cs_skymap_dataunits:
 
@@ -1196,12 +1199,16 @@ SkyMap DataUnits
 | name      | varchar | NOT NULL, UNIQUE |
 +-----------+---------+------------------+
 
-Each SkyMap entry represents a different way to subdivide the sky into tracts
+Each :ref:`SkyMap <cs_table_Skymap>` entry represents a different way to subdivide the sky into tracts
 and patches, including any parameters involved in those defitions (i.e.
 different configurations of the same ``lsst.skymap.BaseSkyMap`` subclass yield
-different rows).  While SkyMaps need unique, human-readable names, it may also
-be wise to add a hash or pickle of the SkyMap instance that defines the
-mapping to avoid duplicate entries (not yet included).
+different rows).
+
+.. todo::
+
+    While SkyMaps need unique, human-readable names, it may also
+    be wise to add a hash or pickle of the SkyMap instance that defines the
+    mapping to avoid duplicate entries (not yet included).
 
 .. _cs_table_Tract:
 
@@ -1219,11 +1226,14 @@ mapping to avoid duplicate entries (not yet included).
 | CONSTRAINT UNIQUE (skymap_id, num)                         |
 +-----------+------+-----------------------------------------+
 
-A Tract is a contiguous, simple area on the sky with a 2-d Euclidian
-coordinate system defined by a single map projection.  If the parameters of
-the sky projection and the Tract's various bounding boxes can be standardized
-across all SkyMap implementations, it may be useful to include them in the
-table as well.
+A :ref:`Tract <cs_table_Tract>` is a contiguous, simple area on the sky with a 2-d Euclidian
+coordinate system defined by a single map projection.
+
+.. todo::
+
+    If the parameters of the sky projection and the Tract's various bounding boxes
+    can be standardized across all SkyMap implementations, it may be useful to
+    include them in the table as well.
 
 .. _cs_table_Patch:
 
@@ -1241,10 +1251,10 @@ table as well.
 | CONSTRAINT UNIQUE (tract_id, index)                     |
 +----------+------+--------+------------------------------+
 
-Tracts are subdivided into Patches, which share the Tract coordinate system
-and define similarly-sized regions that overlap by a configurable amount.  As
-with Tracts, we may want to include fields to describe Patch boundaries in this
-table in the future.
+:ref:`Tracts <cs_table_Tract>` are subdivided into :ref:`Patches <cs_table_Patch>`,
+which share the Tract coordinate system and define similarly-sized regions that
+overlap by a configurable amount.  As with Tracts, we may want to include fields
+to describe Patch boundaries in this table in the future.
 
 .. _cs_calibration_dataunits:
 
@@ -1262,15 +1272,14 @@ Calibration DataUnits
 +--------------------+-----+----------------------------------------------------------+
 | physical_filter_id | int | NOT NULL, REFERENCES PhysicalFilter (physical_filter_id) |
 +--------------------+-----+----------------------------------------------------------+
-| UNIQUE (first_visit, last_visit, camera_id, physical_filter_id)                     |
+| UNIQUE (camera_id, physical_filter_id)                                              |
 +--------------------+-----+----------------------------------------------------------+
 
-Master calibration products are defined over a range of Visits from a given
-Camera, though a range of observation dates could be utilized instead.
+:ref:`Master calibration products <cs_table_MasterCalib>` are defined over a range
+of Visits from a given Camera (see :ref:`MasterCalibVisitJoin <cs_table_MasterCalibVisitJoin>`).
 Calibration products may additionally be specialized for a particular
 PhysicalFilter, or may be appropriate for all PhysicalFilters by setting the
-``physical_filter_id`` field to ``NULL``.  Calibration products that are
-defined for individual sensors should use ``SensorCalibRange``.
+``physical_filter_id`` field to ``NULL``.
 
 .. _cs_dataunit_joins:
 
@@ -1279,8 +1288,9 @@ DataUnit Joins
 
 The spatial join tables are calculated, and may be implemented as views
 if those calculations can be done within the database efficiently.
-The MasterCalibVisitJoin table is not calculated; its entries should
-be added whenever new MasterCalib entries are added
+The :ref:`MasterCalibVisitJoin <cs_table_MasterCalibVisitJoin>` table is
+not calculated; its entries should be added whenever new
+:ref:`MasterCalib <cs_table_MasterCalib>` entries are added.
 
 .. _cs_table_MasterCalibVisitJoin:
 
@@ -1371,7 +1381,7 @@ DatasetTypes and MetaType
 
 +---------------------+---------+------------------------------------------------------------+
 | *DatasetType*                                                                              |
-+---------------------+---------+------------------------------------------------------------+
++=====================+=========+============================================================+
 | dataset_type_id     | int     | PRIMARY KEY                                                |
 +---------------------+---------+------------------------------------------------------------+
 | name                | varchar | NOT NULL                                                   |
@@ -1391,16 +1401,17 @@ DatasetTypes and MetaType
 | unit_name       | varchar | NOT NULL    |
 +-----------------+---------+-------------+
 
+
 .. _cs_datasets:
 
 Datasets
 ========
 
-There's table for the entire Database, so IDs are unique even across
-Repositories.  The dataref_pack field contains an ID that is unique
-only with a repository, constructed by packing together the associated
-units (the *path* string passed to DataStore.put would be a viable but
-probably inefficient choice).
+There's table for the entire database, so IDs are unique even across
+:ref:`Collections <Collection>`.  The ``dataref_pack`` field contains
+an ID that is unique only with a collection, constructed by packing
+together the associated units (the *path* string passed to ``DataStore.put``
+would be a viable but probably inefficient choice).
 
 .. _cs_table_Dataset:
 
@@ -1426,15 +1437,15 @@ probably inefficient choice).
 Composite Datasets
 ==================
 
-* If a virtual Dataset was created by writing multiple component Datasets,
-  the parent DatasetType's 'template' field and the parent Dataset's 'uri'
-  field may be null (depending on whether there was a also parent Dataset
-  stored whose components should be overridden).
+* If a virtual :ref:`Dataset` was created by writing multiple component Datasets,
+  the parent :ref:`DatasetType's <cs_table_DatasetType>` ``template`` field and the parent
+  Dataset's ``uri`` field may be null (depending on whether there was a also parent
+  Dataset stored whose components should be overridden).
   
-* If a single Dataset was written and we're defining virtual components,
-  the component DatasetTypes should have null 'template' fields, but the
-  component Datasets will have non-null 'uri' fields with values created
-  by the Datastore
+* If a single :ref:`Dataset` was written and we're defining virtual components,
+  the component :ref:`DatasetTypes <cs_table_DatasetType>` should have null ``template``
+  fields, but the component Datasets will have non-null ``uri`` fields with values created
+  by the :ref:`Datastore`.
 
 .. _cs_table_DatasetComposition:
 
@@ -1453,15 +1464,14 @@ Composite Datasets
 Tags
 ====
 
-Tags to define multiple repos in a single database
-In a single-repository database, these tables would simply be absent.
+Tags to define multiple :ref:`Collections <Collection>` in a single database
 
 .. _cs_table_CollectionTag:
 
 +-------------------+---------+-------------+
 | *CollectionTag*                           |
 +-------------------+---------+-------------+
-| repository_tag_id | int     | PRIMARY KEY |
+| collection_tag_id | int     | PRIMARY KEY |
 +-------------------+---------+-------------+
 | name              | varchar | NOT NULL    |
 +-------------------+---------+-------------+
@@ -1473,7 +1483,7 @@ In a single-repository database, these tables would simply be absent.
 +-------------------+-----+-----------------------------------------------------------+
 | *DatasetCollectionTagJoin*                                                          |
 +===================+=====+===========================================================+
-| repository_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (repository_tag_id) |
+| collection_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (collection_tag_id) |
 +-------------------+-----+-----------------------------------------------------------+
 | dataset_id        | int | NOT NULL, REFERENCES Dataset (dataset_id)                 |
 +-------------------+-----+-----------------------------------------------------------+
@@ -1483,11 +1493,16 @@ In a single-repository database, these tables would simply be absent.
 +-------------------+-----+-----------------------------------------------------------+
 | *DatasetTypeCollectionTagJoin*                                                      |
 +===================+=====+===========================================================+
-| repository_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (repository_tag_id) |
+| collection_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (collection_tag_id) |
 +-------------------+-----+-----------------------------------------------------------+
 | dataset_type_id   | int | NOT NULL, REFERENCES DatasetType (dataset_type_id)        |
 +-------------------+-----+-----------------------------------------------------------+
     
+.. note::
+
+    In a single-collection database, these tables may possibly be absent for space efficiency.
+
+
 .. _cs_dataset_dataunit_joins:
 
 Dataset-DataUnit joins
@@ -1609,7 +1624,7 @@ differently according to different configurations when the file is first
 written, after it is written we do not expect the name to change and hence
 record it in the database; this reduces the need for implementations to
 be aware of past configurations in addition to their current confirguration. For
-multi-file composite datasets, this field should be NULL, and another table
+multi-file composite datasets, this field should be ``NULL``, and another table
 (TBD) can be used to associate the composite with its leaf-node :ref:`Datasets
 <Dataset>`.
 
@@ -1619,6 +1634,9 @@ multi-file composite datasets, this field should be NULL, and another table
 Provenance
 ==========
 
+.. todo::
+
+    Figure out if this section is still current.
 
 .. todo::
 

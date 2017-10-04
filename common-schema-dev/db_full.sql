@@ -110,10 +110,11 @@ CREATE TABLE MasterCalib (
     master_calib_id int PRIMARY KEY,
     camera_id int NOT NULL,
     physical_filter_id int NOT NULL,
+    first_visit_id int,
+    last_visit_id int,
     FOREIGN KEY (camera_id) REFERENCES Camera (camera_id),
     FOREIGN KEY (physical_filter_id) REFERENCES PhysicalFilter (physical_filter_id),
-    -- TODO: first_visit and last_visit are not in here!
-    CONSTRAINT UNIQUE (first_visit, last_visit, camera_id, physical_filter_id)
+    CONSTRAINT UNIQUE (first_visit_id, last_visit_id, camera_id, physical_filter_id)
 );
 
 --------------------------------------------------------------------------
