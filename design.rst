@@ -412,56 +412,6 @@ Each :ref:`DataUnitType` is a table that the holds :ref:`DataUnits <DataUnit>` o
     Add links once Common Schema has link anchors for different tables.
 
 
-.. _Quantum:
-
-Quantum
-=======
-
-A discrete unit of work that may depend on one or more :ref:`Datasets <Dataset>` and produces one or more :ref:`Datasets <Dataset>`.
-
-Most Quanta will be executions of a particular SuperTask's ``runQuantum`` method, but they can also be used to represent discrete units of work performed manually by human operators or other software agents.
-
-Transition
-----------
-
-The Quantum concept does not exist in the v14 Butler.
-
-A Quantum is analogous to an Open Provenance Model "process".
-
-Python API
-----------
-
-.. py:class:: Quantum
-
-    .. py:attribute:: predictedInputs
-
-        A dictionary of input datasets that were expected to be used, with :ref:`DatasetType` names as keys and a :py:class:`set` of :py:class:`DatasetRef` instances as values.
-
-        Input :ref:`Datasets <Dataset>` that have already been stored may be :py:class:`DatasetHandles <DatasetHandle>`, and in many contexts may be guaranteed to be.
-
-    .. py:attribute:: actualInputs
-
-        A dictionary of input datasets that were actually used, with the same form as :py:attr:`predictedInputs`.
-
-        All returned sets must be subsets of those in :py:attr:`predictedInputs`.
-
-    .. py:attribute:: outputs
-
-        A dictionary of output datasets, with the same form as :py:attr:`predictedInputs`.
-
-    .. py:attribute:: task
-
-        If the Quantum is associated with a SuperTask, this is the SuperTask instance that produced and should execute this set of inputs and outputs.
-        If not, a str identifier for the operation.  May also be None.
-
-SQL Representation
-------------------
-
-.. todo::
-
-    Fill in SQL interface
-
-
 .. _DatasetRef:
 
 DatasetRef
@@ -561,6 +511,57 @@ SQL Representation
 .. todo::
 
     Fill in SQL interface
+
+
+.. _Quantum:
+
+Quantum
+=======
+
+A discrete unit of work that may depend on one or more :ref:`Datasets <Dataset>` and produces one or more :ref:`Datasets <Dataset>`.
+
+Most Quanta will be executions of a particular SuperTask's ``runQuantum`` method, but they can also be used to represent discrete units of work performed manually by human operators or other software agents.
+
+Transition
+----------
+
+The Quantum concept does not exist in the v14 Butler.
+
+A Quantum is analogous to an Open Provenance Model "process".
+
+Python API
+----------
+
+.. py:class:: Quantum
+
+    .. py:attribute:: predictedInputs
+
+        A dictionary of input datasets that were expected to be used, with :ref:`DatasetType` names as keys and a :py:class:`set` of :py:class:`DatasetRef` instances as values.
+
+        Input :ref:`Datasets <Dataset>` that have already been stored may be :py:class:`DatasetHandles <DatasetHandle>`, and in many contexts may be guaranteed to be.
+
+    .. py:attribute:: actualInputs
+
+        A dictionary of input datasets that were actually used, with the same form as :py:attr:`predictedInputs`.
+
+        All returned sets must be subsets of those in :py:attr:`predictedInputs`.
+
+    .. py:attribute:: outputs
+
+        A dictionary of output datasets, with the same form as :py:attr:`predictedInputs`.
+
+    .. py:attribute:: task
+
+        If the Quantum is associated with a SuperTask, this is the SuperTask instance that produced and should execute this set of inputs and outputs.
+        If not, a str identifier for the operation.  May also be None.
+
+SQL Representation
+------------------
+
+.. todo::
+
+    Fill in SQL interface
+
 
 
 .. _DatasetExpression:
