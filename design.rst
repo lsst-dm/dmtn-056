@@ -695,34 +695,98 @@ Python API
 
 .. py:class:: Registry
 
-    .. py:method:: addDatasetType(CollectionTag, DatasetType, template) -> None
+    .. py:method:: registerDatasetType(tag, datasetType)
 
-        Add a new :ref:`DatasetType`.
+        Add a new :ref:`DatasetType` to a :ref:`Collection`.
+        If the :ref:`DatasetType` already exists, it will be associated with the given :ref:`Collection`.
 
-          .. todo::
+        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` the :ref:`DatasetType` should be associated with.
 
-            Define DatasetType as a class; may remove the need for the template arguments.
+        :param DatasetType datasetType: the :ref:`DatasetType` to be added
 
-    .. py:method:: addDataset(CollectionTag, DatasetRef, Uri, DatasetComponents, Quantum=None) -> None
+        :return: None
 
-        Add a :ref:`Dataset`. Optionally indicates which :ref:`Quantum` generated it.
+    .. py:method:: addDataset(tag, ref, uri, components, quantum=None)
 
-    .. py:method:: addQuantum(CollectionTag, Quantum) -> None
+        Add a :ref:`Dataset` to a :ref:`Collection`.
 
-        Add a new :ref:`Quantum`.
+        This always adds a new :ref:`Dataset`; to associate an existing :py:class:`Dataset` with a new :ref:`Collection`, use :py:meth:`associate`.
 
-    .. py:method:: addDataUnit(CollectionTag, DataUnit, replace=False) -> None
+        The :ref:`Quantum` that generated the :ref:`Dataset` can optionally be provided to add provenance information.
+
+        :param str tag: a :ref:`CollectionTag` indicating the Collection the :ref:`DatasetType` should be associated with.
+
+        :param DatasetRef ref: a :ref:`DatasetRef` that identifies the :ref:`Dataset` and contains its :ref:`DatasetType`.
+
+        :param str uri: the :ref:`Uri` that has been associated with the :ref:`Dataset` by a :ref:`Datastore`.
+
+        :param dict components: if the :ref:`Dataset` is a composite, a dictionary of its named components
+
+        .. todo::
+
+            What are the values of the components dict, and where do they come from?
+            This isn't in our ``put`` definition; I think it must have been lost in the whiteboard translation.
+
+        :return: a newly-created :py:class:`Dataset` instance.
+
+        :raises: an exception if a :ref:`Dataset` with the given :ref:`DatasetRef` already exists in the given :ref:`Collection`.
+
+    .. py:method:: associate(tag, dataset)
+
+        Add an existing :ref:`Dataset` to an existing :ref:`Collection`.
+
+        :param str tag: a :ref:`CollectionTag` indicating the Collection the :ref:`DatasetType` should be associated with.
+
+        :param Dataset dataset: a :py:class:`Dataset` instance that already exists in another :ref:`Collection` in this :ref:`Registry`.
+
+        :return: None
+
+    .. py:method:: addQuantum(quantum)
+
+        Add a new :ref:`Quantum` to the :ref:`Registry`.
+
+        :param Quantum quantum: a :py:class:`Quantum` instance to add to the :ref:`Registry`.
+
+        .. todo::
+
+            How do we label/identify Quanta, and associate their Python objects with database records?
+
+    .. py:method:: addDataUnit(unit, replace=False)
 
         Add a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
 
-    .. py:method:: find(CollectionTag, DatasetRef) -> Uri, DatasetMetatype, DatasetComponents
+        :param DataUnit unit: the :py:class:`DataUnit` to add or replace.
 
-        Lookup the location of the :ref:`Dataset` associated with the given `DatasetRef` in a :ref:`Datastore`.
-        Also return its :ref:`DatasetMetatype` and (optional) `DatasetComponents`.
+        :param bool replace: if True, replace any matching :ref:`DataUnit` that already exists (updating its non-unique fields) instead of raising an exception.
 
-    .. py:method:: makeDataGraph(CollectionTag, DatasetExpression, [DatasetType, ...]) -> DataGraph
+    .. py:method:: find(tag, ref)
+
+        Look up the location of the :ref:`Dataset` associated with the given `DatasetRef`.
+
+        This can be used to obtain the :ref:`Uri` that permits the :ref:`Dataset` from a :ref:`Datastore`.
+
+        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to search.
+
+        :param DatasetRef ref: a :ref:`DatasetRef` that identifies the :ref:`Dataset`.
+
+        :returns: a :py:class:`Dataset` instance
+
+        .. todo::
+
+            I've changed this to return a :py:class:`Dataset`, since that aggregates the things we need it to return.
+            It also provides a way to get a `:py:class:`Dataset` instance for an existing :ref:`Dataset`.
+            But now we need to update any operations and code snippets that use the old interface.
+            We also can't use this to get the DatasetMetatype from a DatasetRef, but that's okay, because we should be able to get that directly from the DatasetRef itself.
+
+    .. py:method:: makeDataGraph(tag, expr, datasetTypes) -> DataGraph
 
         Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatasetTypes <DatasetType>` and return a :ref:`DataGraph`.
+
+        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to search.
+
+        :param str expr: a :ref:`DatasetExpression` that limits the :ref:`DataUnits <DataUnit>` and (indirectly) the :ref:`Datasets <Dataset>` returned.
+
+        :param list[DatasetType] datasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances should be included in the graph.
 
         .. todo::
             Should we also supply a ``findAll`` or something to give you just a list
@@ -730,35 +794,68 @@ Python API
             (I guess it already is) such that one can loop over the results of a query
             and retrieve all relevant :ref:`Datasets <Dataset>`?
 
-    .. py:method:: makePath(CollectionTag, DatasetRef) -> Path
+        :returns: a :ref:`DataGraph` instance
+
+    .. py:method:: makePath(tag, ref) -> Path
 
         Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since the
         :ref:`Datastore` will likely have to deviate from the provided path
         (in the case of an object-store for instance).
 
-    .. py:method:: subset(CollectionTag, DatasetExpression, [DatasetType, ...]) -> CollectionTag
+        Although a :ref:`Dataset` may belong to multiple :ref:`Collections <Collection>`, only the first :ref:`Collection` it is added to is used in its :ref:`Path`.
+
+        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to which the :ref:`Dataset` will be added.
+
+        :param DatasetRef ref: a :py:class:`DatasetRef` instance that holds the :ref:`DataUnits <DataUnit>` whose values will be inserted into a template to form the :ref:`Path`.
+
+        :returns: a str :ref:`Path`
+
+        .. todo:
+            This doesn't require a database lookup if DatasetRef has a DatasetType, and DatasetType has a template.
+            Should we move it to DatasetRef instead?
+
+    .. py:method:: subset(tag, expr, datasetTypes)
 
         Create a new :ref:`Collection` by subsetting an existing one.
 
-    .. py:method:: merge([CollectionTag, ...]) -> CollectionTag
+        :param str tag: a :ref:`CollectionTag` indicating the input :ref:`Collection` to subset.
+
+        :param str expr: a :ref:`DatasetExpression` that limits the :ref:`DataUnits <DataUnit>` and (indirectly) the :ref:`Datasets <Dataset>` in the subset.
+
+        :param list[DatasetType] datasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances should be included in the subset.
+
+        :returns: a str :ref:`CollectionTag`
+
+    .. py:method:: merge(outputTag, inputTags)
 
         Create a new :ref:`Collection` from a series of existing ones.
 
-        The ordering matters, such that identical :ref:`DatasetRefs <DatasetRef>` override,
-        with those earlier in the list remaining.
+        Entries earlier in the list will be used in preference to later entries when both contain :ref:`Datasets <Dataset>` with the same :ref:`DatasetRef`.
 
-    .. py:method:: export(CollectionTag) -> str
+        :param outputTag: a str :ref:`CollectionTag` to use for the new :ref:`Collection`.
+
+        :param list[str] inputTags: a list of :ref:`CollectionTags <CollectionTag>` to combine.
+
+    .. py:method:: export(tag) -> str
 
         Export contents of :ref:`Registry` for a given :ref:`CollectionTag` in a text
         format that can be imported into a different database.
 
-        .. todo::
-            This may not be the most efficient way of doing things.  But we should provide some generic
-            way of transporting collections between databases.
+        :param str tag: a :ref:`CollectionTag` indicating the input :ref:`Collection` to export.
 
-    .. py:method:: import(str)
+        :returns: a str containing a serialized form of the subset of the :ref:`Registry`.
+
+        .. todo::
+            This may not be the most efficient way of doing things.
+            But we should provide some generic way of transporting collections between databases.
+            Maybe we should also support exporting more than one at a time?
+
+    .. py:method:: import(serialized)
 
         Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
+
+        :param str serialized: a str containing a serialized form of a subset of a :ref:`Registry`.
+
 
 SQL Representation
 ------------------
