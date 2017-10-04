@@ -248,13 +248,13 @@ Python API
     DatasetRefs are immutable.
 
     The target of a DatasetRef may or may not exist, making it appropriate for to-be-created :ref:`Datasets <Dataset>`.
-    :py:class:`DatasetHandle` inherits from DatasetRef, and represents a :ref:`Dataset` that is known to exist.
+.. :py:class:`DatasetHandle` inherits from DatasetRef, and represents a :ref:`Dataset` that is known to exist.
 
-    :py:attribute:: units
+    .. :py:attribute:: units
 
         A tuple (or ``frozenset``?) of :py:class:`DataUnit` instances that label the :ref:`DatasetRef` within a :ref:`Collection`.
 
-    :py:attribute:: type
+    .. :py:attribute:: type
 
         The :py:class:`DatasetType` associated with the :ref:`Dataset` the :ref:`DatasetRef` points to.
 
