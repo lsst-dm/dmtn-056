@@ -69,16 +69,15 @@ Communication between the components is mediated by the:
 * :ref:`DatasetMetatype` that holds information about **how** a :ref:`Dataset` can be stored.
 
 The :ref:`Registry` is responsible for providing the :ref:`DatasetMetatype` for
-to be stored :ref:`Datasets <Dataset>` and the :ref:`Datastore` is responsible
+stored :ref:`Datasets <Dataset>` and the :ref:`Datastore` is responsible
 for providing the :ref:`Uri` from where it can be subsequently retrieved.
 
 .. note::
 
     Both the :ref:`Registry` and the :ref:`Datastore` typically each
     come as a client/server pair.  In some cases the server part may be a direct backend,
-    such as a SQL server or a filesystem, that does not require any extra software daemon.
-    In some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a
-    daemon will be required.
+    such as a SQL server or a filesystem, that does not require any custom software daemon (other than e.g. a third-party database or http server).
+    In some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a daemon for at least the :ref:`Datastore` will be required.
 
 ##########
 Operations
