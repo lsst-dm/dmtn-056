@@ -225,6 +225,48 @@ SQL Representation
     Fill in how Datasets are represented in SQL.
 
 
+.. _DatasetRef:
+
+DatasetRef
+==========
+
+An identifier for a :ref:`Dataset` that can be used across different :ref:`Collections <Collection>` and :ref:`Registries <Registry>`.
+A :ref:`DatasetRef` is effectively the combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
+
+Transition
+----------
+
+The v14 Butler's DataRef class played a similar role.
+
+Python API
+----------
+
+.. py:class:: DatasetRef
+
+    A concrete non-final class whose instances are :ref:`DatasetRefs <DatasetRef>`.
+
+    DatasetRefs are immutable.
+
+    The target of a DatasetRef may or may not exist, making it appropriate for to-be-created :ref:`Dataset <Dataset>`.
+    :py:class:`DatasetHandle` inherits from DatasetRef, and represents a :ref:`Dataset` that is known to exist.
+
+    :py:attribute:: units
+
+        A tuple (or ``frozenset``?) of :py:class:`DataUnit` instances that label the :ref:`DatasetRef` within a :ref:`Collection`.
+
+    :py:attribute:: type
+
+        The :py:class:`DatasetType` associated with the :ref:`Dataset` the :ref:`DatasetRef` points to.
+
+
+SQL Representation
+------------------
+
+.. todo::
+
+    Fill in SQL interface
+
+
 .. _DatasetType:
 
 DatasetType
@@ -410,48 +452,6 @@ Each :ref:`DataUnitType` is a table that the holds :ref:`DataUnits <DataUnit>` o
 .. todo::
 
     Add links once Common Schema has link anchors for different tables.
-
-
-.. _DatasetRef:
-
-DatasetRef
-==========
-
-An identifier for a :ref:`Dataset` that can be used across different :ref:`Collections <Collection>` and :ref:`Registries <Registry>`.
-A :ref:`DatasetRef` is effectively the combination of a :ref:`DatasetType` and a tuple of :ref:`DataUnits <DataUnit>`.
-
-Transition
-----------
-
-The v14 Butler's DataRef class played a similar role.
-
-Python API
-----------
-
-.. py:class:: DatasetRef
-
-    A concrete non-final class whose instances are :ref:`DatasetRefs <DatasetRef>`.
-
-    DatasetRefs are immutable.
-
-    The target of a DatasetRef may or may not exist, making it appropriate for to-be-created :ref:`Dataset <Dataset>`.
-    :py:class:`DatasetHandle` inherits from DatasetRef, and represents a :ref:`Dataset` that is known to exist.
-
-    :py:attribute:: units
-
-        A tuple (or ``frozenset``?) of :py:class:`DataUnit` instances that label the :ref:`DatasetRef` within a :ref:`Collection`.
-
-    :py:attribute:: type
-
-        The :py:class:`DatasetType` associated with the :ref:`Dataset` the :ref:`DatasetRef` points to.
-
-
-SQL Representation
-------------------
-
-.. todo::
-
-    Fill in SQL interface
 
 
 .. _Collection:
