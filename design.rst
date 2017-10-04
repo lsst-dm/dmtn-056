@@ -1029,6 +1029,13 @@ Operations that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dat
 Camera DataUnits
 ================
 
+Entries in the :ref:`Camera <cs_table_Camera>` table are essentially just sources of raw data with a
+constant layout of PhysicalSensors and a self-constent numbering system for
+Visits.  Different versions of the same camera (due to e.g. changes in
+hardware) should still correspond to a single row in this table.
+
+.. _cs_table_Camera:
+
 +------------+---------+-------------+
 | *Camera*                           |
 +============+=========+=============+
@@ -1037,10 +1044,7 @@ Camera DataUnits
 | name       | varchar | UNIQUE      |
 +------------+---------+-------------+
 
-Entries in the Camera table are essentially just sources of raw data with a
-constant layout of PhysicalSensors and a self-constent numbering system for
-Visits.  Different versions of the same camera (due to e.g. changes in
-hardware) should still correspond to a single row in this table.
+.. _cs_table_AbstractFilter:
 
 +--------------------+---------+-----------------+
 | *AbstractFilter*                               |
@@ -1049,6 +1053,8 @@ hardware) should still correspond to a single row in this table.
 +--------------------+---------+-----------------+
 | name               | varchar | NOT NULL UNIQUE |
 +--------------------+---------+-----------------+
+
+.. _cs_table_PhysicalFilter:
 
 +--------------------+---------+------------------------------------------------+
 | *PhysicalFilter*                                                              |
@@ -1072,6 +1078,8 @@ possible to combine data from Visits taken with different filters.  A
 PhysicalFilter may or may not be associated with a particular AbstractFilter.
 AbstractFilter is the only DataUnit not associated with either a Camera or a
 SkyMap.
+
+.. _cs_table_PhysicalSensor:
 
 +--------------------+---------+-----------------------------------------+
 | *PhysicalSensor*   |                                                   |
@@ -1101,6 +1109,8 @@ Because some cameras identify sensors with string names and other use numbers,
 we provide fields for both; the name may be a stringified integer, and the
 number may be autoincrement.
 
+.. _cs_table_Visit:
+
 +--------------------+----------+----------------------------------------------------------+
 | *Visit*            |                                                                     |
 +====================+==========+==========================================================+
@@ -1128,6 +1138,8 @@ Visit's ``region`` field holds an approximate but inclusive representation of
 its position on the sky that can be compared to the ``regions`` of other
 DataUnits.
 
+.. _cs_table_ObservedSensor:
+
 +--------------------+------+----------------------------------------------------------+
 | *ObservedSensor*                                                                     |
 +====================+======+==========================================================+
@@ -1147,6 +1159,8 @@ unlike most other DataUnit combinations (which are not typically DataUnits
 themselves), this one is both ubuiquitous and contains additional information:
 a ``region`` that represents the position of the observed sensor image on the
 sky.
+
+.. _cs_table_Snap:
 
 +-----------+----------+------------------------------------------+
 | *Snap*                                                          |
@@ -1172,6 +1186,8 @@ only a single Snap.
 SkyMap DataUnits
 ================
 
+.. _cs_table_SkyMap:
+
 +-----------+---------+------------------+
 | *SkyMap*                               |
 +===========+=========+==================+
@@ -1186,6 +1202,8 @@ different configurations of the same ``lsst.skymap.BaseSkyMap`` subclass yield
 different rows).  While SkyMaps need unique, human-readable names, it may also
 be wise to add a hash or pickle of the SkyMap instance that defines the
 mapping to avoid duplicate entries (not yet included).
+
+.. _cs_table_Tract:
 
 +-----------+------+-----------------------------------------+
 | *Tract*                                                    |
@@ -1206,6 +1224,8 @@ coordinate system defined by a single map projection.  If the parameters of
 the sky projection and the Tract's various bounding boxes can be standardized
 across all SkyMap implementations, it may be useful to include them in the
 table as well.
+
+.. _cs_table_Patch:
 
 +----------+------+--------+------------------------------+
 | *Patch*                                                 |
@@ -1230,6 +1250,8 @@ table in the future.
 
 Calibration DataUnits
 =====================
+
+.. _cs_table_MasterCalib:
 
 +--------------------+-----+----------------------------------------------------------+
 | *MasterCalib*                                                                       |
@@ -1260,6 +1282,8 @@ if those calculations can be done within the database efficiently.
 The MasterCalibVisitJoin table is not calculated; its entries should
 be added whenever new MasterCalib entries are added
 
+.. _cs_table_MasterCalibVisitJoin:
+
 +-----------------+-----+----------------------------------------------------+
 | *MasterCalibVisitJoin*                                                     |
 +=================+=====+====================================================+
@@ -1267,6 +1291,8 @@ be added whenever new MasterCalib entries are added
 +-----------------+-----+----------------------------------------------------+
 | visit_id        | int | REFERENCES Visit (visit_id)                        |
 +-----------------+-----+----------------------------------------------------+
+
+.. _cs_table_SensorTractJoin:
 
 +--------------------+-----+----------------------------------------------------------+
 | *SensorTractJoin*                                                                   |
@@ -1278,6 +1304,8 @@ be added whenever new MasterCalib entries are added
 | CONSTRAINT UNIQUE (observed_sensor_id, tract_id)                                    |
 +--------------------+-----+----------------------------------------------------------+
 
+.. _cs_table_SensorPatchJoin:
+
 +--------------------+-----+-----------------------------------------------+
 | *SensorPatchJoin*                                                        |
 +====================+=====+===============================================+
@@ -1288,6 +1316,8 @@ be added whenever new MasterCalib entries are added
 | CONSTRAINT UNIQUE (observed_sensor_id, patch_id)                         |
 +--------------------+-----+-----------------------------------------------+
 
+.. _cs_table_VisitTractJoin:
+
 +----------+-----+---------------------------------------+
 | *VisitTractJoin*                                       |
 +==========+=====+=======================================+
@@ -1297,6 +1327,8 @@ be added whenever new MasterCalib entries are added
 +----------+-----+---------------------------------------+
 | CONSTRAINT UNIQUE (visit_id, tract_id)                 |
 +----------+-----+---------------------------------------+
+
+.. _cs_table_VisitPatchJoin:
 
 +----------+-----+---------------------------------------+
 | *VisitPatchJoin*                                       |
@@ -1313,6 +1345,8 @@ be added whenever new MasterCalib entries are added
 DatasetTypes and MetaType
 =========================
 
+.. _cs_table_DatasetMetatype:
+
 +-------------+---------+-------------+
 | *DatasetMetatype*                   |
 +=============+=========+=============+
@@ -1320,6 +1354,8 @@ DatasetTypes and MetaType
 +-------------+---------+-------------+
 | name        | varchar | NOT NULL    |
 +-------------+---------+-------------+
+
+.. _cs_table_DatasetMetatypeComposition:
 
 +----------------+---------+------------------------------------------------------------+
 | *DatasetMetatypeComposition*                                                          |
@@ -1330,6 +1366,8 @@ DatasetTypes and MetaType
 +----------------+---------+------------------------------------------------------------+
 | component_name | varchar | NOT NULL                                                   |
 +----------------+---------+------------------------------------------------------------+
+
+.. _cs_table_DatasetType:
 
 +---------------------+---------+------------------------------------------------------------+
 | *DatasetType*                                                                              |
@@ -1342,6 +1380,8 @@ DatasetTypes and MetaType
 +---------------------+---------+------------------------------------------------------------+
 | dataset_metatype_id | int     | NOT NULL, REFERENCES DatasetMetatype (dataset_metatype_id) |
 +---------------------+---------+------------------------------------------------------------+
+
+.. _cs_table_DatasetTypeUnits:
 
 +-----------------+---------+-------------+
 | *DatasetTypeUnits*                      |
@@ -1361,6 +1401,8 @@ Repositories.  The dataref_pack field contains an ID that is unique
 only with a repository, constructed by packing together the associated
 units (the *path* string passed to DataStore.put would be a viable but
 probably inefficient choice).
+
+.. _cs_table_Dataset:
 
 +-------------------+---------+---------------------------------+
 | *Dataset*                                                     |
@@ -1394,6 +1436,8 @@ Composite Datasets
   component Datasets will have non-null 'uri' fields with values created
   by the Datastore
 
+.. _cs_table_DatasetComposition:
+
 +----------------+-----+-------------------------------------------+
 | *DatasetComposition*                                             |
 +================+=====+===========================================+
@@ -1412,6 +1456,8 @@ Tags
 Tags to define multiple repos in a single database
 In a single-repository database, these tables would simply be absent.
 
+.. _cs_table_CollectionTag:
+
 +-------------------+---------+-------------+
 | *CollectionTag*                           |
 +-------------------+---------+-------------+
@@ -1422,6 +1468,8 @@ In a single-repository database, these tables would simply be absent.
 | CONSTRAINT UNIQUE (name)                  |
 +-------------------+---------+-------------+
 
+.. _cs_table_DatasetCollectionTagJoin:
+
 +-------------------+-----+-----------------------------------------------------------+
 | *DatasetCollectionTagJoin*                                                          |
 +===================+=====+===========================================================+
@@ -1429,6 +1477,8 @@ In a single-repository database, these tables would simply be absent.
 +-------------------+-----+-----------------------------------------------------------+
 | dataset_id        | int | NOT NULL, REFERENCES Dataset (dataset_id)                 |
 +-------------------+-----+-----------------------------------------------------------+
+
+.. _cs_table_DatasetTypeCollectionTagJoin:
 
 +-------------------+-----+-----------------------------------------------------------+
 | *DatasetTypeCollectionTagJoin*                                                      |
@@ -1443,6 +1493,8 @@ In a single-repository database, these tables would simply be absent.
 Dataset-DataUnit joins
 ======================
 
+.. _cs_table_PhysicalFilterDatasetJoin:
+
 +--------------------+-----+----------------------------------------------------------+
 | *PhysicalFilterDatasetJoin*                                                         |
 +====================+=====+==========================================================+
@@ -1451,6 +1503,8 @@ Dataset-DataUnit joins
 | dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
 +--------------------+-----+----------------------------------------------------------+
     
+.. _cs_table_PhysicalSensorDatasetJoin:
+
 +--------------------+-----+----------------------------------------------------------+
 | *PhysicalSensorDatasetJoin*                                                         |
 +====================+=====+==========================================================+
@@ -1458,6 +1512,8 @@ Dataset-DataUnit joins
 +--------------------+-----+----------------------------------------------------------+
 | dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
 +--------------------+-----+----------------------------------------------------------+
+
+.. _cs_table_VisitDatasetJoin:
 
 +------------+-----+------------------------------------------------------------------+
 | *VisitDatasetJoin*                                                                  |
@@ -1467,6 +1523,8 @@ Dataset-DataUnit joins
 | dataset_id | int | NOT NULL, REFERENCES Dataset (dataset_id)                        |
 +------------+-----+------------------------------------------------------------------+
 
+.. _cs_table_ObservedSensorDatasetJoin:
+
 +--------------------+-----+----------------------------------------------------------+
 | *ObservedSensorDatasetJoin*                                                         |
 +====================+=====+==========================================================+
@@ -1474,6 +1532,8 @@ Dataset-DataUnit joins
 +--------------------+-----+----------------------------------------------------------+
 | dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
 +--------------------+-----+----------------------------------------------------------+
+
+.. _cs_table_SnapDatasetJoin:
 
 +------------+-----+------------------------------------------------------------------+
 | *SnapDatasetJoin*                                                                   |
@@ -1483,6 +1543,8 @@ Dataset-DataUnit joins
 | dataset_id | int | NOT NULL, REFERENCES Dataset (dataset_id)                        |
 +------------+-----+------------------------------------------------------------------+
 
+.. _cs_table_AbstractFilterDatasetJoin:
+
 +--------------------+-----+----------------------------------------------------------+
 | *AbstractFilterDatasetJoin*                                                         |
 +====================+=====+==========================================================+
@@ -1491,6 +1553,8 @@ Dataset-DataUnit joins
 | dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
 +--------------------+-----+----------------------------------------------------------+
 
+.. _cs_table_TractDatasetJoin:
+
 +--------------------+-----+----------------------------------------------------------+
 | *TractDatasetJoin*                                                                  |
 +====================+=====+==========================================================+
@@ -1498,6 +1562,8 @@ Dataset-DataUnit joins
 +--------------------+-----+----------------------------------------------------------+
 | dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
 +--------------------+-----+----------------------------------------------------------+
+
+.. _cs_table_PatchDatasetJoin:
 
 +------------+-----+------------------------------------------------------------------+
 | *PatchDatasetJoin*                                                                  |
@@ -1558,6 +1624,8 @@ Provenance
 
     Should DatasetTypes be associated with Collections?
 
+.. _cs_table_DatasetType:
+
 +-----------------+--------+----------------------------------------+
 | *DatasetType*                                                     |
 +=================+========+========================================+
@@ -1565,6 +1633,8 @@ Provenance
 +-----------------+--------+----------------------------------------+
 | name            | str    | NOT NULL UNIQUE                        |
 +-----------------+--------+----------------------------------------+
+
+.. _cs_table_Dataset:
 
 +-------------+--------+---------------------------------+
 | *Dataset*                                              |
@@ -1591,6 +1661,8 @@ section, with the following differences:
  - These add the ``producer_id`` field, which records the Quantum that produced
    the dataset (if applicable).
 
+ .. _cs_table_Quantum:
+
 +----------------------+-------------------------------------------+
 | *Quantum*                                                        |
 +======================+===========================================+
@@ -1600,6 +1672,8 @@ section, with the following differences:
 +----------------------+-------------------------------------------+
 | config_id  | int     | NOT NULL, REFERENCES Dataset (dataset_id) |
 +----------------------+-------------------------------------------+
+
+.. _cs_table_DatasetConsumer:
 
 +-------------+--------+---------------------------------------------+
 | *DatasetConsumer*                                                  |
