@@ -890,7 +890,7 @@ Python API
             I've changed this to return a :py:class:`DatasetHandle`, since that aggregates the things we need it to return.
             It also provides a way to get a :py:class:`DatasetHandle` instance for an existing :ref:`Dataset`.
             But now we need to update any operations and code snippets that use the old interface.
-            We also can't use this to get the DatasetMetatype from a DatasetRef, but that's okay, because we should be able to get that directly from the DatasetRef itself.
+            We also can't use this to get the :ref:`DatasetMetatype` from a :ref:`DatasetRef`, but that's okay, because we should be able to get that directly from the :py:class:`DatasetRef` itself.
 
     .. py:method:: makeDataGraph(tag, expr, datasetTypes) -> DataGraph
 
