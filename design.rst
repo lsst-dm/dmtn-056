@@ -692,7 +692,7 @@ URIs are stored as a field in the Dataset table.
 Path
 ====
 
-The part of a :ref:`Uri` that refers to location **within** a :ref:`Datastore`
+The part of a :ref:`Uri` that refers to a location **within** a :ref:`Datastore`
 
 Typically provided as a hint to the :ref:`Datastore` to suggest a storage location/naming.
 The actual :ref:`Uri` used for storage is not required to respect the hint (e.g. for object stores).
