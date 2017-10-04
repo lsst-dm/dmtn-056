@@ -574,7 +574,9 @@ DatasetExpression
 
 An expression forming part of a SQL query that can be evaluated to yield one or more unique :ref:`DatasetRefs <DatasetRef>` and their relations (in a :ref:`DataGraph`).
 
-An open question is if it is sufficient to only allow users to vary the ``WHERE`` clause of the SQL query, or if custom joins are also required.
+.. todo::
+
+    An open question is if it is sufficient to only allow users to vary the ``WHERE`` clause of the SQL query, or if custom joins are also required.
 
 Transition
 ----------
@@ -628,7 +630,7 @@ SQL Representation
 QuantumGraph
 ============
 
-A directed acyclic graph in which the nodes are :ref:`Datasets <Dataset>` and :ref:`Quantums <Quantum>`, and the edges are the relations between them.
+A directed acyclic graph in which the nodes are :ref:`Datasets <Dataset>` and :ref:`Quanta <Quantum>`, and the edges are the relations between them.
 This can be used to describe the to-be-executed processing defined by SuperTask preflight, or the provenance of already-produced :ref:`Datasets <Dataset>`.
 
 Transition
