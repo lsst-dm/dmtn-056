@@ -65,12 +65,12 @@ implementations (or backends) to be easily swapped out, potentially even at runt
 
 Communication between the components is mediated by the:
 
-* :ref:`Uri` that records **where** a :ref:`Dataset` is stored, and the
+* :ref:`URI` that records **where** a :ref:`Dataset` is stored, and the
 * :ref:`DatasetMetatype` that holds information about **how** a :ref:`Dataset` can be stored.
 
 The :ref:`Registry` is responsible for providing the :ref:`DatasetMetatype` for
 stored :ref:`Datasets <Dataset>` and the :ref:`Datastore` is responsible
-for providing the :ref:`Uri` from where it can be subsequently retrieved.
+for providing the :ref:`URI` from where it can be subsequently retrieved.
 
 .. note::
 
@@ -100,9 +100,9 @@ This proceeds allong the following steps:
 
 1. User calls: ``butler.get(datasetRef)``.
 2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag` it was configured with (i.e. ``butler.registry.find(butler.config.collectionTag, datasetRef)``).
-3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`Uri` and the :ref:`DatasetMetatype` of the stored :ref:`Dataset`.
-4. :ref:`Butler` forwards the request, with both the :ref:`Uri` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(uri, datasetMetatype)``).
-5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`Uri`.
+3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`URI` and the :ref:`DatasetMetatype` of the stored :ref:`Dataset`.
+4. :ref:`Butler` forwards the request, with both the :ref:`URI` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(uri, datasetMetatype)``).
+5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`URI`.
 6. Using the :ref:`DatasetMetatype`, to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`ConcreteDataset` and returns it to the :ref:`Butler`.
 7. :ref:`Butler` then returns the :ref:`ConcreteDataset` to the user.
 
@@ -129,10 +129,10 @@ This proceeds allong the following steps:
 3. :ref:`Butler` obtains a :ref:`Path` from the :ref:`Registry` by calling ``butler.registry.makePath(butler.config.collectionTag, datasetRef)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.
 4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(concreteDataset, datasetMetatype, path)``.
 5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`ConcreteDataset` and sends it to the :ref:`Datastore` server.
-   Depending on the type of server it may get back the actual :ref:`Uri` or the client can generate it itself.
-6. :ref:`Datastore` returns the actual :ref:`Uri` to the :ref:`Butler`.
+   Depending on the type of server it may get back the actual :ref:`URI` or the client can generate it itself.
+6. :ref:`Datastore` returns the actual :ref:`URI` to the :ref:`Butler`.
 7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
-8. :ref:`Butler` returns the :ref:`Uri` to the user.
+8. :ref:`Butler` returns the :ref:`URI` to the user.
 
 See :py:class:`the API documentation <Butler.put>` for more information.
 
@@ -153,7 +153,7 @@ In addition, it is desirable to **override** parts of a composite :ref:`Dataset`
 
 To support this the :ref:`Registry` is also responsible for storing the component :ref:`Datasets <Dataset>` of the **composite**.
 
-The ``registry.find()`` call therefore not only returns the :ref:`Uri` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a `DatasetComponents` dictionary of ``name : DatasetRef`` specifying its **children**.
+The ``registry.find()`` call therefore not only returns the :ref:`URI` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a `DatasetComponents` dictionary of ``name : DatasetRef`` specifying its **children**.
 
 The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`ConcreteDatasets <ConcreteDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`ConcreteDataset`.
 
@@ -170,7 +170,7 @@ Dataset
 
 A Dataset is a discrete entity of stored data, possibly with associated metadata.
 
-Datasets are uniquely identified by either a :ref:`Uri` or the combination of a :ref:`CollectionTag` and a :ref:`DatasetRef`.
+Datasets are uniquely identified by either a :ref:`URI` or the combination of a :ref:`CollectionTag` and a :ref:`DatasetRef`.
 
 A Dataset may be *composite*, which means it contains one or more named *component* Datasets.
 
@@ -206,7 +206,7 @@ But the equivalent to the complete SQL representation of a Dataset in the :ref:`
 
         Read-only instance attribute.
 
-        The :ref:`Uri` that holds the location of the :ref:`Dataset` in a :ref:`Datastore`.
+        The :ref:`URI` that holds the location of the :ref:`Dataset` in a :ref:`Datastore`.
 
     .. py:attribute:: components
 
@@ -466,7 +466,7 @@ An entity that contains :ref:`Datasets <Dataset>`, with the following conditions
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
 - Has a unique, human-readable identifier (i.e. :ref:`CollectionTag`).
-- Can be used to obtain a globally (across Collections) unique :ref:`Uri` given a :ref:`DatasetRef`.
+- Can be used to obtain a globally (across Collections) unique :ref:`URI` given a :ref:`DatasetRef`.
 
 Transition
 ----------
@@ -654,15 +654,15 @@ SQL Representation
     Fill in SQL interface
 
 
-.. _Uri:
+.. _URI:
 
-Uri
+URI
 ===
 
 A standard Uniform Resource Identifier pointing to a :ref:`ConcreteDataset` in a :ref:`Datastore`.
 
 The :ref:`Dataset` pointed to may be **primary** or a component of a **composite**, but should always be serializable on its own.
-When supported by the :ref:`Datastore` the query part of the Uri (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
+When supported by the :ref:`Datastore` the query part of the URI (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
 
 Transition
 ----------
@@ -692,10 +692,10 @@ URIs are stored as a field in the Dataset table.
 Path
 ====
 
-The part of a :ref:`Uri` that refers to a location **within** a :ref:`Datastore`
+The part of a :ref:`URI` that refers to a location **within** a :ref:`Datastore`
 
 Typically provided as a hint to the :ref:`Datastore` to suggest a storage location/naming.
-The actual :ref:`Uri` used for storage is not required to respect the hint (e.g. for object stores).
+The actual :ref:`URI` used for storage is not required to respect the hint (e.g. for object stores).
 
 Transition
 ----------
@@ -832,9 +832,9 @@ Python API
 
         :param DatasetRef ref: a :ref:`DatasetRef` that identifies the :ref:`Dataset` and contains its :ref:`DatasetType`.
 
-        :param str uri: the :ref:`Uri` that has been associated with the :ref:`Dataset` by a :ref:`Datastore`.
+        :param str uri: the :ref:`URI` that has been associated with the :ref:`Dataset` by a :ref:`Datastore`.
 
-        :param dict components: if the :ref:`Dataset` is a composite, a ``{name : Uri}`` dictionary of its named components and storage locations.
+        :param dict components: if the :ref:`Dataset` is a composite, a ``{name : URI}`` dictionary of its named components and storage locations.
 
         :return: a newly-created :py:class:`DatasetHandle` instance.
 
@@ -872,7 +872,7 @@ Python API
 
         Look up the location of the :ref:`Dataset` associated with the given `DatasetRef`.
 
-        This can be used to obtain the :ref:`Uri` that permits the :ref:`Dataset` from a :ref:`Datastore`.
+        This can be used to obtain the :ref:`URI` that permits the :ref:`Dataset` from a :ref:`Datastore`.
 
         :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to search.
 
@@ -907,7 +907,7 @@ Python API
 
     .. py:method:: makePath(tag, ref) -> Path
 
-        Construct the `Path` part of a :ref:`Uri`. This is often just a storage hint since the
+        Construct the `Path` part of a :ref:`URI`. This is often just a storage hint since the
         :ref:`Datastore` will likely have to deviate from the provided path
         (in the case of an object-store for instance).
 
@@ -998,17 +998,17 @@ Python API
         Load a :ref:`ConcreteDataset` from the store.
         Optional ``parameters`` may specify things like regions.
 
-    .. py:method:: put(ConcreteDataset, DatasetMetatype, Path) -> Uri, {name : Uri}
+    .. py:method:: put(ConcreteDataset, DatasetMetatype, Path) -> URI, {name : URI}
 
         Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
         The :ref:`DatasetMetatype` is used to determine the serialization format.
-        The ``Path`` is a storage hint.  The actual ``Uri`` of the stored :ref:`Dataset` is returned as are the possible components.
+        The ``Path`` is a storage hint.  The actual ``URI`` of the stored :ref:`Dataset` is returned as are the possible components.
 
         .. note::
-            This is needed because some :ref:`datastores <Datastore>` may need to modify the :ref:`Uri`.
+            This is needed because some :ref:`datastores <Datastore>` may need to modify the :ref:`URI`.
             Such is the case for object stores (which can return a hash) for instance.
 
-    .. py:method:: retrieve({Uri (from) : Uri (to)}) -> None
+    .. py:method:: retrieve({URI (from) : URI (to)}) -> None
 
         Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
         Does not have to go through the process of creating a :ref:`ConcreteDataset`.
@@ -1101,7 +1101,7 @@ Butler is a concrete, final Python class in the current design; all extensibilit
 
         .. todo::
 
-            Given the similarity in output, we could just use ``find`` to obtain the :ref:`Uri` and
+            Given the similarity in output, we could just use ``find`` to obtain the :ref:`URI` and
             :ref:`DatasetMetatype` for things that don't yet exist.
             Then we don't need ``makePath`` (and possibly ``getDatasetMetatype``) anymore, which
             would be cleaner IMHO (I don't like ``makePath`` much, it feels like too much internal exposure).
