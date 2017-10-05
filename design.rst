@@ -32,6 +32,9 @@ A :ref:`DatasetRef` is thus a label that refers to different-but-related :ref:`D
 in different :ref:`Collections <Collection>`. An example is a ``calexp`` for a particular visit
 and CCD produced in different processing runs (with each processing run thus being a :ref:`Collection`).
 
+A :py:class:`DatasetLabel` is a opaque, lightweight :ref:`DatasetRef` that is easier to
+construct; it just holds POD values that identify :ref:`DataUnits <DataUnit>` and a :ref:`DatasetType`.
+
 Storing the :ref:`Datasets <Dataset>` themselves, as opposed to information about them, is the
 responsibility of the :ref:`Datastore`.
 
@@ -47,8 +50,8 @@ Users primarily interact with a particular :ref:`Butler` instance that
 
 They can use this instance to:
 
-* Load a :ref:`Dataset` associated with a particular :ref:`DatasetRef`,
-* Store a :ref:`Dataset` associated with a particular :ref:`DatasetRef`, and
+* Load a :ref:`Dataset` associated with a particular :py:class:`DatasetLabel`,
+* Store a :ref:`Dataset` associated with a particular :py:class:`DatasetLabel`, and
 * Obtain a :ref:`DataGraph`, which is a related set of :ref:`DatasetRefs <DatasetRef>` and
   :ref:`DataUnits <DataUnit>` corresponding to a (limited) SQL query.
 
@@ -226,7 +229,7 @@ The next class, :py:class:`DatasetRef` itself, provides access to the associated
 A :py:class:`DatasetRef` instance cannot be constructed without a :ref:`Registry`, making it somewhat more cumbersome to use in interactive contexts.
 The SuperTask pattern hides those extra construction steps from both SuperTask authors and operators, however, and :py:class:`DatasetRef` is the class SuperTask authors will use most.
 
-Instances of final class in the hierarchy, :py:class:`DatasetHandle`, always correspond to a :ref:`Datasets <Dataset>` that has already been stored in a :ref:`Datastore`.
+Instances of the final class in the hierarchy, :py:class:`DatasetHandle`, always correspond to a :ref:`Datasets <Dataset>` that has already been stored in a :ref:`Datastore`.
 In addition to the :ref:`DataUnits <DataUnit>` and :ref:`DatasetType` exposed by :py:class:`DatasetRef`, a :py:class:`DatasetHandle` also provides access to its :ref:`URI` and component :ref:`Datasets <Dataset>`.
 
 All three classes are immutable.
