@@ -95,16 +95,16 @@ We assume that the :ref:`Butler` is configured with an external :ref:`Registry` 
 Basic ``get``
 -------------
 
-The user has a :ref:`DatasetRef`, constructed or obtained by a query and wishes to retrieve the associated :ref:`InMemoryDataset`.
+The user has a :py:class:`DatasetLabel`, constructed or obtained by a query and wishes to retrieve the associated :ref:`InMemoryDataset`.
 
 This proceeds allong the following steps:
 
-1. User calls: ``butler.get(datasetRef)``.
-2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag` it was configured with (i.e. ``butler.registry.find(butler.config.collectionTag, datasetRef)``).
-3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`URI` and the :ref:`DatasetMetatype` of the stored :ref:`Dataset`.
-4. :ref:`Butler` forwards the request, with both the :ref:`URI` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(uri, datasetMetatype)``).
+1. User calls: ``butler.get(label)``.
+2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag` it was configured with (i.e. ``butler.registry.find(butler.config.collectionTag, label)``).
+3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`URI` for the stored :ref:`Dataset` (via a :py:class:`DatasetHandle`)
+4. :ref:`Butler` forwards the request, with both the :ref:`URI` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(handle.uri, handle.type.meta)``).
 5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`URI`.
-6. Using the :ref:`DatasetMetatype`, to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`InMemoryDataset` and returns it to the :ref:`Butler`.
+6. Using the :ref:`DatasetMetatype` to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`InMemoryDataset` and returns it to the :ref:`Butler`.
 7. :ref:`Butler` then returns the :ref:`InMemoryDataset` to the user.
 
 See :py:meth:`the API documentation <Butler.get>` for more information.
@@ -116,24 +116,24 @@ See :py:meth:`the API documentation <Butler.get>` for more information.
 
 .. note::
 
-    The serialized version sent over the wire doesn't have to correspond to the format stored on disk in the :ref:`Datastore` server.  As long as it is serialized in the form expected by the client.
+    The serialized version sent over the wire doesn't have to correspond to the format stored on disk in the :ref:`Datastore` server.  It just needs to be serialized in the form expected by the client.
 
 Basic ``put``
 -------------
 
-The user has a :ref:`InMemoryDataset` and wishes to store this at a particular :ref:`DatasetRef`.
+The user has a :ref:`InMemoryDataset` and wishes to store this at a particular :py:class:`DatasetLabel`.
 
 This proceeds allong the following steps:
 
-1. User calls: ``butler.put(datasetRef, inMemoryDataset)``.
-2. :ref:`Butler` first obtains the correct :ref:`DatasetMetatype` from the :ref:`Registry` by calling ``butler.registry.getDatasetMetatype(butler.config.collectionTag, datasetRef)``.
-3. :ref:`Butler` obtains a :ref:`Path` from the :ref:`Registry` by calling ``butler.registry.makePath(butler.config.collectionTag, datasetRef)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.
-4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(inMemoryDataset, datasetMetatype, path)``.
+1. User calls: ``butler.put(label, inMemoryDataset)``.
+2. :ref:`Butler` expands the :py:class:`DatasetLabel` into a full :py:class:`DatasetRef` using the :ref:`Registry`, by calling ``datasetRef = butler.registry.getDatasetMetatype(butler.config.collectionTag, datasetRef)``.
+3. :ref:`Butler` obtains a :ref:`Path` by calling ``path = datasetRef.makePath(butler.config.collectionTag)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.
+4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(inMemoryDataset, datasetRef.type.meta, path)``.
 5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`InMemoryDataset` and sends it to the :ref:`Datastore` server.
    Depending on the type of server it may get back the actual :ref:`URI` or the client can generate it itself.
 6. :ref:`Datastore` returns the actual :ref:`URI` to the :ref:`Butler`.
 7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
-8. :ref:`Butler` returns the :ref:`URI` to the user.
+8. :ref:`Butler` returns a :py:class:`DatasetHandle` to the user.
 
 See :py:class:`the API documentation <Butler.put>` for more information.
 
@@ -154,7 +154,7 @@ In addition, it is desirable to **override** parts of a composite :ref:`Dataset`
 
 To support this the :ref:`Registry` is also responsible for storing the component :ref:`Datasets <Dataset>` of the **composite**.
 
-The ``registry.find()`` call therefore not only returns the :ref:`URI` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a `DatasetComponents` dictionary of ``name : DatasetRef`` specifying its **children**.
+The :py:class:`DatasetHandle` returned by :py:meth:`Registry.find` therefore not only includes the :ref:`URI` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a ``components`` dictionary of ``name : DatasetHandle`` specifying its **children**.
 
 The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`InMemoryDatasets <InMemoryDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`InMemoryDataset`.
 
@@ -188,35 +188,8 @@ Python API
 ----------
 
 The Python representation of a :ref:`Dataset` is in some sense a :ref:`InMemoryDataset`, and hence we have no Python "Dataset" class.
-
-But the equivalent to the complete SQL representation of a Dataset in the :ref:`CommonSchema` is a useful data structure in Python: the :py:class:`DatasetHandle` class.
-
-.. py:class:: DatasetHandle(DatasetRef)
-
-    A concrete, final class whose instances represent :ref:`Datasets <Dataset>`.
-
-    DatasetHandle inherits from :py:class:`DatasetRef`, and can be used in any context where a :py:class:`DatasetRef` is expected.
-
-    DatasetHandle instances are immutable.
-
-    DatasetHandle instances always correspond to :ref:`Datasets <Dataset>` that have already been stored.
-    The only way to obtain a DatasetHandle instance is the :py:class:`Registry` interface.
-    :py:class:`DatasetRef` instances, in contrast, can be directly constructed without a :py:class:`Registry` and can refer to :ref:`Datasets <Dataset>` that have not yet been created.
-
-    .. py:attribute:: uri
-
-        Read-only instance attribute.
-
-        The :ref:`URI` that holds the location of the :ref:`Dataset` in a :ref:`Datastore`.
-
-    .. py:attribute:: components
-
-        Read-only instance attribute.
-
-        A :py:class:`dict` holding :py:class:`DatasetHandle` instances that correspond to this :ref:`Dataset's <Dataset>` named components.
-
-        Empty (or None?) if the :ref:`Dataset` is not a composite.
-
+However, we have several Python objects that act like pointers to :ref:`Datasets <Dataset>`.
+These are described in the Python API section for :ref:`DatasetRef`.
 
 SQL Representation
 ------------------
@@ -242,25 +215,76 @@ The v14 Butler's DataRef class played a similar role.
 Python API
 ----------
 
-.. py:class:: DatasetRef
+The :py:class:`DatasetRef` class itself is the middle layer in a three-class hierarchy of objects that behave like pointers to :ref:`Datasets <Dataset>`.
 
-    A concrete non-final class whose instances are :ref:`DatasetRefs <DatasetRef>`.
+The ultimate base class and simplest of these, :py:class:`DatasetLabel`, is entirely opaque to the user.
+Unlike the other classes in the hierarchy, instances can be constructed directly from Python PODs, without access to a :ref:`Registry` (or :ref:`Datastore`).
+Like a :py:class:`DatasetRef`, a :py:class:`DatasetLabel` only fully identifies a :ref:`Dataset` when combined with a :ref:`Collection`, and can be used to represent :ref:`Datasets <Dataset>` before they have been written.
+Most interactive analysis code will interact primarily with :py:class:`DatasetLabels <DatasetLabel>`, as these provide the simplest, least-structured way to use the :ref:`Butler` interface.
 
-    DatasetRefs are immutable.
+The next class, :py:class:`DatasetRef` itself, provides access to the associated `:ref:`DataUnit` instances and the :py:class:`DatasetType`.
+A :py:class:`DatasetRef` instance cannot be constructed without a :ref:`Registry`, making it somewhat more cumbersome to use in interactive contexts.
+The SuperTask pattern hides those extra construction steps from both SuperTask authors and operators, however, and :py:class:`DatasetRef` is the class SuperTask authors will use most.
 
-    The target of a DatasetRef may or may not exist, making it appropriate for to-be-created :ref:`Datasets <Dataset>`.
+Instances of final class in the hierarchy, :py:class:`DatasetHandle`, always correspond to a :ref:`Datasets <Dataset>` that has already been stored in a :ref:`Datastore`.
+In addition to the :ref:`DataUnits <DataUnit>` and :ref:`DatasetType` exposed by :py:class:`DatasetRef`, a :py:class:`DatasetHandle` also provides access to its :ref:`URI` and component :ref:`Datasets <Dataset>`.
 
-.. py:class:: DatasetHandle
+All three classes are immutable.
 
-    Inherits from DatasetRef, and represents a :ref:`Dataset` that is known to exist.
+.. py:class:: DatasetLabel
 
-    .. py:attribute:: units
+    .. py:method:: __init__(self, name, **units)
 
-        A tuple (or ``frozenset``?) of :py:class:`DataUnit` instances that label the :ref:`DatasetRef` within a :ref:`Collection`.
+        Construct a DatasetLabel from the name of a :ref:`DatasetType` and a keyword arguments providing :ref:`DataUnit` key-value pairs.
+
+.. py:class:: DatasetRef(DatasetLabel)
 
     .. py:attribute:: type
 
-        The :py:class:`DatasetType` associated with the :ref:`Dataset` the :ref:`DatasetRef` points to.
+        Read-only instance attribute.
+
+        The :py:class:`DatasetType` associated with the :ref:`Dataset` the DatasetRef points to.
+
+    .. py:attribute:: units
+
+        Read-only instance attribute.
+
+        A tuple (or ``frozenset``?) of :py:class:`DataUnit` instances that label the :ref:`DatasetRef` within a :ref:`Collection`.
+        Because the :py:class:`DataUnit` instances may link to other :py:class:`DataUnit` instances, a collection of DatasetRefs naturally forms a graph structure.
+        This is discussed more fully in the documentation for :ref:`DataGraph`.
+
+    .. py:method:: makePath(tag) -> Path
+
+        Construct the `Path` part of a :ref:`URI` by filling in ``type.template`` with the the values in the ``units`` tuple.
+
+        This is often just a storage hint since the :ref:`Datastore` will likely have to deviate from the provided path (in the case of an object-store for instance).
+
+        Although a :ref:`Dataset` may belong to multiple :ref:`Collections <Collection>`, only the first :ref:`Collection` it is added to is used in its :ref:`Path`.
+
+        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to which the :ref:`Dataset` will be added.
+
+        :returns: a str :ref:`Path`
+
+    .. todo::
+
+        Add method for packing DataUnits and a Collection into unique integer IDs.
+        Need to think about whether that combination is actually globally unique if the first Collection a Dataset is defined in changes.
+
+.. py:class:: DatasetHandle(DatasetRef)
+
+    .. py:attribute:: uri
+
+        Read-only instance attribute.
+
+        The :ref:`URI` that holds the location of the :ref:`Dataset` in a :ref:`Datastore`.
+
+    .. py:attribute:: components
+
+        Read-only instance attribute.
+
+        A :py:class:`dict` holding :py:class:`DatasetHandle` instances that correspond to this :ref:`Dataset's <Dataset>` named components.
+
+        Empty (or None?) if the :ref:`Dataset` is not a composite.
 
 
 SQL Representation
@@ -281,7 +305,7 @@ A named category of :ref:`Datasets <Dataset>` that defines how they are organize
 In addition to a name, a DatasetType includes:
 
  - a template string that can be used to construct a :ref:`Path`;
- - a tuple of :ref:`DataUnitTypes <DataUnitType>` that define the structure of :ref:`DatasetRefs <DatasetRef>`;
+ - a tuple of :ref:`DataUnit <DataUnit>` types that define the structure of :ref:`DatasetRefs <DatasetRef>`;
  - a :ref:`DatasetMetatype` that determines how :ref:`Datasets <Dataset>` are stored and composed.
 
 Transition
@@ -420,38 +444,9 @@ Python API
 SQL Representation
 ------------------
 
-A :ref:`DataUnit` is a row in the table for its :ref:`DataUnitType`.
+There is one table for each :ref:`DataUnit` type, and a :ref:`DataUnit` instance is a row in one of those tables.
 
 :ref:`DataUnits <DataUnit>` must be shared across different :ref:`Registries <Registry>` , so their primary keys must not be database-specific quantities such as autoincrement fields.
-
-.. todo::
-
-    Add links once Common Schema has link anchors for different tables.
-
-
-.. _DataUnitType:
-
-DataUnitType
-============
-
-The conceptual type of a :ref:`DataUnit`, which defines what relationships it has with other DataUnitTypes and the fields of any metadata associated with it.
-
-Examples: Visit, Tract, or Filter
-
-Transition
-----------
-
-The DataUnitType concept does not exist in the v14 Butler.
-
-Python API
-----------
-
-A DataUnitType is represented by a concrete :py:class:`DataUnit` subclass (the type object, not an instance thereof).
-
-SQL Representation
-------------------
-
-Each :ref:`DataUnitType` is a table that the holds :ref:`DataUnits <DataUnit>` of that type as its rows.
 
 .. todo::
 
@@ -810,18 +805,20 @@ Python API
 
 .. py:class:: Registry
 
-    .. py:method:: registerDatasetType(tag, datasetType)
+    .. py:method:: registerDatasetType(datasetType)
 
-        Add a new :ref:`DatasetType` to a :ref:`Collection`.
-        If the :ref:`DatasetType` already exists, it will be associated with the given :ref:`Collection`.
-
-        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` the :ref:`DatasetType` should be associated with.
+        Add a new :ref:`DatasetType` to the Registry.
 
         :param DatasetType datasetType: the :ref:`DatasetType` to be added
 
         :return: None
 
-    .. py:method:: addDataset(tag, ref, uri, components, quantum=None)
+        .. todo::
+
+            If the new DatasetType already exists, we need to make sure it's consistent with what's already present, but if it is, we probably shouldn't throw.
+            Need to see if there's also a use case for throwing if the DatasetType exists or overwriting if its inconsistent.
+
+    .. py:method:: addDataset(tag, label, uri, components, quantum=None)
 
         Add a :ref:`Dataset` to a :ref:`Collection`.
 
@@ -869,24 +866,25 @@ Python API
 
         :param bool replace: if True, replace any matching :ref:`DataUnit` that already exists (updating its non-unique fields) instead of raising an exception.
 
-    .. py:method:: find(tag, ref)
+    .. py:method:: expand(label)
 
-        Look up the location of the :ref:`Dataset` associated with the given `DatasetRef`.
+        Expand a :py:class:`DatasetLabel`, returning an equivalent :py:class:`DatasetRef`.
 
-        This can be used to obtain the :ref:`URI` that permits the :ref:`Dataset` from a :ref:`Datastore`.
+        Must be a simple pass-through if ``label`` is already a :ref:`DatasetRef`.
+
+    .. py:method:: find(tag, label)
+
+        Look up the location of the :ref:`Dataset` associated with the given :py:class:`DatasetLabel`.
+
+        This can be used to obtain the :ref:`URI` that permits the :ref:`Dataset` to be read from a :ref:`Datastore`.
+
+        Must be a simple pass-through if ``label`` is already a :py:class:`DatasetHandle`.
 
         :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to search.
 
-        :param DatasetRef ref: a :ref:`DatasetRef` that identifies the :ref:`Dataset`.
+        :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset`.
 
         :returns: a :py:class:`DatasetHandle` instance
-
-        .. todo::
-
-            I've changed this to return a :py:class:`DatasetHandle`, since that aggregates the things we need it to return.
-            It also provides a way to get a :py:class:`DatasetHandle` instance for an existing :ref:`Dataset`.
-            But now we need to update any operations and code snippets that use the old interface.
-            We also can't use this to get the :ref:`DatasetMetatype` from a :ref:`DatasetRef`, but that's okay, because we should be able to get that directly from the :py:class:`DatasetRef` itself.
 
     .. py:method:: makeDataGraph(tag, expr, datasetTypes) -> DataGraph
 
@@ -905,24 +903,6 @@ Python API
             and retrieve all relevant :ref:`Datasets <Dataset>`?
 
         :returns: a :ref:`DataGraph` instance
-
-    .. py:method:: makePath(tag, ref) -> Path
-
-        Construct the `Path` part of a :ref:`URI`. This is often just a storage hint since the
-        :ref:`Datastore` will likely have to deviate from the provided path
-        (in the case of an object-store for instance).
-
-        Although a :ref:`Dataset` may belong to multiple :ref:`Collections <Collection>`, only the first :ref:`Collection` it is added to is used in its :ref:`Path`.
-
-        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to which the :ref:`Dataset` will be added.
-
-        :param DatasetRef ref: a :py:class:`DatasetRef` instance that holds the :ref:`DataUnits <DataUnit>` whose values will be inserted into a template to form the :ref:`Path`.
-
-        :returns: a str :ref:`Path`
-
-        .. todo:
-            This doesn't require a database lookup if DatasetRef has a DatasetType, and DatasetType has a template.
-            Should we move it to DatasetRef instead?
 
     .. py:method:: subset(tag, expr, datasetTypes)
 
@@ -1073,39 +1053,54 @@ Butler is a concrete, final Python class in the current design; all extensibilit
 
         a :py:class:`Registry` instance
 
-    .. py:method:: get(DatasetRef, parameters=None) -> InMemoryDataset
+    .. py:method:: get(label, parameters=None)
+
+        :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset` to retrieve.
+
+        :param dict parameters: a dictionary of :ref:`DatasetMetatype`-specific parameters that can be used to obtain a subset of the :ref:`Dataset`.
+
+        :returns: an :ref:`InMemoryDataset`.
 
         Implemented as:
 
         .. code:: python
 
             try:
-                uri, datasetMetatype, datasetComponents = RDB.find(self.config.inputCollection, datasetRef)
-                parent = RDS.get(uri, datasetMetatype, parameters) if uri else None
-                # Recurse to obtain child components
-                children = {name : self.get(childDatasetRef, parameters) for name, childDatasetRef in datasetComponents.items()}
-                return datasetMetatype.assemble(parent, children, parameters)
+                handle = self.registry.find(self.config.inputCollection, label)
+                parent = self.datastore.get(uri, handle.type.meta, parameters) if uri else None
+                children = {name : self.datastore.get(childHandle, parameters) for name, childHandle in handle.components.items()}
+                return handle.type.meta.assemble(parent, children, parameters)
             except NotFoundError:
                 continue
             raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
 
-    .. py:method:: put(DatasetRef, InMemoryDataset, Quantum) -> None
+        .. todo::
+
+            Implementation requires all components to be able to handle (typically pass-through)
+            parameters passed for the composite.  Could we instead get away with only passing those
+            when getting the parent from the :ref:`Datastore`?
+
+        .. todo::
+
+            Recursive composites were broken by a minor update.
+            Would probably not be hard to add back in if we decide we need them, but they'd make the logic a bit harder to follow so not worth doing now.
+
+    .. py:method:: put(label, dataset, producer)
+
+        :param DatasetLabel label: a :py:class:`DatasetLabel` that will identify the :ref:`Dataset` being stored.
+
+        :param dataset: the :ref:`InMemoryDataset` to store.
+
+        :param Quantum producer: the :ref:`Quantum` instance that produced the :ref:`Dataset`.
 
         Implemented as:
 
         .. code:: python
 
-            datasetMetatype = RDB.getDatasetMetatype(self.config.outputCollection, datasetRef)
-            path = RDB.makePath(self.config.outputCollection, datasetRef)
-            uri, datasetComponents = RDS.put(inMemoryDataset, datasetMetatype, path)
-            RDB.addDataset(self.config.outputCollection, datasetRef, uri, datasetComponents, quantum)
-
-        .. todo::
-
-            Given the similarity in output, we could just use ``find`` to obtain the :ref:`URI` and
-            :ref:`DatasetMetatype` for things that don't yet exist.
-            Then we don't need ``makePath`` (and possibly ``getDatasetMetatype``) anymore, which
-            would be cleaner IMHO (I don't like ``makePath`` much, it feels like too much internal exposure).
+            ref = self.registry.expand(label)
+            path = ref.makePath(self.config.outputCollection)
+            uri, components = self.datastore.put(inMemoryDataset, ref.type.meta, path)
+            self.registry.addDataset(self.config.outputCollection, ref, uri, components, quantum)
 
 SQL Representation
 ------------------
