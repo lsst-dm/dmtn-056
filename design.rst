@@ -13,7 +13,8 @@ between them.
 
 The in-memory manifestation of a :ref:`Dataset` (e.g. as a Python object) is called a
 :ref:`InMemoryDataset`.  The :ref:`Butler` is the user-facing interface employed to
-load, store, and query :ref:`InMemoryDatasets <InMemoryDataset>` and their relations.
+load and store :ref:`InMemoryDatasets <InMemoryDataset>`, and query the metadata of
+and relationships between :ref:`Datasets <Dataset>`.
 
 Relations between :ref:`Datasets <Dataset>`, :ref:`Quanta <Quantum>`, and locations
 for stored objects are kept in a SQL database which implements the :ref:`Common Schema <CommonSchema>`.
