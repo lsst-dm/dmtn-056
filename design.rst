@@ -1182,7 +1182,7 @@ hardware) should still correspond to a single row in this table.
 
 Entries in the :ref:`PhysicalFilter <cs_table_PhysicalFilter>` table represent
 the bandpass filters that can be associated with a particular visit.
-These are different from :ref:`AbstractFilters <cs_table_AbstractFilters>`,
+These are different from :ref:`AbstractFilters <cs_table_AbstractFilter>`,
 which are used to label Datasets that aggregate data from multiple Visits.
 Having these two different :ref:`DataUnits <DataUnit>` for filters is necessary to make it
 possible to combine data from Visits taken with different filters.  A
@@ -1743,51 +1743,6 @@ multi-file composite datasets, this field should be ``NULL``, and another table
 
 Provenance
 ==========
-
-.. todo::
-
-    Figure out if this section is still current.
-
-.. todo::
-
-    Should DatasetTypes be associated with Collections?
-
-.. _cs_table_DatasetType:
-
-+-----------------+--------+----------------------------------------+
-| *DatasetType*                                                     |
-+=================+========+========================================+
-| dataset_type_id | uint64 | PRIMARY KEY                            |
-+-----------------+--------+----------------------------------------+
-| name            | str    | NOT NULL UNIQUE                        |
-+-----------------+--------+----------------------------------------+
-
-.. _cs_table_Dataset:
-
-+-------------+--------+---------------------------------+
-| *Dataset*                                              |
-+=============+========+=================================+
-| dataset_id  | uint64 | PRIMARY KEY                     |
-+-------------+--------+---------------------------------+
-| uri         | str    |                                 |
-+-------------+--------+---------------------------------+
-| producer_id | uint64 | REFERENCES Quantum (quantum_id) |
-+-------------+--------+---------------------------------+
-
-These tables provide another view of the information in the
-per-:ref:`DatasetType` tables described in the :ref:`Datasets <cs_datasets>`
-section, with the following differences:
-
- - They provide no way to join with :ref:`DataUnit` tables (aside from joining
-   with the per-:ref:`DatasetType` tables themselves on the ``dataset_id``
-   field).
-
- - The Dataset table must contain entries for at least all :ref:`Datasets
-   <Dataset>` in the :ref:`Collection`, but it may contain entries for
-   additional :ref:`Datasets <Dataset>` as well.
-
- - These add the ``producer_id`` field, which records the Quantum that produced
-   the dataset (if applicable).
 
  .. _cs_table_Quantum:
 
