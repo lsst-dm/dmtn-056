@@ -12,8 +12,8 @@ These :ref:`Datasets <Dataset>` form both the input and output of units of work 
 between them.
 
 The in-memory manifestation of a :ref:`Dataset` (e.g. as a Python object) is called a
-:ref:`ConcreteDataset`.  The :ref:`Butler` is the user-facing interface employed to
-load, store, and query :ref:`ConcreteDatasets <ConcreteDataset>` and their relations.
+:ref:`InMemoryDataset`.  The :ref:`Butler` is the user-facing interface employed to
+load, store, and query :ref:`InMemoryDatasets <InMemoryDataset>` and their relations.
 
 Relations between :ref:`Datasets <Dataset>`, :ref:`Quanta <Quantum>`, and locations
 for stored objects are kept in a SQL database which implements the :ref:`Common Schema <CommonSchema>`.
@@ -94,7 +94,7 @@ We assume that the :ref:`Butler` is configured with an external :ref:`Registry` 
 Basic ``get``
 -------------
 
-The user has a :ref:`DatasetRef`, constructed or obtained by a query and wishes to retrieve the associated :ref:`ConcreteDataset`.
+The user has a :ref:`DatasetRef`, constructed or obtained by a query and wishes to retrieve the associated :ref:`InMemoryDataset`.
 
 This proceeds allong the following steps:
 
@@ -103,8 +103,8 @@ This proceeds allong the following steps:
 3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`URI` and the :ref:`DatasetMetatype` of the stored :ref:`Dataset`.
 4. :ref:`Butler` forwards the request, with both the :ref:`URI` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(uri, datasetMetatype)``).
 5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`URI`.
-6. Using the :ref:`DatasetMetatype`, to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`ConcreteDataset` and returns it to the :ref:`Butler`.
-7. :ref:`Butler` then returns the :ref:`ConcreteDataset` to the user.
+6. Using the :ref:`DatasetMetatype`, to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`InMemoryDataset` and returns it to the :ref:`Butler`.
+7. :ref:`Butler` then returns the :ref:`InMemoryDataset` to the user.
 
 See :py:meth:`the API documentation <Butler.get>` for more information.
 
@@ -120,15 +120,15 @@ See :py:meth:`the API documentation <Butler.get>` for more information.
 Basic ``put``
 -------------
 
-The user has a :ref:`ConcreteDataset` and wishes to store this at a particular :ref:`DatasetRef`.
+The user has a :ref:`InMemoryDataset` and wishes to store this at a particular :ref:`DatasetRef`.
 
 This proceeds allong the following steps:
 
-1. User calls: ``butler.put(datasetRef, concreteDataset)``.
+1. User calls: ``butler.put(datasetRef, inMemoryDataset)``.
 2. :ref:`Butler` first obtains the correct :ref:`DatasetMetatype` from the :ref:`Registry` by calling ``butler.registry.getDatasetMetatype(butler.config.collectionTag, datasetRef)``.
 3. :ref:`Butler` obtains a :ref:`Path` from the :ref:`Registry` by calling ``butler.registry.makePath(butler.config.collectionTag, datasetRef)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.
-4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(concreteDataset, datasetMetatype, path)``.
-5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`ConcreteDataset` and sends it to the :ref:`Datastore` server.
+4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(inMemoryDataset, datasetMetatype, path)``.
+5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`InMemoryDataset` and sends it to the :ref:`Datastore` server.
    Depending on the type of server it may get back the actual :ref:`URI` or the client can generate it itself.
 6. :ref:`Datastore` returns the actual :ref:`URI` to the :ref:`Butler`.
 7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
@@ -155,7 +155,7 @@ To support this the :ref:`Registry` is also responsible for storing the componen
 
 The ``registry.find()`` call therefore not only returns the :ref:`URI` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a `DatasetComponents` dictionary of ``name : DatasetRef`` specifying its **children**.
 
-The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`ConcreteDatasets <ConcreteDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`ConcreteDataset`.
+The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`InMemoryDatasets <InMemoryDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`InMemoryDataset`.
 
 This process is most easily understood by reading the API documentation for :py:meth:`butler.get <Butler.get>` and :py:meth:`butler.put <Butler.put>`.
 
@@ -186,7 +186,7 @@ A Dataset is analogous to an Open Provenance Model "artifact".
 Python API
 ----------
 
-The Python representation of a :ref:`Dataset` is in some sense a :ref:`ConcreteDataset`, and hence we have no Python "Dataset" class.
+The Python representation of a :ref:`Dataset` is in some sense a :ref:`InMemoryDataset`, and hence we have no Python "Dataset" class.
 
 But the equivalent to the complete SQL representation of a Dataset in the :ref:`CommonSchema` is a useful data structure in Python: the :py:class:`DatasetHandle` class.
 
@@ -345,9 +345,9 @@ SQL Representation
     Fill in SQL interface
 
 
-.. _ConcreteDataset:
+.. _InMemoryDataset:
 
-ConcreteDataset
+InMemoryDataset
 ===============
 
 The in-memory manifestation of a :ref:`Dataset`
@@ -357,17 +357,17 @@ Example: an ``afw.image.Exposure`` instance with the contents of a particular ``
 Transition
 ----------
 
-The "python" and "persistable" entries in v14 Butler dataset policy files refer to Python and C++ ConcreteDataset types, respectively.
+The "python" and "persistable" entries in v14 Butler dataset policy files refer to Python and C++ InMemoryDataset types, respectively.
 
 Python API
 ----------
 
-While all ConcreteDatasets are Python objects, they have no common class or interface.
+While all InMemoryDatasets are Python objects, they have no common class or interface.
 
 SQL Representation
 ------------------
 
-ConcreteDatasets exist only in Python and do not have any SQL representation.
+InMemoryDatasets exist only in Python and do not have any SQL representation.
 
 
 .. _DataUnit:
@@ -659,7 +659,7 @@ SQL Representation
 URI
 ===
 
-A standard Uniform Resource Identifier pointing to a :ref:`ConcreteDataset` in a :ref:`Datastore`.
+A standard Uniform Resource Identifier pointing to a :ref:`InMemoryDataset` in a :ref:`Datastore`.
 
 The :ref:`Dataset` pointed to may be **primary** or a component of a **composite**, but should always be serializable on its own.
 When supported by the :ref:`Datastore` the query part of the URI (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
@@ -719,7 +719,7 @@ Paths do not appear in SQL at all.
 DatasetMetatype
 ===============
 
-A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`ConcreteDatasets <ConcreteDataset>` and can be saved to the same file format(s).
+A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`InMemoryDatasets <InMemoryDataset>` and can be saved to the same file format(s).
 
 
 Transition
@@ -756,19 +756,19 @@ Python API
 
     .. py:method:: assemble(parent, components, parameters=None)
 
-        Assemble a compound :ref:`ConcreteDataset`.
+        Assemble a compound :ref:`InMemoryDataset`.
 
         Virtual method: must be implemented by derived classes.
 
         :param parent:
-            An instance of the compound :ref:`ConcreteDataset` to be returned, or None.
-            If no components are provided, this is the :ref:`ConcreteDataset` that will be returned.
+            An instance of the compound :ref:`InMemoryDataset` to be returned, or None.
+            If no components are provided, this is the :ref:`InMemoryDataset` that will be returned.
 
-        :param dict components: A dictionary whose keys are a subset of the keys in the :py:attr:`components` class attribute and whose values are instances of the component ConcreteDataset type.
+        :param dict components: A dictionary whose keys are a subset of the keys in the :py:attr:`components` class attribute and whose values are instances of the component InMemoryDataset type.
 
         :param dict parameters: details TBD; may be used for parameterized subsets of :ref:`Datasets <Dataset>`.
 
-        :return: a :ref:`ConcreteDataset` matching ``parent`` with components replaced by those in ``components``.
+        :return: a :ref:`InMemoryDataset` matching ``parent`` with components replaced by those in ``components``.
 
 SQL Representation
 ------------------
@@ -993,14 +993,14 @@ Python API
 
 .. py:class:: Datastore
 
-    .. py:method:: get(uri, parameters=None) -> ConcreteDataset
+    .. py:method:: get(uri, parameters=None) -> InMemoryDataset
 
-        Load a :ref:`ConcreteDataset` from the store.
+        Load a :ref:`InMemoryDataset` from the store.
         Optional ``parameters`` may specify things like regions.
 
-    .. py:method:: put(ConcreteDataset, DatasetMetatype, Path) -> URI, {name : URI}
+    .. py:method:: put(InMemoryDataset, DatasetMetatype, Path) -> URI, {name : URI}
 
-        Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
+        Write a :ref:`InMemoryDataset` with a given :ref:`DatasetMetatype` to the store.
         The :ref:`DatasetMetatype` is used to determine the serialization format.
         The ``Path`` is a storage hint.  The actual ``URI`` of the stored :ref:`Dataset` is returned as are the possible components.
 
@@ -1011,7 +1011,7 @@ Python API
     .. py:method:: retrieve({URI (from) : URI (to)}) -> None
 
         Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
-        Does not have to go through the process of creating a :ref:`ConcreteDataset`.
+        Does not have to go through the process of creating a :ref:`InMemoryDataset`.
 
         .. todo::
             How does this handle composites?
@@ -1072,7 +1072,7 @@ Butler is a concrete, final Python class in the current design; all extensibilit
 
         a :py:class:`Registry` instance
 
-    .. py:method:: get(DatasetRef, parameters=None) -> ConcreteDataset
+    .. py:method:: get(DatasetRef, parameters=None) -> InMemoryDataset
 
         Implemented as:
 
@@ -1088,7 +1088,7 @@ Butler is a concrete, final Python class in the current design; all extensibilit
                 continue
             raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
 
-    .. py:method:: put(DatasetRef, ConcreteDataset, Quantum) -> None
+    .. py:method:: put(DatasetRef, InMemoryDataset, Quantum) -> None
 
         Implemented as:
 
@@ -1096,7 +1096,7 @@ Butler is a concrete, final Python class in the current design; all extensibilit
 
             datasetMetatype = RDB.getDatasetMetatype(self.config.outputCollection, datasetRef)
             path = RDB.makePath(self.config.outputCollection, datasetRef)
-            uri, datasetComponents = RDS.put(concreteDataset, datasetMetatype, path)
+            uri, datasetComponents = RDS.put(inMemoryDataset, datasetMetatype, path)
             RDB.addDataset(self.config.outputCollection, datasetRef, uri, datasetComponents, quantum)
 
         .. todo::
