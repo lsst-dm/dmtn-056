@@ -834,12 +834,7 @@ Python API
 
         :param str uri: the :ref:`Uri` that has been associated with the :ref:`Dataset` by a :ref:`Datastore`.
 
-        :param dict components: if the :ref:`Dataset` is a composite, a dictionary of its named components
-
-        .. todo::
-
-            What are the values of the components dict, and where do they come from?
-            This isn't in our ``put`` definition; I think it must have been lost in the whiteboard translation.
+        :param dict components: if the :ref:`Dataset` is a composite, a ``{name : Uri}`` dictionary of its named components and storage locations.
 
         :return: a newly-created :py:class:`DatasetHandle` instance.
 
@@ -1003,7 +998,7 @@ Python API
         Load a :ref:`ConcreteDataset` from the store.
         Optional ``parameters`` may specify things like regions.
 
-    .. py:method:: put(ConcreteDataset, DatasetMetatype, Path) -> Uri
+    .. py:method:: put(ConcreteDataset, DatasetMetatype, Path) -> Uri, {name : Uri}
 
         Write a :ref:`ConcreteDataset` with a given :ref:`DatasetMetatype` to the store.
         The :ref:`DatasetMetatype` is used to determine the serialization format.
@@ -1101,7 +1096,7 @@ Butler is a concrete, final Python class in the current design; all extensibilit
 
             datasetMetatype = RDB.getDatasetMetatype(self.config.outputCollection, datasetRef)
             path = RDB.makePath(self.config.outputCollection, datasetRef)
-            uri = RDS.put(concreteDataset, datasetMetatype, path)
+            uri, datasetComponents = RDS.put(concreteDataset, datasetMetatype, path)
             RDB.addDataset(self.config.outputCollection, datasetRef, uri, datasetComponents, quantum)
 
         .. todo::
