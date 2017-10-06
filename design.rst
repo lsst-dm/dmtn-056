@@ -130,7 +130,7 @@ This proceeds allong the following steps:
 
 1. User calls: ``butler.put(label, inMemoryDataset)``.
 2. :ref:`Butler` expands the :py:class:`DatasetLabel` into a full :py:class:`DatasetRef` using the :ref:`Registry`, by calling ``datasetRef = butler.registry.getDatasetMetatype(butler.config.collectionTag, datasetRef)``.
-3. :ref:`Butler` obtains a :ref:`Path` by calling ``path = datasetRef.makePath(butler.config.collectionTag)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.
+3. :ref:`Butler` obtains a :ref:`Path` by calling ``path = datasetRef.makePath(butler.config.collectionTag, template)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.  The template is provided by the :ref:`Registry` but may be overridden by the :ref:`Butler`.
 4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(inMemoryDataset, datasetRef.type.meta, path)``.
 5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`InMemoryDataset` and sends it to the :ref:`Datastore` server.
    Depending on the type of server it may get back the actual :ref:`URI` or the client can generate it itself.
@@ -256,15 +256,17 @@ All three classes are immutable.
         Because the :py:class:`DataUnit` instances may link to other :py:class:`DataUnit` instances, a collection of DatasetRefs naturally forms a graph structure.
         This is discussed more fully in the documentation for :ref:`DataGraph`.
 
-    .. py:method:: makePath(tag) -> Path
+    .. py:method:: makePath(tag, template=None) -> Path
 
-        Construct the `Path` part of a :ref:`URI` by filling in ``type.template`` with the the values in the ``units`` tuple.
+        Construct the `Path` part of a :ref:`URI` by filling in ``template`` with the :ref:`CollectionTag` and the values in the py:attr:`units`` tuple.
 
         This is often just a storage hint since the :ref:`Datastore` will likely have to deviate from the provided path (in the case of an object-store for instance).
 
         Although a :ref:`Dataset` may belong to multiple :ref:`Collections <Collection>`, only the first :ref:`Collection` it is added to is used in its :ref:`Path`.
 
         :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to which the :ref:`Dataset` will be added.
+
+        :param str template: a path template to fill in.  If None, the :py:attr:`template <DatasetType.template>` attribute of :py:attr:`type` will be used.
 
         :returns: a str :ref:`Path`
 
@@ -307,7 +309,7 @@ A named category of :ref:`Datasets <Dataset>` that defines how they are organize
 
 In addition to a name, a DatasetType includes:
 
- - a template string that can be used to construct a :ref:`Path`;
+ - a template string that can be used to construct a :ref:`Path` (may be overridden);
  - a tuple of :ref:`DataUnit <DataUnit>` types that define the structure of :ref:`DatasetRefs <DatasetRef>`;
  - a :ref:`DatasetMetatype` that determines how :ref:`Datasets <Dataset>` are stored and composed.
 
@@ -1021,7 +1023,11 @@ Configuration for :ref:`Butler`.
 
     .. py:attribute:: outputCollection
 
-        The :ref:`CollectionTag` of the output collection.
+        The :ref:`CollectionTag` of the output collection.  May be the same as :py:attr:`inputCollection`.
+
+    .. py:attribute:: templates
+
+        A dict that maps :ref:`DatasetType` names to path templates, used to override :py:attr:`DatasetType.template` as obtained from the :ref:`Registry` when present.
 
 
 .. _Butler:
@@ -1101,7 +1107,8 @@ Butler is a concrete, final Python class in the current design; all extensibilit
         .. code:: python
 
             ref = self.registry.expand(label)
-            path = ref.makePath(self.config.outputCollection)
+            template = self.config.templates.get(ref.type.name, None)
+            path = ref.makePath(self.config.outputCollection, template)
             uri, components = self.datastore.put(inMemoryDataset, ref.type.meta, path)
             self.registry.addDataset(self.config.outputCollection, ref, uri, components, quantum)
 
