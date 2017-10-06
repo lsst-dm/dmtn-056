@@ -836,6 +836,11 @@ In some important contexts (e.g. processing data staged to scratch space), only 
 
 Many Registry implementations will consist of both a client and a server (though the server will frequently be just a database server with no additional code).
 
+A *limited* Registry implements only a small subset of the full Registry Python interface and has no SQL interface at all, and methods that would normally accept :py:class:`DatasetLabel` require a full :py:class:`DatasetRef` instead.
+In general, limited Registries have enough functionality to support :py:meth:`Butler.get` and :py:meth:`Butler.put`, but no more.
+A limited Registry may be implented on top of a simple persistent key-value store (e.g. a YAML file) rather than a full SQL database.
+The operations supported by a limited Registry are indicated in the Python API section below.
+
 Transition
 ----------
 
@@ -857,6 +862,8 @@ Python API
         :param DatasetType datasetType: the :ref:`DatasetType` to be added
 
         :return: None
+
+        *Not supported by limited Registries.*
 
         .. todo::
 
@@ -893,6 +900,8 @@ Python API
 
         :return: None
 
+        *Not supported by limited Registries.*
+
     .. py:method:: addQuantum(quantum)
 
         Add a new :ref:`Quantum` to the :ref:`Registry`.
@@ -911,11 +920,15 @@ Python API
 
         :param bool replace: if True, replace any matching :ref:`DataUnit` that already exists (updating its non-unique fields) instead of raising an exception.
 
+        *Not supported by limited Registries.*
+
     .. py:method:: expand(label)
 
         Expand a :py:class:`DatasetLabel`, returning an equivalent :py:class:`DatasetRef`.
 
         Must be a simple pass-through if ``label`` is already a :ref:`DatasetRef`.
+
+        *For limited Registries, ``label`` must be a :py:class:`DatasetRef`, making this a guaranteed no-op (but still callable, for interface compatibility).*
 
     .. py:method:: find(tag, label)
 
@@ -927,7 +940,7 @@ Python API
 
         :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to search.
 
-        :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset`.
+        :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset`.  *For limited Registries, must be a :py:class:`DatasetRef`.*
 
         :returns: a :py:class:`DatasetHandle` instance
 
@@ -949,6 +962,8 @@ Python API
 
         :returns: a :ref:`DataGraph` instance
 
+        *Not supported by limited Registries.*
+
     .. py:method:: subset(tag, expr, datasetTypes)
 
         Create a new :ref:`Collection` by subsetting an existing one.
@@ -961,6 +976,8 @@ Python API
 
         :returns: a str :ref:`CollectionTag <Collection>`
 
+        *Not supported by limited Registries.*
+
     .. py:method:: merge(outputTag, inputTags)
 
         Create a new :ref:`Collection` from a series of existing ones.
@@ -970,6 +987,8 @@ Python API
         :param outputTag: a str :ref:`CollectionTag <Collection>` to use for the new :ref:`Collection`.
 
         :param list[str] inputTags: a list of :ref:`CollectionTags <Collection>` to combine.
+
+        *Not supported by limited Registries.*
 
     .. py:method:: export(tag) -> str
 
@@ -985,17 +1004,20 @@ Python API
             But we should provide some generic way of transporting collections between databases.
             Maybe we should also support exporting more than one at a time?
 
+        *Not supported by limited Registries.*
+
     .. py:method:: import(serialized)
 
         Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
 
         :param str serialized: a str containing a serialized form of a subset of a :ref:`Registry`.
 
+        *Limited Registries will import only some of the information exported by full Registry.*
 
 SQL Representation
 ------------------
 
-A Registry provides an interface for queryingt the :ref:`CommonSchema`, and hence has no representation within that schema.
+A Registry provides an interface for querying the :ref:`CommonSchema`, and hence has no representation within that schema.
 
 
 .. _Datastore:
@@ -1088,6 +1110,8 @@ Butler
 
 A high level object that provides access to the :ref:`Datasets <Dataset>` in a single :ref:`Collection`.
 
+Butlers hold and delegate most of their work to a :ref:`Registry` and a :ref:`Datastore`.
+
 
 Transition
 ----------
@@ -1162,6 +1186,11 @@ Butler is a concrete, final Python class in the current design; all extensibilit
             path = ref.makePath(self.config.outputCollection, template)
             uri, components = self.datastore.put(inMemoryDataset, ref.type.meta, path, ref.type.name)
             self.registry.addDataset(self.config.outputCollection, ref, uri, components, quantum)
+
+    .. todo::
+
+        How much more of :ref:`Registry's <Registry>` should Butler forward.
+
 
 SQL Representation
 ------------------
