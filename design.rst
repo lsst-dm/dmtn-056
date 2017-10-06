@@ -21,7 +21,7 @@ for stored objects are kept in a SQL database which implements the :ref:`Common 
 The :ref:`Registry` class provides an interface to such a database.
 
 In the database, the :ref:`Datasets <Dataset>` are grouped into :ref:`Collections <Collection>`,
-which are identified by a :ref:`CollectionTag`.
+which are identified by a *CollectionTag*.
 Within a given :ref:`Collection` a :ref:`Dataset` is uniquely identified by a :ref:`DatasetRef`.
 
 Conceptually a :ref:`DatasetRef` is a combination of a :ref:`DatasetType` (e.g. ``calexp``)
@@ -103,7 +103,7 @@ The user has a :py:class:`DatasetLabel`, constructed or obtained by a query and 
 This proceeds allong the following steps:
 
 1. User calls: ``butler.get(label)``.
-2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag` it was configured with (i.e. ``butler.registry.find(butler.config.collectionTag, label)``).
+2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag <Collection>` it was configured with (i.e. ``butler.registry.find(butler.config.inputCollection, label)``).
 3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`URI` for the stored :ref:`Dataset` (via a :py:class:`DatasetHandle`)
 4. :ref:`Butler` forwards the request, with both the :ref:`URI` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(handle.uri, handle.type.meta)``).
 5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`URI`.
@@ -129,8 +129,8 @@ The user has a :ref:`InMemoryDataset` and wishes to store this at a particular :
 This proceeds allong the following steps:
 
 1. User calls: ``butler.put(label, inMemoryDataset)``.
-2. :ref:`Butler` expands the :py:class:`DatasetLabel` into a full :py:class:`DatasetRef` using the :ref:`Registry`, by calling ``datasetRef = butler.registry.getDatasetMetatype(butler.config.collectionTag, datasetRef)``.
-3. :ref:`Butler` obtains a :ref:`Path` by calling ``path = datasetRef.makePath(butler.config.collectionTag, template)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.  The template is provided by the :ref:`Registry` but may be overridden by the :ref:`Butler`.
+2. :ref:`Butler` expands the :py:class:`DatasetLabel` into a full :py:class:`DatasetRef` using the :ref:`Registry`, by calling ``datasetRef = butler.registry.getDatasetMetatype(butler.config.outputCollection, datasetRef)``.
+3. :ref:`Butler` obtains a :ref:`Path` by calling ``path = datasetRef.makePath(butler.config.outputCollection, template)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.  The template is provided by the :ref:`Registry` but may be overridden by the :ref:`Butler`.
 4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(inMemoryDataset, datasetRef.type.meta, path)``.
 5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`InMemoryDataset` and sends it to the :ref:`Datastore` server.
    Depending on the type of server it may get back the actual :ref:`URI` or the client can generate it itself.
@@ -174,7 +174,7 @@ Dataset
 
 A Dataset is a discrete entity of stored data, possibly with associated metadata.
 
-Datasets are uniquely identified by either a :ref:`URI` or the combination of a :ref:`CollectionTag` and a :ref:`DatasetRef`.
+Datasets are uniquely identified by either a :ref:`URI` or the combination of a :ref:`CollectionTag <Collection>` and a :ref:`DatasetRef`.
 
 Example: a "calexp" for a single visit and sensor produced by a processing run.
 
@@ -263,13 +263,13 @@ All three classes are immutable.
 
     .. py:method:: makePath(tag, template=None) -> Path
 
-        Construct the `Path` part of a :ref:`URI` by filling in ``template`` with the :ref:`CollectionTag` and the values in the py:attr:`units`` tuple.
+        Construct the `Path` part of a :ref:`URI` by filling in ``template`` with the :ref:`CollectionTag <Collection>` and the values in the py:attr:`units`` tuple.
 
         This is often just a storage hint since the :ref:`Datastore` will likely have to deviate from the provided path (in the case of an object-store for instance).
 
         Although a :ref:`Dataset` may belong to multiple :ref:`Collections <Collection>`, only the first :ref:`Collection` it is added to is used in its :ref:`Path`.
 
-        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to which the :ref:`Dataset` will be added.
+        :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to which the :ref:`Dataset` will be added.
 
         :param str template: a path template to fill in.  If None, the :py:attr:`template <DatasetType.template>` attribute of :py:attr:`type` will be used.
 
@@ -358,7 +358,9 @@ Python API
 
         Read-only instance attribute.
 
-        A string with ``str.format``-style replacement patterns that can be used to create a :ref:`Path` from a :ref:`CollectionTag` and a :ref:`DatasetRef`.
+        A string with ``str.format``-style replacement patterns that can be used to create a :ref:`Path` from a :ref:`CollectionTag <Collection>` and a :ref:`DatasetRef`.
+
+        May be None to indicate a read-only :ref:`Dataset` or one whose templates must be provided at a higher level.
 
     .. py:attribute:: units
 
@@ -375,9 +377,34 @@ Python API
 SQL Representation
 ------------------
 
-.. todo::
+DatasetTypes are stored in a :ref:`Registry` using two tables.
+The first has a single record for each DatasetType and contains most of the information that defines it:
 
-    Fill in SQL interface
+.. _sql_DatasetType:
+
++---------------------+---------+------------------------------------------------------------+
+| *DatasetType*                                                                              |
++=====================+=========+============================================================+
+| dataset_type_id     | int     | PRIMARY KEY                                                |
++---------------------+---------+------------------------------------------------------------+
+| name                | varchar | NOT NULL                                                   |
++---------------------+---------+------------------------------------------------------------+
+| template            | varchar |                                                            |
++---------------------+---------+------------------------------------------------------------+
+| dataset_metatype_id | int     | NOT NULL, REFERENCES DatasetMetatype (dataset_metatype_id) |
++---------------------+---------+------------------------------------------------------------+
+
+The second table has a many-to-one relationship with the first and holds the names of the :ref:`DataUnit` types utilized by its :ref:`DatasetRefs <DatasetRef>`:
+
+.. _cs_table_DatasetTypeUnits:
+
++-----------------+---------+-------------+
+| *DatasetTypeUnits*                      |
++=================+=========+=============+
+| dataset_type_id | int     | PRIMARY KEY |
++-----------------+---------+-------------+
+| unit_name       | varchar | NOT NULL    |
++-----------------+---------+-------------+
 
 
 .. _InMemoryDataset:
@@ -455,6 +482,7 @@ SQL Representation
 ------------------
 
 There is one table for each :ref:`DataUnit` type, and a :ref:`DataUnit` instance is a row in one of those tables.
+Being abstract, there is no single table associated with :ref:`DataUnits <DataUnit>` in general.
 
 :ref:`DataUnits <DataUnit>` must be shared across different :ref:`Registries <Registry>` , so their primary keys must not be database-specific quantities such as autoincrement fields.
 
@@ -471,8 +499,8 @@ Collection
 An entity that contains :ref:`Datasets <Dataset>`, with the following conditions:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
-- Has a unique, human-readable identifier (i.e. :ref:`CollectionTag`).
-- Can be used to obtain a globally (across Collections) unique :ref:`URI` given a :ref:`DatasetRef`.
+- Has a unique, human-readable identifier, called a CollectionTag.
+- Can be combined with a :ref:`DatasetRef` to obtain a globally unique :ref:`URI`.
 
 Transition
 ----------
@@ -482,44 +510,38 @@ The v14 Butler's Data Repository concept plays a similar role in many contexts, 
 Python API
 ----------
 
-There is no direct Python representation of a Collection.
+CollectionTags are simply Python strings.
 
-
-SQL Representation
-------------------
-
-.. todo::
-
-    Fill in SQL interface
-
-
-.. _CollectionTag:
-
-CollectionTag
-=============
-
-A unique identifier of a :ref:`Collection` within a :ref:`Registry`.
-
-.. note::
-
-  That such tags need to be storable in a :ref:`ButlerConfiguration` file.
-
-Transition
-----------
-
-A path to a directory containing a v14 Butler Data Repository played a similar role.
-
-Python API
-----------
-
-A CollectionTag can probably be implemented as a simple string in Python.
+A :ref:`DataGraph` may be constructed to hold exactly the contents of a single :ref:`Collection`, but does not do so in general.
 
 SQL Representation
 ------------------
 
-.. todo::
+Collections are defined by a pair of tables; the first simply contains the list of tags, and the second is a many-to-many join between it and the :ref:`Dataset table <cs_table_Dataset>`.
 
-    Fill in SQL interface
+.. _sql_CollectionTag:
+
++-------------------+---------+-------------+
+| *CollectionTag*                           |
++-------------------+---------+-------------+
+| collection_tag_id | int     | PRIMARY KEY |
++-------------------+---------+-------------+
+| name              | varchar | NOT NULL    |
++-------------------+---------+-------------+
+| CONSTRAINT UNIQUE (name)                  |
++-------------------+---------+-------------+
+
+.. _sql_DatasetCollectionTagJoin:
+
++-------------------+-----+-----------------------------------------------------------+
+| *DatasetCollectionTagJoin*                                                          |
++===================+=====+===========================================================+
+| collection_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (collection_tag_id) |
++-------------------+-----+-----------------------------------------------------------+
+| dataset_id        | int | NOT NULL, REFERENCES Dataset (dataset_id)                 |
++-------------------+-----+-----------------------------------------------------------+
+
+These tables should be present even in :ref:`Registries <Registry>` that only represent a single Collection (though in this case they may of course be trivial views).
 
 
 .. _Quantum:
@@ -718,7 +740,8 @@ The actual :ref:`URI` used for storage is not required to respect the path (e.g.
 Transition
 ----------
 
-No similar concept exists in the v14 Butler.
+The filled-in templates provided in Mapper policy files in the v14 Butler play the same role as the new :ref:`Path` concept when writing :ref:`Datasets <Dataset>`.
+Mapper templates were also used in reading files in the v14 Butler, however, and :ref:`Paths <Path>` are not.
 
 Python API
 ----------
@@ -728,7 +751,7 @@ Paths are represented by simple Python strings.
 SQL Representation
 ------------------
 
-Paths do not appear in SQL at all.
+Paths do not appear in SQL at all, but the defaults for the templates that generate them are a field in the :ref:`DatasetType table <sql_DatasetType>`.
 
 
 
@@ -848,7 +871,7 @@ Python API
 
         The :ref:`Quantum` that generated the :ref:`Dataset` can optionally be provided to add provenance information.
 
-        :param str tag: a :ref:`CollectionTag` indicating the Collection the :ref:`DatasetType` should be associated with.
+        :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` the :ref:`DatasetType` should be associated with.
 
         :param DatasetRef ref: a :ref:`DatasetRef` that identifies the :ref:`Dataset` and contains its :ref:`DatasetType`.
 
@@ -864,7 +887,7 @@ Python API
 
         Add an existing :ref:`Dataset` to an existing :ref:`Collection`.
 
-        :param str tag: a :ref:`CollectionTag` indicating the Collection the :ref:`DatasetType` should be associated with.
+        :param str tag: a :ref:`CollectionTag <Collection>` indicating the Collection the :ref:`DatasetType` should be associated with.
 
         :param DatasetHandle handle: a :py:class:`DatasetHandle` instance that already exists in another :ref:`Collection` in this :ref:`Registry`.
 
@@ -902,7 +925,7 @@ Python API
 
         Must be a simple pass-through if ``label`` is already a :py:class:`DatasetHandle`.
 
-        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to search.
+        :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to search.
 
         :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset`.
 
@@ -912,7 +935,7 @@ Python API
 
         Evaluate a :ref:`DatasetExpression` given a list of :ref:`DatasetTypes <DatasetType>` and return a :ref:`DataGraph`.
 
-        :param str tag: a :ref:`CollectionTag` indicating the :ref:`Collection` to search.
+        :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to search.
 
         :param str expr: a :ref:`DatasetExpression` that limits the :ref:`DataUnits <DataUnit>` and (indirectly) the :ref:`Datasets <Dataset>` returned.
 
@@ -930,13 +953,13 @@ Python API
 
         Create a new :ref:`Collection` by subsetting an existing one.
 
-        :param str tag: a :ref:`CollectionTag` indicating the input :ref:`Collection` to subset.
+        :param str tag: a :ref:`CollectionTag <Collection>` indicating the input :ref:`Collection` to subset.
 
         :param str expr: a :ref:`DatasetExpression` that limits the :ref:`DataUnits <DataUnit>` and (indirectly) the :ref:`Datasets <Dataset>` in the subset.
 
         :param list[DatasetType] datasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances should be included in the subset.
 
-        :returns: a str :ref:`CollectionTag`
+        :returns: a str :ref:`CollectionTag <Collection>`
 
     .. py:method:: merge(outputTag, inputTags)
 
@@ -944,16 +967,16 @@ Python API
 
         Entries earlier in the list will be used in preference to later entries when both contain :ref:`Datasets <Dataset>` with the same :ref:`DatasetRef`.
 
-        :param outputTag: a str :ref:`CollectionTag` to use for the new :ref:`Collection`.
+        :param outputTag: a str :ref:`CollectionTag <Collection>` to use for the new :ref:`Collection`.
 
-        :param list[str] inputTags: a list of :ref:`CollectionTags <CollectionTag>` to combine.
+        :param list[str] inputTags: a list of :ref:`CollectionTags <Collection>` to combine.
 
     .. py:method:: export(tag) -> str
 
-        Export contents of :ref:`Registry` for a given :ref:`CollectionTag` in a text
+        Export contents of :ref:`Registry` for a given :ref:`CollectionTag <Collection>` in a text
         format that can be imported into a different database.
 
-        :param str tag: a :ref:`CollectionTag` indicating the input :ref:`Collection` to export.
+        :param str tag: a :ref:`CollectionTag <Collection>` indicating the input :ref:`Collection` to export.
 
         :returns: a str containing a serialized form of the subset of the :ref:`Registry`.
 
@@ -1047,11 +1070,11 @@ Configuration for :ref:`Butler`.
 
     .. py:attribute:: inputCollection
 
-        The :ref:`CollectionTag` of the input collection.
+        The :ref:`CollectionTag <Collection>` of the input collection.
 
     .. py:attribute:: outputCollection
 
-        The :ref:`CollectionTag` of the output collection.  May be the same as :py:attr:`inputCollection`.
+        The :ref:`CollectionTag <Collection>` of the output collection.  May be the same as :py:attr:`inputCollection`.
 
     .. py:attribute:: templates
 
@@ -1493,57 +1516,6 @@ not calculated; its entries should be added whenever new
 | CONSTRAINT UNIQUE (visit_id, patch_id)                 |
 +----------+-----+---------------------------------------+
 
-.. _cs_datasettypes_and_metatype:
-
-DatasetTypes and MetaType
-=========================
-
-.. _cs_table_DatasetMetatype:
-
-+-------------+---------+-------------+
-| *DatasetMetatype*                   |
-+=============+=========+=============+
-| metatype_id | int     | PRIMARY KEY |
-+-------------+---------+-------------+
-| name        | varchar | NOT NULL    |
-+-------------+---------+-------------+
-
-.. _cs_table_DatasetMetatypeComposition:
-
-+----------------+---------+------------------------------------------------------------+
-| *DatasetMetatypeComposition*                                                          |
-+================+=========+============================================================+
-| parent_id      | int     | NOT NULL, REFERENCES DatasetMetatype (dataset_metatype_id) |
-+----------------+---------+------------------------------------------------------------+
-| component_id   | int     | NOT NULL, REFERENCES DatasetMetatype (dataset_metatype_id) |
-+----------------+---------+------------------------------------------------------------+
-| component_name | varchar | NOT NULL                                                   |
-+----------------+---------+------------------------------------------------------------+
-
-.. _cs_table_DatasetType:
-
-+---------------------+---------+------------------------------------------------------------+
-| *DatasetType*                                                                              |
-+=====================+=========+============================================================+
-| dataset_type_id     | int     | PRIMARY KEY                                                |
-+---------------------+---------+------------------------------------------------------------+
-| name                | varchar | NOT NULL                                                   |
-+---------------------+---------+------------------------------------------------------------+
-| template            | varchar |                                                            |
-+---------------------+---------+------------------------------------------------------------+
-| dataset_metatype_id | int     | NOT NULL, REFERENCES DatasetMetatype (dataset_metatype_id) |
-+---------------------+---------+------------------------------------------------------------+
-
-.. _cs_table_DatasetTypeUnits:
-
-+-----------------+---------+-------------+
-| *DatasetTypeUnits*                      |
-+=================+=========+=============+
-| dataset_type_id | int     | PRIMARY KEY |
-+-----------------+---------+-------------+
-| unit_name       | varchar | NOT NULL    |
-+-----------------+---------+-------------+
-
 
 .. _cs_datasets:
 
@@ -1581,12 +1553,12 @@ Composite Datasets
 ==================
 
 * If a virtual :ref:`Dataset` was created by writing multiple component Datasets,
-  the parent :ref:`DatasetType's <cs_table_DatasetType>` ``template`` field and the parent
+  the parent :ref:`DatasetType's <sql_DatasetType>` ``template`` field and the parent
   Dataset's ``uri`` field may be null (depending on whether there was a also parent
   Dataset stored whose components should be overridden).
   
 * If a single :ref:`Dataset` was written and we're defining virtual components,
-  the component :ref:`DatasetTypes <cs_table_DatasetType>` should have null ``template``
+  the component :ref:`DatasetTypes <sql_DatasetType>` should have null ``template``
   fields, but the component Datasets will have non-null ``uri`` fields with values created
   by the :ref:`Datastore`.
 
@@ -1601,49 +1573,6 @@ Composite Datasets
 +----------------+-----+-------------------------------------------+
 | component_name | int | NOT NULL                                  |
 +----------------+-----+-------------------------------------------+
-
-.. _cs_tags:
-
-Tags
-====
-
-Tags to define multiple :ref:`Collections <Collection>` in a single database
-
-.. _cs_table_CollectionTag:
-
-+-------------------+---------+-------------+
-| *CollectionTag*                           |
-+-------------------+---------+-------------+
-| collection_tag_id | int     | PRIMARY KEY |
-+-------------------+---------+-------------+
-| name              | varchar | NOT NULL    |
-+-------------------+---------+-------------+
-| CONSTRAINT UNIQUE (name)                  |
-+-------------------+---------+-------------+
-
-.. _cs_table_DatasetCollectionTagJoin:
-
-+-------------------+-----+-----------------------------------------------------------+
-| *DatasetCollectionTagJoin*                                                          |
-+===================+=====+===========================================================+
-| collection_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (collection_tag_id) |
-+-------------------+-----+-----------------------------------------------------------+
-| dataset_id        | int | NOT NULL, REFERENCES Dataset (dataset_id)                 |
-+-------------------+-----+-----------------------------------------------------------+
-
-.. _cs_table_DatasetTypeCollectionTagJoin:
-
-+-------------------+-----+-----------------------------------------------------------+
-| *DatasetTypeCollectionTagJoin*                                                      |
-+===================+=====+===========================================================+
-| collection_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (collection_tag_id) |
-+-------------------+-----+-----------------------------------------------------------+
-| dataset_type_id   | int | NOT NULL, REFERENCES DatasetType (dataset_type_id)        |
-+-------------------+-----+-----------------------------------------------------------+
-    
-.. note::
-
-    In a single-collection database, these tables may possibly be absent for space efficiency.
 
 
 .. _cs_dataset_dataunit_joins:
