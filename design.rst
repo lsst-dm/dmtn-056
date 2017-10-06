@@ -979,28 +979,39 @@ Python API
 
 .. py:class:: Datastore
 
-    .. py:method:: get(uri, parameters=None) -> InMemoryDataset
+    .. py:method:: get(uri, parameters=None)
 
         Load a :ref:`InMemoryDataset` from the store.
-        Optional ``parameters`` may specify things like regions.
 
-    .. py:method:: put(InMemoryDataset, DatasetMetatype, Path) -> URI, {name : URI}
+        :param str uri: a :ref:`URI` that specifies the location of the stored :ref:`Dataset`.
+
+        :param dict parameters: :ref:`DatasetMetatype`-specific parameters that specify a slice of the :ref:`Dataset` to be loaded.
+
+        :returns: an :ref:`InMemoryDataset` or slice thereof.
+
+    .. py:method:: put(inMemoryDataset, meta, path, typeName=None) -> URI, {name: URI}
 
         Write a :ref:`InMemoryDataset` with a given :ref:`DatasetMetatype` to the store.
-        The :ref:`DatasetMetatype` is used to determine the serialization format.
-        The ``Path`` is a storage hint.  The actual ``URI`` of the stored :ref:`Dataset` is returned as are the possible components.
 
-        .. note::
-            This is needed because some :ref:`datastores <Datastore>` may need to modify the :ref:`URI`.
-            Such is the case for object stores (which can return a hash) for instance.
+        :param inMemoryDataset: the :ref:`InMemoryDataset` to store.
 
-    .. py:method:: retrieve({URI (from) : URI (to)}) -> None
+        :param DatasetMetatype meta: the :ref:`DatasetMetatype` associated with the :ref:`DatasetType`.
+
+        :param str path: A :ref:`Path` that provides a hint that the :ref:`Datastore` may use as [part of] the :ref:`URI`.
+
+        :param str typeName: The :ref:`DatasetType` name, which may be used by the :ref:`Datastore` to override the default serialization format for the :ref:`DatasetMetatype`.
+
+        :returns: the :py:class:`str` :ref:`URI` and a dictionary of :ref:`URIs <URI>` for the :ref:`Dataset's <Dataset>` components.  The latter will be empty (or None?) if the :ref:`Dataset` is not a composite.
+
+    .. py:method:: retrieve({URI (from) : URI (to)})
 
         Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
         Does not have to go through the process of creating a :ref:`InMemoryDataset`.
 
         .. todo::
-            How does this handle composites?
+            I'm not sure this interface will work; where will the output URIs come from, if not a Datastore?
+            Maybe the dict values need to be paths?
+            Or (meta, path, typeName) tuples, which might imply that the Datastore would sometimes have to change formats.
 
 SQL Representation
 ------------------
@@ -1109,7 +1120,7 @@ Butler is a concrete, final Python class in the current design; all extensibilit
             ref = self.registry.expand(label)
             template = self.config.templates.get(ref.type.name, None)
             path = ref.makePath(self.config.outputCollection, template)
-            uri, components = self.datastore.put(inMemoryDataset, ref.type.meta, path)
+            uri, components = self.datastore.put(inMemoryDataset, ref.type.meta, path, ref.type.name)
             self.registry.addDataset(self.config.outputCollection, ref, uri, components, quantum)
 
 SQL Representation
