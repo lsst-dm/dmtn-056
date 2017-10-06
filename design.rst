@@ -701,7 +701,7 @@ URIs are stored as a field in the Dataset table.
 Path
 ====
 
-A storage hint that provided to aid in constructing a :ref:`URI`.
+A storage hint provided to aid in constructing a :ref:`URI`.
 
 Frequently (in e.g. filesystem-based Datastores) the path will be used as the full filename **within** a :ref:`Datastore`, and hence each :ref:`Dataset` in a :ref:`Registry` must have a unique path (even if they are in different :ref:`Collections <Collection>`).
 This can only guarantee that paths are unique within a :ref:`Datastore` if a single :ref:`Registry` manages all writes to the :ref:`Datastore`.
