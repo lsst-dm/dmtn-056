@@ -202,9 +202,51 @@ These are described in the Python API section for :ref:`DatasetRef`.
 SQL Representation
 ------------------
 
-.. todo::
+Datasets are represented by records in a single table that includes everything in a :ref:`Registry`, regardless of :ref:`Collection` or :ref:`DatasetType`:
 
-    Fill in how Datasets are represented in SQL.
+.. _sql_Dataset:
+
++-------------------+---------+---------------------------------+
+| *Dataset*                                                     |
++-------------------+---------+---------------------------------+
+| dataset_id        | int     | PRIMARY KEY                     |
++-------------------+---------+---------------------------------+
+| dataset_type_id   | int     | NOT NULL                        |
++-------------------+---------+---------------------------------+
+| unit_pack         | binary  | NOT NULL                        |
++-------------------+---------+---------------------------------+
+| uri               | varchar |                                 |
++-------------------+---------+---------------------------------+
+| producer_id       | int     | REFERENCES Quantum (quantum_id) |
++-------------------+---------+---------------------------------+
+| parent_dataset_id | int     | REFERENCES Dataset (dataset_id) |
++-------------------+---------+---------------------------------+
+
+Using a single table (instead of per-:ref:`DatasetType` and/or per-:ref:`Collection` tables) ensures that table-creation permissions are not required when adding new :ref:`DatasetTypes <DatasetType>` or :ref:`Collections <Collection>`.  It also makes it easier to store provenance by associating :ref:`Datasets <Dataset>` with :ref:`Quanta <Quantum>`.
+
+The disadvantage of this approach is that the connections between :ref:`Datasets <Dataset>` and :ref:`DataUnits <DataUnit>` must be stored in a set of :ref:`additional join tables <sql_dataset_dataunit_joins>` (one for each :ref:`DataUnit` table).
+The connections are summarized by the ``unit_pack`` field, which contains an ID that is unique only within a :ref:`Collection` for a given :ref:`DatasetType`, constructed by bit-packing the values of the associated units (a :ref:`Path` would be a viable but probably inefficient choice).
+While a ``unit_pack`` value cannot be used to reconstruct a full :ref:`DatasetRef`, a ``unit_pack`` value can be used to quickly search for the :ref:`Dataset` matching a given :ref:`DatasetRef`.
+It also allows :py:meth:`Registry.merge` to be implemented purely as a database operation by using it as a GROUP BY column in a query over multiple :ref:`Collections <Collection>`.
+
+Composite datasets are represented in SQL as a one-to-many self-join table on :ref:`Dataset <sql_Dataset>`:
+
+.. _sql_DatasetComposition:
+
++----------------+-----+-------------------------------------------+
+| *DatasetComposition*                                             |
++================+=====+===========================================+
+| parent_id      | int | NOT NULL, REFERENCES Dataset (dataset_id) |
++----------------+-----+-------------------------------------------+
+| component_id   | int | NOT NULL, REFERENCES Dataset (dataset_id) |
++----------------+-----+-------------------------------------------+
+| component_name | int | NOT NULL                                  |
++----------------+-----+-------------------------------------------+
+
+
+* If a virtual :ref:`Dataset` was created by writing multiple component Datasets, the parent :ref:`DatasetType's <sql_DatasetType>` ``template`` field and the parent Dataset's ``uri`` field may be null (depending on whether there was also a parent Dataset stored whose components should be overridden).
+
+* If a single :ref:`Dataset` was written and we're defining virtual components, the component :ref:`DatasetTypes <sql_DatasetType>` should have null ``template`` fields, but the component Datasets will have non-null ``uri`` fields with values returned by the :ref:`Datastore` when :py:meth:`Datastore.put` was called on the parent.
 
 
 .. _DatasetRef:
@@ -220,12 +262,14 @@ Transition
 
 The v14 Butler's DataRef class played a similar role.
 
+The :py:class:`DatasetLabel` class also described here is more similar to the v14 Butler Data ID concept, though (like DatasetRef and DataRef, and unlike Data ID) it also holds a :ref:`DatasetType` name).
+
 Python API
 ----------
 
 The :py:class:`DatasetRef` class itself is the middle layer in a three-class hierarchy of objects that behave like pointers to :ref:`Datasets <Dataset>`.
 
-The ultimate base class and simplest of these, :py:class:`DatasetLabel`, is entirely opaque to the user.
+The ultimate base class and simplest of these, :py:class:`DatasetLabel`, is entirely opaque to the user; its internal state is visible only to a :ref:`Registry` (with which it has some Python approximation to a C++ "friend" relationship).
 Unlike the other classes in the hierarchy, instances can be constructed directly from Python PODs, without access to a :ref:`Registry` (or :ref:`Datastore`).
 Like a :py:class:`DatasetRef`, a :py:class:`DatasetLabel` only fully identifies a :ref:`Dataset` when combined with a :ref:`Collection`, and can be used to represent :ref:`Datasets <Dataset>` before they have been written.
 Most interactive analysis code will interact primarily with :py:class:`DatasetLabels <DatasetLabel>`, as these provide the simplest, least-structured way to use the :ref:`Butler` interface.
@@ -236,6 +280,7 @@ The SuperTask pattern hides those extra construction steps from both SuperTask a
 
 Instances of the final class in the hierarchy, :py:class:`DatasetHandle`, always correspond to a :ref:`Datasets <Dataset>` that has already been stored in a :ref:`Datastore`.
 In addition to the :ref:`DataUnits <DataUnit>` and :ref:`DatasetType` exposed by :py:class:`DatasetRef`, a :py:class:`DatasetHandle` also provides access to its :ref:`URI` and component :ref:`Datasets <Dataset>`.
+The additional functionality provided by :py:class:`DatasetHandle` is rarely needed unless one is interacting directly with a :py:class:`Registry` or :py:class:`Datastore` (instead of a :py:class:`Butler`), but the :py:class:`DatasetRef` instances that appear in SuperTask code may actually be :py:class:`DatasetHandle` instances (in a language other than Python, this would have been handled as a DatasetRef pointer to a DatasetHandle, ensuring that the user sees only the DatasetRef interface, but Python has no such concept).
 
 All three classes are immutable.
 
@@ -300,9 +345,8 @@ All three classes are immutable.
 SQL Representation
 ------------------
 
-.. todo::
-
-    Fill in SQL interface
+As discussed in the description of the :ref:`Dataset` SQL representation, the :ref:`DataUnits <DataUnit>` in a :ref:`DatasetRefs <DatasetRef>` are related to :ref:`Datasets <Dataset>` by a :ref:`set of join tables <sql_dataset_dataunit_joins>`.
+Each of these connects the :ref:`Dataset table's <sql_Dataset>` ``dataset_id`` to the primary key of a concrete :ref:`DataUnit` table.
 
 
 .. _DatasetType:
@@ -366,7 +410,7 @@ Python API
 
         Read-only instance attribute.
 
-        A tuple of :py:class:`DataUnit` subclasses (not instances) that define the :ref:`DatasetRef <DatasetRef>` corresponding to this :ref:`DatasetType`.
+        A :py:class:`DataUnitTypeSet` that defines the :ref:`DatasetRefs <DatasetRef>` corresponding to this :ref:`DatasetType`.
 
     .. py:attribute:: meta
 
@@ -441,6 +485,13 @@ A discrete abstract unit of data that can be associated with metadata or used to
 
 Examples: individual Visits, Tracts, or Filters.
 
+A DataUnit type may *depend* on another.  In SQL, this is expressed as a foreign key field in the table for the dependent DataUnit that points to the primary key field of its table for the DataUnit it depends on.
+
+Some DataUnits represent joins between other DataUnits.  A join DataUnit *depends* on the two DataUnits it connects, but is also included automatically in any sequence or container in which its dependencies are both present.
+
+Every DataUnit type also has a "value".  This is a POD (usually a string or integer, but sometimes a tuple of these) that is both its default human-readable representation *and* a "semi-unique" identifier for the DataUnit: when combined with the "values" of any other :ref:`DataUnit`
+
+The :py:class:`DataUnitTypeSet` class provides methods that enforce and utilize these rules, providing a centralized implementation to which all other objects that operate on groups of DataUnits can delegate.
 
 Transition
 ----------
@@ -472,6 +523,52 @@ Python API
             Rephrase the above to make it more clear and preferably avoid using the phrase "foreign key", as that's a SQL concept that doesn't have an obvious meaning in Python.
             We may need to have a Python way to expose the connections to other DataUnits on which a DataUnit's value.
 
+.. py:class:: DataUnitTypeSet
+
+    An ordered tuple of unique DataUnit subclasses.
+
+    Unlike a regular Python tuple or set, a DataUnitTypeSet's elements are always sorted (by the DataUnit type name, though the actual sort order is irrelevant).
+    In addition, the inclusion of certain DataUnit types can automatically lead to to the inclusion of others.  This can happen because one DataUnit depends on another (most depend on either Camera or SkyMap, for instance), or because a DataUnit (such as ObservedSensor) represents a join between others (such as Visit and PhysicalSensor).
+    For example, if any of the following combinations of DataUnit types are used to initialize a DataUnitTypeSet, its elements will be ``[Camera, ObservedSensor, PhysicalSensor, Visit]``:
+
+    - ``[Visit, PhysicalSensor]``
+    - ``[ObservedSensor]``
+    - ``[Visit, ObservedSensor, Camera]``
+    - ``[Visit, PhysicalSensor, ObservedSensor]``
+
+    .. py:method:: __init__(elements)
+
+        Initialize the DataUnitTypeSet with a reordered and augmented version of the given DataUnit types as described above.
+
+    .. py::method:: __iter__()
+
+        Iterate over the DataUnit types in the set.
+
+    .. py::method:: __len__()
+
+        Return the number of DataUnit types in the set.
+
+    .. py::method:: __getitem__(name)
+
+        Return the DataUnit type with the given name.
+
+    .. py::method:: pack(values)
+
+        Compute an integer that uniquely identifies the given combination of
+        :ref:`DataUnit` values.
+
+        :param dict values: A dictionary that maps :ref:`DataUnit` type names to either the "values" of those units or actual :ref:`DataUnit` instances.
+
+        :returns: a 64-bit unsigned :py:class:`int`.
+
+        This method must be used to populate the ``unit_pack`` field in the :ref:``sql_Dataset table`.
+
+    .. py::method:: expand(registry, values)
+
+        Transform a dictionary of DataUnit instances from a dictionary of DataUnit "values" by querying the given :py:class:`Registry`.
+
+        This can (and generally should) be used by concrete :ref:`Registries <Registry>` to implement :py:meth:`Registry.expand`, as it only uses :py:class:`Registry.query`.
+
 .. todo::
 
     Where should we document the concrete DataUnit classes?
@@ -484,7 +581,7 @@ SQL Representation
 There is one table for each :ref:`DataUnit` type, and a :ref:`DataUnit` instance is a row in one of those tables.
 Being abstract, there is no single table associated with :ref:`DataUnits <DataUnit>` in general.
 
-:ref:`DataUnits <DataUnit>` must be shared across different :ref:`Registries <Registry>` , so their primary keys must not be database-specific quantities such as autoincrement fields.
+:ref:`DataUnits <DataUnit>` must be shared across different :ref:`Registries <Registry>`, so their primary keys must not be database-specific quantities such as autoincrement fields.
 
 .. todo::
 
@@ -517,7 +614,7 @@ A :ref:`DataGraph` may be constructed to hold exactly the contents of a single :
 SQL Representation
 ------------------
 
-Collections are defined by a pair of tables; the first simply contains the list of tags, and the second is a many-to-many join between it and the :ref:`Dataset table <cs_table_Dataset>`.
+Collections are defined by a pair of tables; the first simply contains the list of tags, and the second is a many-to-many join between it and the :ref:`Dataset table <sql_Dataset>`.
 
 .. _sql_CollectionTag:
 
@@ -855,6 +952,18 @@ Python API
 
 .. py:class:: Registry
 
+    .. py:method:: query(sql, parameters)
+
+        Execute an arbitrary SQL SELECT query on the Registry's database and return the results.
+
+        The given SQL statement should be restricted to the schema and SQL dialect common to all Registries, but Registries are not required to check that this is the case.
+
+        .. todo::
+
+            This should be a very simple pass-through to SQLAlchemy or a DBAPI driver.  Should be explicit about exactly what that means for parameters and returned objects.
+
+        *Not supported by limited Registries.*
+
     .. py:method:: registerDatasetType(datasetType)
 
         Add a new :ref:`DatasetType` to the Registry.
@@ -869,6 +978,10 @@ Python API
 
             If the new DatasetType already exists, we need to make sure it's consistent with what's already present, but if it is, we probably shouldn't throw.
             Need to see if there's also a use case for throwing if the DatasetType exists or overwriting if its inconsistent.
+
+    .. py:method:: getDatasetType(name)
+
+        Return the :py:class:`DatasetType` associated with the given name.
 
     .. py:method:: addDataset(tag, label, uri, components, quantum=None)
 
@@ -1546,65 +1659,8 @@ not calculated; its entries should be added whenever new
 +----------+-----+---------------------------------------+
 
 
-.. _cs_datasets:
 
-Datasets
-========
-
-There's table for the entire database, so IDs are unique even across
-:ref:`Collections <Collection>`.  The ``dataref_pack`` field contains
-an ID that is unique only with a collection, constructed by packing
-together the associated units (the *path* string passed to ``DataStore.put``
-would be a viable but probably inefficient choice).
-
-.. _cs_table_Dataset:
-
-+-------------------+---------+---------------------------------+
-| *Dataset*                                                     |
-+-------------------+---------+---------------------------------+
-| dataset_id        | int     | PRIMARY KEY                     |
-+-------------------+---------+---------------------------------+
-| dataset_type_id   |         | NOT NULL                        |
-+-------------------+---------+---------------------------------+
-| dataref_pack      | binary  | NOT NULL                        |
-+-------------------+---------+---------------------------------+
-| uri               | varchar |                                 |
-+-------------------+---------+---------------------------------+
-| producer_id       | int     | REFERENCES Quantum (quantum_id) |
-+-------------------+---------+---------------------------------+
-| parent_dataset_id | int     | REFERENCES Dataset (dataset_id) |
-+-------------------+---------+---------------------------------+
-
-
-.. _cs_composite_datasets:
-
-Composite Datasets
-==================
-
-* If a virtual :ref:`Dataset` was created by writing multiple component Datasets,
-  the parent :ref:`DatasetType's <sql_DatasetType>` ``template`` field and the parent
-  Dataset's ``uri`` field may be null (depending on whether there was a also parent
-  Dataset stored whose components should be overridden).
-  
-* If a single :ref:`Dataset` was written and we're defining virtual components,
-  the component :ref:`DatasetTypes <sql_DatasetType>` should have null ``template``
-  fields, but the component Datasets will have non-null ``uri`` fields with values created
-  by the :ref:`Datastore`.
-
-.. _cs_table_DatasetComposition:
-
-+----------------+-----+-------------------------------------------+
-| *DatasetComposition*                                             |
-+================+=====+===========================================+
-| parent_id      | int | NOT NULL, REFERENCES Dataset (dataset_id) |
-+----------------+-----+-------------------------------------------+
-| component_id   | int | NOT NULL, REFERENCES Dataset (dataset_id) |
-+----------------+-----+-------------------------------------------+
-| component_name | int | NOT NULL                                  |
-+----------------+-----+-------------------------------------------+
-
-
-.. _cs_dataset_dataunit_joins:
+.. _sql_dataset_dataunit_joins:
 
 Dataset-DataUnit joins
 ======================
