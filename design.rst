@@ -701,10 +701,19 @@ URIs are stored as a field in the Dataset table.
 Path
 ====
 
-The part of a :ref:`URI` that refers to a location **within** a :ref:`Datastore`
+A storage hint that provided to aid in constructing a :ref:`URI`.
 
-Typically provided as a hint to the :ref:`Datastore` to suggest a storage location/naming.
-The actual :ref:`URI` used for storage is not required to respect the hint (e.g. for object stores).
+Frequently (in e.g. filesystem-based Datastores) the path will be used as the full filename **within** a :ref:`Datastore`, and hence each :ref:`Dataset` in a :ref:`Registry` must have a unique path (even if they are in different :ref:`Collections <Collection>`).
+This can only guarantee that paths are unique within a :ref:`Datastore` if a single :ref:`Registry` manages all writes to the :ref:`Datastore`.
+Having a single :ref:`Registry` responsible for writes to a :ref:`Datastore` (even if multiple :ref:`Registries <Registry>` are permitted to read from it) is thus probably the easiest (but by no means the only) way to guarantee path uniqueness in a filesystem-basd :ref:`Datastore`.
+
+Paths are generated from string templates, which are expanded using the :ref:`DataUnits <DataUnit>` associated with a :ref:`Dataset`, its :ref:`DatasetType` name, and the :ref:`Collection` the :ref:`Dataset` was originally added to.
+Because a :ref:`Dataset` may ultimately be associated with multiple :ref:`Collections <Collection>`, one cannot infer the path for a :ref:`Dataset` that has already been added to a :ref:`Registry` from its template.
+That means it is impossible to reconstruct a :ref:`URI` from the template, even if a particular :ref:`Datastore` guarantees a relationship between paths and :ref:`URIs <URI>`.
+Instead, the original :ref:`URI` must be obtained by querying the :ref:`Registry`.
+
+The actual :ref:`URI` used for storage is not required to respect the path (e.g. for object stores).
+
 
 Transition
 ----------
