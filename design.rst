@@ -81,7 +81,7 @@ for providing the :ref:`URI` from where it can be subsequently retrieved.
     Both the :ref:`Registry` and the :ref:`Datastore` typically each
     come as a client/server pair.  In some cases the server part may be a direct backend,
     such as a SQL server or a filesystem, that does not require any custom software daemon (other than e.g. a third-party database or http server).
-    In some cases, such as when server-side subsetting of a :ref:`Dataset` is needed, a daemon for at least the :ref:`Datastore` will be required.
+    In some cases, such as when server-side slicing of a :ref:`Dataset` is needed, a daemon for at least the :ref:`Datastore` will be required.
 
 ##########
 Operations
@@ -176,9 +176,14 @@ A Dataset is a discrete entity of stored data, possibly with associated metadata
 
 Datasets are uniquely identified by either a :ref:`URI` or the combination of a :ref:`CollectionTag` and a :ref:`DatasetRef`.
 
-A Dataset may be *composite*, which means it contains one or more named *component* Datasets.
-
 Example: a "calexp" for a single visit and sensor produced by a processing run.
+
+A Dataset may be *composite*, which means it contains one or more named *component* Datasets.
+Composites may be stored either by storing the parent in a single file or by storing the components separately.
+Some composites simply aggregate that are always written as part of other :ref:`Datasets <Dataset>`, and are themselves read-only.
+
+Datasets may also be *sliced*, which yields an :ref:`InMemoryDataset` of the same type containing a smaller amount of data, defined by some parameters.
+Subimages and filters on catalogs are both considered slices.
 
 Transition
 ----------
@@ -663,7 +668,10 @@ URI
 A standard Uniform Resource Identifier pointing to a :ref:`InMemoryDataset` in a :ref:`Datastore`.
 
 The :ref:`Dataset` pointed to may be **primary** or a component of a **composite**, but should always be serializable on its own.
-When supported by the :ref:`Datastore` the query part of the URI (i.e. the part behind the optional question mark) may be used for continuous subsets (e.g. a region in an image).
+When supported by the :ref:`Datastore` the query part of the URI (i.e. the part behind the optional question mark) may be used for slices (e.g. a region in an image).
+
+.. todo::
+    Datastore.get also accepts parameters for slices; is the above still true?
 
 Transition
 ----------
@@ -767,7 +775,7 @@ Python API
 
         :param dict components: A dictionary whose keys are a subset of the keys in the :py:attr:`components` class attribute and whose values are instances of the component InMemoryDataset type.
 
-        :param dict parameters: details TBD; may be used for parameterized subsets of :ref:`Datasets <Dataset>`.
+        :param dict parameters: details TBD; may be used for slices of :ref:`Datasets <Dataset>`.
 
         :return: a :ref:`InMemoryDataset` matching ``parent`` with components replaced by those in ``components``.
 
@@ -1077,7 +1085,7 @@ Butler is a concrete, final Python class in the current design; all extensibilit
 
         :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset` to retrieve.
 
-        :param dict parameters: a dictionary of :ref:`DatasetMetatype`-specific parameters that can be used to obtain a subset of the :ref:`Dataset`.
+        :param dict parameters: a dictionary of :ref:`DatasetMetatype`-specific parameters that can be used to obtain a slice of the :ref:`Dataset`.
 
         :returns: an :ref:`InMemoryDataset`.
 
