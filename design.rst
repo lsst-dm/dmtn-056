@@ -269,18 +269,31 @@ Python API
 
 The :py:class:`DatasetRef` class itself is the middle layer in a three-class hierarchy of objects that behave like pointers to :ref:`Datasets <Dataset>`.
 
+.. digraph:: Dataset
+    :align: center
+
+    node[shape=record]
+    edge[dir=back, arrowtail=empty]
+
+    DatasetHandle;
+    DatasetRef;
+    DatasetLabel;
+
+    DatasetHandle -> DatasetRef;
+    DatasetRef -> DatasetLabel;
+
 The ultimate base class and simplest of these, :py:class:`DatasetLabel`, is entirely opaque to the user; its internal state is visible only to a :ref:`Registry` (with which it has some Python approximation to a C++ "friend" relationship).
 Unlike the other classes in the hierarchy, instances can be constructed directly from Python PODs, without access to a :ref:`Registry` (or :ref:`Datastore`).
 Like a :py:class:`DatasetRef`, a :py:class:`DatasetLabel` only fully identifies a :ref:`Dataset` when combined with a :ref:`Collection`, and can be used to represent :ref:`Datasets <Dataset>` before they have been written.
 Most interactive analysis code will interact primarily with :py:class:`DatasetLabels <DatasetLabel>`, as these provide the simplest, least-structured way to use the :ref:`Butler` interface.
 
-The next class, :py:class:`DatasetRef` itself, provides access to the associated `:ref:`DataUnit` instances and the :py:class:`DatasetType`.
+The next class, :py:class:`DatasetRef` itself, provides access to the associated :ref:`DataUnit` instances and the :py:class:`DatasetType`.
 A :py:class:`DatasetRef` instance cannot be constructed without a :ref:`Registry`, making it somewhat more cumbersome to use in interactive contexts.
 The SuperTask pattern hides those extra construction steps from both SuperTask authors and operators, however, and :py:class:`DatasetRef` is the class SuperTask authors will use most.
 
 Instances of the final class in the hierarchy, :py:class:`DatasetHandle`, always correspond to a :ref:`Datasets <Dataset>` that has already been stored in a :ref:`Datastore`.
 In addition to the :ref:`DataUnits <DataUnit>` and :ref:`DatasetType` exposed by :py:class:`DatasetRef`, a :py:class:`DatasetHandle` also provides access to its :ref:`URI` and component :ref:`Datasets <Dataset>`.
-The additional functionality provided by :py:class:`DatasetHandle` is rarely needed unless one is interacting directly with a :py:class:`Registry` or :py:class:`Datastore` (instead of a :py:class:`Butler`), but the :py:class:`DatasetRef` instances that appear in SuperTask code may actually be :py:class:`DatasetHandle` instances (in a language other than Python, this would have been handled as a DatasetRef pointer to a DatasetHandle, ensuring that the user sees only the DatasetRef interface, but Python has no such concept).
+The additional functionality provided by :py:class:`DatasetHandle` is rarely needed unless one is interacting directly with a :py:class:`Registry` or :py:class:`Datastore` (instead of a :py:class:`Butler`), but the :py:class:`DatasetRef` instances that appear in SuperTask code may actually be :py:class:`DatasetHandle` instances (in a language other than Python, this would have been handled as a :py:class:`DatasetRef` pointer to a :py:class:`DatasetHandle`, ensuring that the user sees only the :py:class:`DatasetRef` interface, but Python has no such concept).
 
 All three classes are immutable.
 
@@ -296,7 +309,7 @@ All three classes are immutable.
 
         Read-only instance attribute.
 
-        The :py:class:`DatasetType` associated with the :ref:`Dataset` the DatasetRef points to.
+        The :py:class:`DatasetType` associated with the :ref:`Dataset` the :ref:`DatasetRef` points to.
 
     .. py:attribute:: units
 
@@ -308,7 +321,7 @@ All three classes are immutable.
 
     .. py:method:: makePath(tag, template=None) -> Path
 
-        Construct the `Path` part of a :ref:`URI` by filling in ``template`` with the :ref:`CollectionTag <Collection>` and the values in the py:attr:`units`` tuple.
+        Construct the :ref:`Path` part of a :ref:`URI` by filling in ``template`` with the :ref:`CollectionTag <Collection>` and the values in the :py:attr:`units` tuple.
 
         This is often just a storage hint since the :ref:`Datastore` will likely have to deviate from the provided path (in the case of an object-store for instance).
 
@@ -339,7 +352,7 @@ All three classes are immutable.
 
         A :py:class:`dict` holding :py:class:`DatasetHandle` instances that correspond to this :ref:`Dataset's <Dataset>` named components.
 
-        Empty (or None?) if the :ref:`Dataset` is not a composite.
+        Empty (or ``None``?) if the :ref:`Dataset` is not a composite.
 
 
 SQL Representation
