@@ -681,15 +681,54 @@ Python API
     .. py:attribute:: task
 
         If the Quantum is associated with a SuperTask, this is the SuperTask instance that produced and should execute this set of inputs and outputs.
-        If not, a str identifier for the operation.  May also be None.
+        If not, a human-readable string identifier for the operation.
+        Some :ref:`Registries <Registry>` may permit value to be None, but are not required to in general.
+
+    .. py::attribute:: environment
+
+        A description of the software environment and versions associated with the SuperTask instance in :py:attr:`task`, format TBD.
 
 SQL Representation
 ------------------
 
-.. todo::
+Quantums are stored in a single table that records its scalar attributes:
 
-    Fill in SQL interface
+ .. _sql_Quantum:
 
++-------------------------------------------------------------+
+| *Quantum*                                                   |
++=================+=========+=================================+
+| quantum_id      | int     | PRIMARY KEY                     |
++-----------------+---------+---------------------------------+
+| task            | varchar |                                 |
++-----------------+---------+---------------------------------+
+| config_id       | int     | REFERENCES Dataset (dataset_id) |
++-----------------+---------+---------------------------------+
+| environment_id  | int     | REFERENCES Dataset (dataset_id) |
++-----------------+---------+---------------------------------+
+
+Both the configuration (which is part of the :py:attr:`task attribute in Python <Quantum.task>` only if the task is a SuperTask, and absent otherwise ) and the environment are stored as standard :ref:`Datasets <Dataset>`.
+This makes it impossible to query their values directly using a :ref:`Registry`, but it ensures that changes to the formats and content of these items do not require disruptive changes to the :ref:`Registry` schema.
+
+The :ref:`Datasets <Dataset>` produced by a Quantum (the :py:attr:`Quantum.outputs` attribute in Python) is stored by the producer_id field in the :ref:`Dataset table <sql_Dataset>`.  The inputs, both predicted and actual, are stored in an additional join table:
+
+.. _sql_DatasetConsumer:
+
++-------------+------+---------------------------------------------+
+| *DatasetConsumer*                                                |
++=============+======+=============================================+
+| quantum_id  | int  | NOT NULL REFERENCES Quantum (quantum_id)    |
++-------------+------+---------------------------------------------+
+| dataset_id  | int  | NOT NULL REFERENCES Dataset (dataset_id)    |
++-------------+------+---------------------------------------------+
+| actual      | bool | NOT NULL                                    |
++-------------+------+---------------------------------------------+
+
+There is no guarantee that the full provenance of a :ref:`Dataset` is captured by these tables in all :ref:`Registries <Registry>`, because subset and transfer operations do not require provenace information to be included.  Furthermore, :ref:`Registries <Registry>` may or may not require a :ref:`Quantum` to be provided when calling :py:meth:`Registry.addDataset` (which is called by :py:meth:`Butler.put`), making it the callers responsibility to add provenance when needed.  However, all :ref:`Registries <Registry>` (including *limited* Registries) are required to record provenance information when it is provided.
+
+.. note::
+
+   As with everything else in the Common Schema, the provenance system used in the operations data backbone will almost certainly involve additional fields and tables, and what's in the Common Schema will just be a view.  But the provenance tables here are even more of a blind straw-man than the rest of the Common Schema (which is derived more directly from SuperTask requirements), and I certainly expect it to change based on feedback; I think this reflects all that we need outside the operations system, but how operations implements their system should probably influence the details.
 
 
 .. _DatasetExpression:
@@ -1745,104 +1784,3 @@ Dataset-DataUnit joins
 | dataset_id | int | NOT NULL, REFERENCES Dataset (dataset_id)                        |
 +------------+-----+------------------------------------------------------------------+
 
-Views for DatasetExpressions
-============================
-
-:: todo:
-
-    Rewrite this section to describe views created on-the-fly by Registry.makeDataGraph, rather than something intrinsic to the Common Schema.
-
- - There is a table for each :ref:`DatasetType`, with entries corresponding to
-   :ref:`Datasets <Dataset>` that are present in the :ref:`Collection` (and
-   only these).
-
- - The name of the table should be the name of the :ref:`DatasetType`.
-
- - The table has a foreign key field relating to each :ref:`DataUnit` table that
-   is used to label the :ref:`DatasetType`.
-
- - The table has at least the following additional fields:
-
-+------------+--------+---------------------------------------------+
-| dataset_id | uint64 | PRIMARY KEY REFERENCES Dataset (dataset_id) |
-+------------+--------+---------------------------------------------+
-| uri        | str    |                                             |
-+------------+--------+---------------------------------------------+
-
-The ``dataset_id`` field is both a primary key that must be unique across
-elements in this table and a link to the more general Dataset table described in
-the :ref:`Provenance <cs_Provenance>` section; this means that it must be
-globally unique across *all* dataset tables, virtually guaranteeing that these
-per-:ref:`DatasetType` tables will be implemented as views into a larger table.
-
-The ``uri`` field contains a string that can be used to local the file or other
-entity that contains the stored :ref:`Dataset`.  While this may be generated
-differently according to different configurations when the file is first
-written, after it is written we do not expect the name to change and hence
-record it in the database; this reduces the need for implementations to
-be aware of past configurations in addition to their current confirguration. For
-multi-file composite datasets, this field should be ``NULL``, and another table
-(TBD) can be used to associate the composite with its leaf-node :ref:`Datasets
-<Dataset>`.
-
-
-.. _cs_provenance:
-
-Provenance
-==========
-
- .. _cs_table_Quantum:
-
-+----------------------+-------------------------------------------+
-| *Quantum*                                                        |
-+======================+===========================================+
-| quantum_id | int     | PRIMARY KEY                               |
-+----------------------+-------------------------------------------+
-| task       | varchar |                                           |
-+----------------------+-------------------------------------------+
-| config_id  | int     | NOT NULL, REFERENCES Dataset (dataset_id) |
-+----------------------+-------------------------------------------+
-
-.. _cs_table_DatasetConsumer:
-
-+-------------+--------+---------------------------------------------+
-| *DatasetConsumer*                                                  |
-+=============+========+=============================================+
-| quantum_id  | uint64 | NOT NULL REFERENCES Quantum (quantum_id)    |
-+-------------+--------+---------------------------------------------+
-| dataset_id  | uint64 | NOT NULL REFERENCES Dataset (dataset_id)    |
-+-------------+--------+---------------------------------------------+
-
-A Quantum (a term borrowed from the SuperTask design) is a discrete unit of
-work, such as a single invocation of ``SuperTask.runQuantum``.  It may also be
-used here to describe other actions that produce and/or consume :ref:`Datasets
-<Dataset>`.  The ``config_id`` and ``env_id`` provide links to :ref:`Datasets
-<Dataset>` that hold the configuration and a description of the software and
-compute environments.
-
-Because each :ref:`Dataset` can have multiple consumers but at most one
-producer, the Quantum that produces a Dataset is recorded in the
-Dataset table itself, while the separate join table DatasetConsumers is
-used to record the Quantum entries that utilized a Dataset entry.
-
-There is no guarantee that the full provenance of a :ref:`Dataset` is captured
-by these tables in a particular :ref:`Collection`, unless the :ref:`Dataset`
-and all of its dependencies (any datasets consumed by its producer Quantum,
-recursively) are also in the :ref:`Collection`.  When this is not the case,
-the provenance information *may* be present (with dependencies included in the
-Dataset table), or the ``Dataset.producer_id`` field may be null.  The Dataset
-table may also contain entries that are not related at all to those in the
-:ref:`Collection`; we have no obvious use for such a restriction, and it is
-potentially burdensome on implementations.
-
-.. note::
-
-   As with everything else in the Common Schema, the provenance system used in
-   the operations data backbone will almost certainly involve additional fields
-   and tables, and what's in the Common Schema will just be a view.  But
-   provenance tables here are even more of a blind straw-man than the rest of
-   the Common Schema (which is derived more directly from SuperTask
-   requirements), and I certainly expect it to change based on feedback; I
-   think this reflects all that we need outside the operations system, but how
-   operations implements their system should probably influence the details
-   (such as how we represent configuration and software environment information).
