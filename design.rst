@@ -17,8 +17,7 @@ load and store :ref:`InMemoryDatasets <InMemoryDataset>`, and query the metadata
 and relationships between :ref:`Datasets <Dataset>`.
 
 Relations between :ref:`Datasets <Dataset>`, :ref:`Quanta <Quantum>`, and locations
-for stored objects are kept in a SQL database which implements the :ref:`Common Schema <CommonSchema>`.
-The :ref:`Registry` class provides an interface to such a database.
+for stored objects are kept in a database called a :ref:`Registry` which implements a common SQL schema.
 
 In the database, the :ref:`Datasets <Dataset>` are grouped into :ref:`Collections <Collection>`,
 which are identified by a *CollectionTag*.
@@ -163,9 +162,11 @@ The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Dat
 
 This process is most easily understood by reading the API documentation for :py:meth:`butler.get <Butler.get>` and :py:meth:`butler.put <Butler.put>`.
 
-#########
-Reference
-#########
+.. _general_reference:
+
+#################
+General Reference
+#################
 
 .. _Dataset:
 
@@ -506,6 +507,8 @@ Every DataUnit type also has a "value".  This is a POD (usually a string or inte
 
 The :py:class:`DataUnitTypeSet` class provides methods that enforce and utilize these rules, providing a centralized implementation to which all other objects that operate on groups of DataUnits can delegate.
 
+Documentation for the full set of concrete DataUnits can be found in :ref:`concrete_dataunit_reference`.
+
 Transition
 ----------
 
@@ -522,7 +525,7 @@ Python API
 
         Read-only pure-virtual instance attribute (must be implemented by subclasses).
 
-        An integer that fully identifies the :ref:`DataUnit` instance, and is used as the primary key in the :ref:`CommonSchema` table for that :ref:`DataUnit`.
+        An integer that fully identifies the :ref:`DataUnit` instance, and is used as the primary key in the :ref:`Registry Schema <Registry>` table for that :ref:`DataUnit`.
 
     .. py:attribute:: value
 
@@ -582,11 +585,6 @@ Python API
 
         This can (and generally should) be used by concrete :ref:`Registries <Registry>` to implement :py:meth:`Registry.expand`, as it only uses :py:class:`Registry.query`.
 
-.. todo::
-
-    Where should we document the concrete DataUnit classes?
-    They're closely related to common schema tables, but the Python API can't be inferred directly from the SQL declarations (and vice versa).
-
 
 SQL Representation
 ------------------
@@ -596,9 +594,6 @@ Being abstract, there is no single table associated with :ref:`DataUnits <DataUn
 
 :ref:`DataUnits <DataUnit>` must be shared across different :ref:`Registries <Registry>`, so their primary keys must not be database-specific quantities such as autoincrement fields.
 
-.. todo::
-
-    Add links once Common Schema has link anchors for different tables.
 
 
 .. _Collection:
@@ -741,7 +736,7 @@ There is no guarantee that the full provenance of a :ref:`Dataset` is captured b
 
 .. note::
 
-   As with everything else in the Common Schema, the provenance system used in the operations data backbone will almost certainly involve additional fields and tables, and what's in the Common Schema will just be a view.  But the provenance tables here are even more of a blind straw-man than the rest of the Common Schema (which is derived more directly from SuperTask requirements), and I certainly expect it to change based on feedback; I think this reflects all that we need outside the operations system, but how operations implements their system should probably influence the details.
+   As with everything else in the common Registry schema, the provenance system used in the operations data backbone will almost certainly involve additional fields and tables, and what's in the schema will just be a view.  But the provenance tables here are even more of a blind straw-man than the rest of the schema (which is derived more directly from SuperTask requirements), and I certainly expect it to change based on feedback; I think this reflects all that we need outside the operations system, but how operations implements their system should probably influence the details.
 
 
 .. _DatasetExpression:
@@ -978,8 +973,7 @@ Registry
 
 A database that holds metadata, relationships, and provenance for managed :ref:`Datasets <Dataset>`.
 
-A registry is typically a SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that provides a
-realization of the :ref:`Common Schema <CommonSchema>`.
+A Registry is almost always backed by a SQL database (e.g. `PostgreSQL`, `MySQL` or `SQLite`) that exposes a schema common to all Registries, described in the many "SQL Representation" subsections of the :ref:`general_reference` and :ref:`concrete_dataunit_reference` sections.  As the common schema is used only for SELECT queries, concrete Registries can implement it as set of direct tables, a set of views against private tables, or any combination thereof.
 
 In some important contexts (e.g. processing data staged to scratch space), only a small subset of the full Registry interface is needed, and we may be able to utilize a simple key-value database instead.
 
@@ -1182,7 +1176,7 @@ Python API
 SQL Representation
 ------------------
 
-A Registry provides an interface for querying the :ref:`CommonSchema`, and hence has no representation within that schema.
+A Registry provides an interface for querying the :ref:`Registry Schema <Registry>`, and hence has no representation within that schema.
 
 
 .. _Datastore:
@@ -1362,27 +1356,11 @@ SQL Representation
 
 Butler provides a limited interface for executing SQL queries against the :ref:`Registry` it holds, and hence does not have any SQL representation itself.
 
-.. _CommonSchema:
+.. _concrete_dataunit_reference:
 
-######
-Schema
-######
-
-.. warning::
-
-    This section is out of date.  The ``common-schema-dev/db_full.sql`` file
-    in the source repository for this technote currently contains the
-    authoritative description of the commmon schema.
-
-
-The Common Schema is a set of conceptual SQL tables (which may be implemented as views) that can be used to retrieve :ref:`DataUnit`, :ref:`Dataset`, and
-:ref:`Quantum` metadata in any :ref:`Registry`.
-Implementations may choose to add fields to any of the tables described below, but they must have at least
-the fields shown here.
-The SQL dialect used to construct queries against the Common Schema is TBD; because different implementations may use different database systems, we can in general only support a limited common dialect.
-
-The common schema is only intended to be used for SELECT queries.
-Operations that add or remove :ref:`DataUnits <DataUnit>` or :ref:`Datasets <Dataset>` (or types thereof) to/from a :ref:`Registry` will be supported through Python APIs, but the SQL behind these APIs may be specific to the actual (private) schema used to implement the data collection and possibly the database system and its associated SQL dialect.
+###########################
+Concrete DataUnit Reference
+###########################
 
 .. _cs_camera_dataunits:
 
