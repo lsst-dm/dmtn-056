@@ -123,7 +123,7 @@ Python API
 
         Must be a simple pass-through if ``label`` is already a :ref:`DatasetRef`.
 
-        *For limited Registries, ``label`` must be a :py:class:`DatasetRef`, making this a guaranteed no-op (but still callable, for interface compatibility).*
+        *For limited Registries,* ``label`` *must be a* :py:class:`DatasetRef` *, making this a guaranteed no-op (but still callable, for interface compatibility).*
 
     .. py:method:: find(tag, label)
 
@@ -135,7 +135,7 @@ Python API
 
         :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to search.
 
-        :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset`.  *For limited Registries, must be a :py:class:`DatasetRef`.*
+        :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset`.  *For limited Registries, must be a* :py:class:`DatasetRef`.
 
         :returns: a :py:class:`DatasetHandle` instance
 
