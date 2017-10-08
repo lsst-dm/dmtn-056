@@ -253,12 +253,3 @@ Python API
 
         :returns: the :py:class:`str` :ref:`URI` and a dictionary of :ref:`URIs <URI>` for the :ref:`Dataset's <Dataset>` components.  The latter will be empty (or None?) if the :ref:`Dataset` is not a composite.
 
-    .. py:method:: retrieve({URI (from) : URI (to)})
-
-        Retrieves :ref:`Datasets <Dataset>` and stores them in the provided locations.
-        Does not have to go through the process of creating a :ref:`InMemoryDataset`.
-
-        .. todo::
-            I'm not sure this interface will work; where will the output URIs come from, if not a Datastore?
-            Maybe the dict values need to be paths?
-            Or (meta, path, typeName) tuples, which might imply that the Datastore would sometimes have to change formats.
