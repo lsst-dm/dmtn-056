@@ -1,25 +1,37 @@
 
 .. _cs_calibration_dataunits:
 
-Calibration DataUnits
+Other DataUnits
 =====================
 
-.. _cs_table_MasterCalib:
+.. _AbstractFilter:
 
-+--------------------+-----+----------------------------------------------------------+
-| *MasterCalib*                                                                       |
-+====================+=====+==========================================================+
-| master_calib_id    | int | PRIMARY KEY                                              |
-+--------------------+-----+----------------------------------------------------------+
-| camera_id          | int | NOT NULL, REFERENCES Camera (camera_id)                  |
-+--------------------+-----+----------------------------------------------------------+
-| physical_filter_id | int | NOT NULL, REFERENCES PhysicalFilter (physical_filter_id) |
-+--------------------+-----+----------------------------------------------------------+
-| UNIQUE (camera_id, physical_filter_id)                                              |
-+--------------------+-----+----------------------------------------------------------+
+AbstractFilter
+--------------
 
-:ref:`Master calibration products <cs_table_MasterCalib>` are defined over a range
-of Visits from a given Camera (see :ref:`MasterCalibVisitJoin <cs_table_MasterCalibVisitJoin>`).
-Calibration products may additionally be specialized for a particular
-PhysicalFilter, or may be appropriate for all PhysicalFilters by setting the
-``physical_filter_id`` field to ``NULL``.
+AbstractFilters are used to label :ref:`Datasets <Dataset>` that aggregate data from multiple :ref:`Visits <Visit>` (and possibly multiple :ref:`Cameras <Camera>`.
+
+Having two different :ref:`DataUnits <DataUnit>` for filters is necessary to make it possible to combine data from :ref:`Visits <Visit>` taken with different :ref:`PhysicalFilters <PhysicalFilter>`.
+
+Value:
+    name
+
+Dependencies:
+    None
+
+Python API
+^^^^^^^^^^
+
+.. _sql_AbstractFilter:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
++--------------------+---------+------------------+
+| *AbstractFilter*                                |
++====================+=========+==================+
+| abstract_filter_id | int     | PRIMARY KEY      |
++--------------------+---------+------------------+
+| name               | varchar | NOT NULL, UNIQUE |
++--------------------+---------+------------------+
+

@@ -1,9 +1,31 @@
-.. _cs_camera_dataunits:
+.. _camera_dataunits:
 
 Camera DataUnits
 ================
 
-.. _cs_table_Camera:
+
+.. _Camera:
+
+Camera
+------
+
+Camera :ref:`DataUnit` <DataUnit>` are essentially just sources of raw data with a constant layout of PhysicalSensors and a self-constent numbering system for Visits.
+
+Different versions of the same camera (due to e.g. changes in hardware) should still correspond to a single Camera DataUnit.
+
+Value:
+    name
+
+Dependencies:
+    None
+
+Python API
+^^^^^^^^^^
+
+.. _sql_Camera:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
 
 +------------+---------+-------------+
 | *Camera*                           |
@@ -13,22 +35,29 @@ Camera DataUnits
 | name       | varchar | UNIQUE      |
 +------------+---------+-------------+
 
-Entries in the :ref:`Camera <cs_table_Camera>` table are essentially just sources of raw data with a
-constant layout of PhysicalSensors and a self-constent numbering system for
-Visits.  Different versions of the same camera (due to e.g. changes in
-hardware) should still correspond to a single row in this table.
 
-.. _cs_table_AbstractFilter:
+.. _PhysicalFilter:
 
-+--------------------+---------+------------------+
-| *AbstractFilter*                                |
-+====================+=========+==================+
-| abstract_filter_id | int     | PRIMARY KEY      |
-+--------------------+---------+------------------+
-| name               | varchar | NOT NULL, UNIQUE |
-+--------------------+---------+------------------+
+PhysicalFilter
+--------------
 
-.. _cs_table_PhysicalFilter:
+PhysicalFilters represent the bandpass filters that can be associated with a :ref:`Visit`.
+
+A PhysicalFilter may or may not be associated with a particular AbstractFilter.
+
+Value:
+    name
+
+Dependencies:
+    :ref:`Camera`
+
+Python API
+^^^^^^^^^^
+
+.. _sql_PhysicalFilter:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
 
 +--------------------+---------+------------------------------------------------+
 | *PhysicalFilter*                                                              |
@@ -44,17 +73,33 @@ hardware) should still correspond to a single row in this table.
 | CONSTRAINT UNIQUE (name, camera_id)                                           |
 +--------------------+---------+------------------------------------------------+
 
-Entries in the :ref:`PhysicalFilter <cs_table_PhysicalFilter>` table represent
-the bandpass filters that can be associated with a particular visit.
-These are different from :ref:`AbstractFilters <cs_table_AbstractFilter>`,
-which are used to label Datasets that aggregate data from multiple Visits.
-Having these two different :ref:`DataUnits <DataUnit>` for filters is necessary to make it
-possible to combine data from Visits taken with different filters.  A
-PhysicalFilter may or may not be associated with a particular AbstractFilter.
-AbstractFilter is the only :ref:`DataUnit` not associated with either a Camera or a
-SkyMap.
+.. _PhysicalSensor:
 
-.. _cs_table_PhysicalSensor:
+PhysicalSensor
+--------------
+
+PhysicalSensors represent a sensor in a :ref:`Camera`, independent of any observations.
+
+Because some cameras identify sensors with string names and other use numbers, we provide fields for both; the name may be a stringified integer, and the number may be autoincrement.
+
+The ``group`` field may mean different things for different :ref:`Cameras <Camera>` (such as rafts for LSST, or groups of sensors oriented the same way relative to the focal plane for HSC).
+
+The ``purpose`` field indicates the role of the sensor (such as science, wavefront, or guiding).
+Valid choices should be standardized across :ref:`Cameras <Camera>`, but are currently TBD.
+
+Value:
+    name or number
+
+Dependencies:
+    :ref:`Camera`
+
+Python API
+^^^^^^^^^^
+
+.. _sql_PhysicalSensor:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
 
 +--------------------+---------+-----------------------------------------+
 | *PhysicalSensor*   |                                                   |
@@ -74,17 +119,29 @@ SkyMap.
 | CONSTRAINT UNIQUE (name, camera_id)                                    |
 +--------------------+---------+-----------------------------------------+
 
-:ref:`PhysicalSensors <cs_table_PhysicalSensor>` actually represent the "slot" for a sensor in a camera,
-independent of both any observations and the actual detector (which may change
-over the life of the camera).  The ``group`` field may mean different things
-for different cameras (such as rafts for LSST, or groups of sensors oriented
-the same way relative to the focal plane for HSC).  The ``purpose`` field
-indicates the role of the sensor (such as science, wavefront, or guiding).
-Because some cameras identify sensors with string names and other use numbers,
-we provide fields for both; the name may be a stringified integer, and the
-number may be autoincrement.
 
-.. _cs_table_Visit:
+.. _Visit:
+
+Visit
+-----
+
+Visits correspond to observations with the full camera at a particular pointing, possibly comprised of multiple exposures (:ref:`Snaps <Snap>`).
+
+A Visit's ``region`` field holds an approximate but inclusive representation of its position on the sky that can be compared to the ``regions`` of other DataUnits.
+
+Value:
+    number
+
+Dependencies:
+    :ref:`Camera`
+
+Python API
+^^^^^^^^^^
+
+.. _sql_Visit:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
 
 +--------------------+----------+----------------------------------------------------------+
 | *Visit*                                                                                  |
@@ -106,13 +163,28 @@ number may be autoincrement.
 | CONSTRAINT UNIQUE (num, camera_id)                                                       |
 +--------------------+----------+----------------------------------------------------------+
 
-Entries in the :ref:`Visit <cs_table_Visit>` table correspond to observations with the full camera at
-a particular pointing, possibly comprised of multiple exposures (Snaps).  A
-Visit's ``region`` field holds an approximate but inclusive representation of
-its position on the sky that can be compared to the ``regions`` of other
-DataUnits.
+.. _ObservedSensor:
 
-.. _cs_table_ObservedSensor:
+ObservedSensor
+--------------
+
+An ObservedSensor is simply a combination of a :ref:`Visit` and a :ref:`PhysicalSensor`.
+
+Unlike most other :ref:`DataUnit join tables <dataunit_joins>` (which are not typically :ref:`DataUnits <DataUnit>` themselves), this one is both ubuiquitous and contains additional information: a ``region`` that represents the position of the observed sensor image on the sky.
+
+Value:
+    None
+
+Dependencies:
+    :ref:`Visit` and :ref:`PhysicalSensor`
+
+Python API
+^^^^^^^^^^
+
+.. _sql_ObservedSensor:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
 
 +--------------------+------+----------------------------------------------------------+
 | *ObservedSensor*                                                                     |
@@ -128,13 +200,31 @@ DataUnits.
 | CONSTRAINT UNIQUE (visit_id, physical_sensor_id)                                     |
 +--------------------+------+----------------------------------------------------------+
 
-An :ref:`ObservedSensor <cs_table_ObservedSensor>` is simply a combination of
-a Visit and a PhysicalSensor, but unlike most other :ref:`DataUnit` combinations (which
-are not typically :ref:`DataUnits <DataUnit>` themselves), this one is both ubuiquitous
-and contains additional information: a ``region`` that represents the position of the
-observed sensor image on the sky.
 
-.. _cs_table_Snap:
+.. _Snap:
+
+Snap
+----
+
+A Snap is a single-exposure subset of a :ref:`Visit`.
+
+.. note::
+
+    Most non-LSST :ref:`Visits <Visit>` will have only a single Snap.
+
+Value:
+    index
+
+Dependencies:
+    :ref:`Visit`
+
+Python API
+^^^^^^^^^^
+
+.. _sql_Snap:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
 
 +-----------+----------+------------------------------------------+
 | *Snap*                                                          |
@@ -152,8 +242,42 @@ observed sensor image on the sky.
 | CONSTRAINT UNIQUE (visit_id, index)                             |
 +-----------+----------+------------------------------------------+
 
-A :ref:`Snap <cs_table_Snap>` is a single-exposure subset of a Visit.
+.. _MasterCalib:
 
-.. note::
+MasterCalib
+-----------
 
-    Most non-LSST Visits will have only a single Snap.
+MasterCalibs are the DataUnits that label master calibration products, and are defined as a range of :ref:`Visits <Visit>` from a given :ref:`Camera`.
+
+MasterCalibs may additionally be specialized for a particular :ref:`PhysicalFilter`, or may be appropriate for all PhysicalFilters by setting the ``physical_filter_id`` field to ``NULL``.
+
+The MasterCalib associated with not-yet-observed :ref:`Visits <Visit>` may be indicated by setting ``visit_end`` to ``NULL``.
+
+Value:
+    visit_begin, visit_end
+
+Dependencies:
+    :ref:`Camera` and :ref:`PhysicalFilter`
+
+Python API
+^^^^^^^^^^
+
+.. _sql_MasterCalib:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
++--------------------+-----+----------------------------------------------------------+
+| *MasterCalib*                                                                       |
++====================+=====+==========================================================+
+| master_calib_id    | int | PRIMARY KEY                                              |
++--------------------+-----+----------------------------------------------------------+
+| visit_begin        | int | NOT NULL                                                 |
++--------------------+-----+----------------------------------------------------------+
+| visit_end          | int |                                                          |
++--------------------+-----+----------------------------------------------------------+
+| camera_id          | int | NOT NULL, REFERENCES Camera (camera_id)                  |
++--------------------+-----+----------------------------------------------------------+
+| physical_filter_id | int | NOT NULL, REFERENCES PhysicalFilter (physical_filter_id) |
++--------------------+-----+----------------------------------------------------------+
+| UNIQUE (camera_id, physical_filter_id)                                              |
++--------------------+-----+----------------------------------------------------------+

@@ -1,16 +1,14 @@
 
-.. _cs_dataunit_joins:
+.. _dataunit_joins:
 
 DataUnit Joins
 ==============
 
-The spatial join tables are calculated, and may be implemented as views
-if those calculations can be done within the database efficiently.
-The :ref:`MasterCalibVisitJoin <cs_table_MasterCalibVisitJoin>` table is
-not calculated; its entries should be added whenever new
-:ref:`MasterCalib <cs_table_MasterCalib>` entries are added.
+The spatial join tables are calculated, and may be implemented as views if those calculations can be done within the database efficiently.
 
-.. _cs_table_MasterCalibVisitJoin:
+Whether the :ref:`MasterCalibVisitJoin <sql_MasterCalibVisitJoin>` table is calculated is TBD; it could be considered the source of truth (overriding the ranges in the :ref:`MasterCalib table <sql_MasterCalib>`).
+
+.. _sql_MasterCalibVisitJoin:
 
 +-----------------+-----+----------------------------------------------------+
 | *MasterCalibVisitJoin*                                                     |
@@ -20,7 +18,7 @@ not calculated; its entries should be added whenever new
 | visit_id        | int | REFERENCES Visit (visit_id)                        |
 +-----------------+-----+----------------------------------------------------+
 
-.. _cs_table_SensorTractJoin:
+.. _sql_SensorTractJoin:
 
 +--------------------+-----+----------------------------------------------------------+
 | *SensorTractJoin*                                                                   |
@@ -32,7 +30,7 @@ not calculated; its entries should be added whenever new
 | CONSTRAINT UNIQUE (observed_sensor_id, tract_id)                                    |
 +--------------------+-----+----------------------------------------------------------+
 
-.. _cs_table_SensorPatchJoin:
+.. _sql_SensorPatchJoin:
 
 +--------------------+-----+-----------------------------------------------+
 | *SensorPatchJoin*                                                        |
@@ -44,7 +42,7 @@ not calculated; its entries should be added whenever new
 | CONSTRAINT UNIQUE (observed_sensor_id, patch_id)                         |
 +--------------------+-----+-----------------------------------------------+
 
-.. _cs_table_VisitTractJoin:
+.. _sql_VisitTractJoin:
 
 +----------+-----+---------------------------------------+
 | *VisitTractJoin*                                       |
@@ -56,7 +54,7 @@ not calculated; its entries should be added whenever new
 | CONSTRAINT UNIQUE (visit_id, tract_id)                 |
 +----------+-----+---------------------------------------+
 
-.. _cs_table_VisitPatchJoin:
+.. _sql_VisitPatchJoin:
 
 +----------+-----+---------------------------------------+
 | *VisitPatchJoin*                                       |

@@ -1,10 +1,33 @@
 
-.. _cs_skymap_dataunits:
+.. _skymap_dataunits:
 
 SkyMap DataUnits
 ================
 
-.. _cs_table_SkyMap:
+.. _SkyMap:
+
+SkyMap
+------
+
+Each SkyMap entry represents a different way to subdivide the sky into tracts and patches, including any parameters involved in those defitions (i.e. different configurations of the same ``lsst.skymap.BaseSkyMap`` subclass yield different rows).
+
+.. todo::
+
+    While SkyMaps need unique, human-readable names, it may also be wise to add a hash or pickle of the SkyMap instance that defines the mapping to avoid duplicate entries (not yet included).
+
+Value:
+    name
+
+Dependencies:
+    None
+
+Python API
+^^^^^^^^^^
+
+.. _sql_SkyMap:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
 
 +-----------+---------+------------------+
 | *SkyMap*                               |
@@ -14,18 +37,30 @@ SkyMap DataUnits
 | name      | varchar | NOT NULL, UNIQUE |
 +-----------+---------+------------------+
 
-Each :ref:`SkyMap <cs_table_Skymap>` entry represents a different way to subdivide the sky into tracts
-and patches, including any parameters involved in those defitions (i.e.
-different configurations of the same ``lsst.skymap.BaseSkyMap`` subclass yield
-different rows).
+.. _Tract:
+
+Tract
+-----
+
+A Tract is a contiguous, simple area on the sky with a 2-d Euclidian coordinate system related to spherical coordinates by a single map projection.
 
 .. todo::
 
-    While SkyMaps need unique, human-readable names, it may also
-    be wise to add a hash or pickle of the SkyMap instance that defines the
-    mapping to avoid duplicate entries (not yet included).
+    If the parameters of the sky projection and/or the Tract's various bounding boxes can be standardized across all SkyMap implementations, it may be useful to include them in the table as well.
 
-.. _cs_table_Tract:
+Value:
+    number
+
+Dependencies:
+    :ref:`SkyMap`
+
+Python API
+^^^^^^^^^^
+
+.. _sql_Tract:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
 
 +-----------+------+-----------------------------------------+
 | *Tract*                                                    |
@@ -41,16 +76,30 @@ different rows).
 | CONSTRAINT UNIQUE (skymap_id, num)                         |
 +-----------+------+-----------------------------------------+
 
-A :ref:`Tract <cs_table_Tract>` is a contiguous, simple area on the sky with a 2-d Euclidian
-coordinate system defined by a single map projection.
+.. _Patch:
+
+Patch
+-----
+
+:ref:`Tracts <Tract>` are subdivided into Patches, which share the :ref:`Tract` coordinate system and define similarly-sized regions that overlap by a configurable amount.
 
 .. todo::
 
-    If the parameters of the sky projection and the Tract's various bounding boxes
-    can be standardized across all SkyMap implementations, it may be useful to
-    include them in the table as well.
+    As with Tracts, we may want to include fields to describe Patch boundaries in this table in the future.
 
-.. _cs_table_Patch:
+Value:
+    index
+
+Dependencies:
+    :ref:`Tract`
+
+Python API
+^^^^^^^^^^
+
+.. _sql_Patch:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
 
 +----------+------+--------+------------------------------+
 | *Patch*                                                 |
@@ -66,7 +115,3 @@ coordinate system defined by a single map projection.
 | CONSTRAINT UNIQUE (tract_id, index)                     |
 +----------+------+--------+------------------------------+
 
-:ref:`Tracts <cs_table_Tract>` are subdivided into :ref:`Patches <cs_table_Patch>`,
-which share the Tract coordinate system and define similarly-sized regions that
-overlap by a configurable amount.  As with Tracts, we may want to include fields
-to describe Patch boundaries in this table in the future.
