@@ -6,7 +6,7 @@ Butler
 
 A high level object that provides access to the :ref:`Datasets <Dataset>` in a single :ref:`Collection`.
 
-Butlers hold and delegate most of their work to a :ref:`Registry` and a :ref:`Datastore`.
+Butler is a concrete, final Python class in the current design; all extensibility is provided by the :ref:`Registry` and :ref:`Datastore` instances it holds.
 
 Transition
 ^^^^^^^^^^
@@ -15,8 +15,6 @@ The new Butler plays essentially the same role as the v14 Butler.
 
 Python API
 ^^^^^^^^^^
-
-Butler is a concrete, final Python class in the current design; all extensibility is provided by the :ref:`Registry` and :ref:`Datastore` instances it holds.
 
 .. py:class:: Butler
 
