@@ -12,7 +12,16 @@
     :caption: Butler Design
     :name: ButlerDesign
 
-    design.rst
+    overview.rst
+    operations.rst
+    abstract-interfaces.rst
+    butler.rst
+    describing-and-relating-datasets.rst
+    concrete-dataunit-reference/camera.rst
+    concrete-dataunit-reference/skymap.rst
+    concrete-dataunit-reference/other.rst
+    concrete-dataunit-reference/dataunit-joins.rst
+    concrete-dataunit-reference/dataset-joins.rst
 
 .. .. rubric:: References
 
