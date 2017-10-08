@@ -8,6 +8,19 @@ A high level object that provides access to the :ref:`Datasets <Dataset>` in a s
 
 Butler is a concrete, final Python class in the current design; all extensibility is provided by the :ref:`Registry` and :ref:`Datastore` instances it holds.
 
+.. digraph:: Butler
+    :align: center
+
+    node[shape=record]
+    edge[dir=back, arrowtail=empty]
+
+    Butler [label="{Butler|+ config\n + datastore\n+ registry|+ get()\n + put()}"];
+
+    Butler -> ButlerConfiguration [arrowtail=odiamond];
+    Butler -> Datastore [arrowtail=odiamond];
+    Butler -> Registry [arrowtail=odiamond];
+
+
 Transition
 ^^^^^^^^^^
 
