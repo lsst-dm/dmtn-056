@@ -235,21 +235,21 @@ Python API
 
         :param str uri: a :ref:`URI` that specifies the location of the stored :ref:`Dataset`.
 
-        :param dict parameters: :ref:`DatasetMetatype`-specific parameters that specify a slice of the :ref:`Dataset` to be loaded.
+        :param dict parameters: :ref:`StorageClass`-specific parameters that specify a slice of the :ref:`Dataset` to be loaded.
 
         :returns: an :ref:`InMemoryDataset` or slice thereof.
 
-    .. py:method:: put(inMemoryDataset, meta, path, typeName=None) -> URI, {name: URI}
+    .. py:method:: put(inMemoryDataset, storageClass, path, typeName=None) -> URI, {name: URI}
 
-        Write a :ref:`InMemoryDataset` with a given :ref:`DatasetMetatype` to the store.
+        Write a :ref:`InMemoryDataset` with a given :ref:`StorageClass` to the store.
 
         :param inMemoryDataset: the :ref:`InMemoryDataset` to store.
 
-        :param DatasetMetatype meta: the :ref:`DatasetMetatype` associated with the :ref:`DatasetType`.
+        :param StorageClass storageClass: the :ref:`StorageClass` associated with the :ref:`DatasetType`.
 
         :param str path: A :ref:`Path` that provides a hint that the :ref:`Datastore` may use as [part of] the :ref:`URI`.
 
-        :param str typeName: The :ref:`DatasetType` name, which may be used by the :ref:`Datastore` to override the default serialization format for the :ref:`DatasetMetatype`.
+        :param str typeName: The :ref:`DatasetType` name, which may be used by the :ref:`Datastore` to override the default serialization format for the :ref:`StorageClass`.
 
         :returns: the :py:class:`str` :ref:`URI` and a dictionary of :ref:`URIs <URI>` for the :ref:`Dataset's <Dataset>` components.  The latter will be empty (or None?) if the :ref:`Dataset` is not a composite.
 

@@ -115,7 +115,7 @@ In addition to a name, a DatasetType includes:
 
  - a template string that can be used to construct a :ref:`Path` (may be overridden);
  - a tuple of :ref:`DataUnit <DataUnit>` types that define the structure of :ref:`DatasetRefs <DatasetRef>`;
- - a :ref:`DatasetMetatype` that determines how :ref:`Datasets <Dataset>` are stored and composed.
+ - a :ref:`StorageClass` that determines how :ref:`Datasets <Dataset>` are stored and composed.
 
 Transition
 ^^^^^^^^^^
@@ -139,7 +139,7 @@ Python API
         We could make that the case with a lot of metaprogramming, but this adds a lot of complexity to the code with no obvious benefit.
         It seems most prudent to just rename the :ref:`DatasetType` concept and class to something that doesn't imply a type-instance relationship in Python.
 
-    .. py:method:: __init__(name, template, units, meta)
+    .. py:method:: __init__(name, template, units, storageClass)
 
         Public constructor.  All arguments correspond directly to instance attributes.
 
@@ -167,11 +167,11 @@ Python API
 
         A :py:class:`DataUnitTypeSet` that defines the :ref:`DatasetRefs <DatasetRef>` corresponding to this :ref:`DatasetType`.
 
-    .. py:attribute:: meta
+    .. py:attribute:: storageClass
 
         Read-only instance attribute.
 
-        A :py:class:`DatasetMetatype` subclass (not instance) that defines how this :ref:`DatasetType` is persisted.
+        A :py:class:`StorageClass` subclass (not instance) that defines how this :ref:`DatasetType` is persisted.
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
@@ -193,7 +193,7 @@ Fields:
     +-----------------------+---------+----------+
     | template              | varchar |          |
     +-----------------------+---------+----------+
-    | dataset_metatype_name | varchar | NOT NULL |
+    | storage_class         | varchar | NOT NULL |
     +-----------------------+---------+----------+
 Primary Key:
     name
@@ -217,9 +217,9 @@ Primary Key:
 Foreign Keys:
     - (dataset_type_name) references :ref:`sql_DatasetType` (name)
 
-.. _DatasetMetatype:
+.. _StorageClass:
 
-DatasetMetatype
+StorageClass
 ---------------
 
 A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory classes for their :ref:`InMemoryDatasets <InMemoryDataset>` and can be saved to the same file format(s).
@@ -228,20 +228,20 @@ A category of :ref:`DatasetTypes <DatasetType>` that utilize the same in-memory 
 Transition
 ^^^^^^^^^^
 
-The allowed values for "storage" entries in v14 Butler policy files are analogous to DatasetMetatypes.
+The allowed values for "storage" entries in v14 Butler policy files are analogous to StorageClasss.
 
 Python API
 ^^^^^^^^^^
 
-.. py:class:: DatasetMetatype
+.. py:class:: StorageClass
 
-    An abstract base class whose subclasses are :ref:`DatasetMetatypes <DatasetMetatype>`.
+    An abstract base class whose subclasses are :ref:`StorageClasss <StorageClass>`.
 
     .. py:attribute:: subclasses
 
         Concrete class attribute: provided by the base class.
 
-        A dictionary holding all :py:class:`DatasetMetatype` subclasses,
+        A dictionary holding all :py:class:`StorageClass` subclasses,
         keyed by their :py:attr:`name` attributes.
 
     .. py:attribute:: name
@@ -254,8 +254,8 @@ Python API
 
         Virtual class attribute: must be provided by derived classes.
 
-        A dictionary that maps component names to the :py:class:`DatasetMetatype` subclasses for those components.
-        Should be empty (or ``None``?) if the :ref:`DatasetMetatype` is not a composite.
+        A dictionary that maps component names to the :py:class:`StorageClass` subclasses for those components.
+        Should be empty (or ``None``?) if the :ref:`StorageClass` is not a composite.
 
     .. py:method:: assemble(parent, components, parameters=None)
 
@@ -276,8 +276,8 @@ Python API
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
-The :ref:`DatasetType table <sql_DatasetType>` holds DatasetMetatype names in a ``varchar`` field.
-As a name is sufficient to retreive the rest of the DatasetMetatype definition in Python, the additional information is not duplicated in SQL.
+The :ref:`DatasetType table <sql_DatasetType>` holds StorageClass names in a ``varchar`` field.
+As a name is sufficient to retreive the rest of the StorageClass definition in Python, the additional information is not duplicated in SQL.
 
 .. _DatasetRef:
 

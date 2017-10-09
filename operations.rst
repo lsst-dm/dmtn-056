@@ -20,9 +20,9 @@ This proceeds allong the following steps:
 1. User calls: ``butler.get(label)``.
 2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag <Collection>` it was configured with (i.e. ``butler.registry.find(butler.config.inputCollection, label)``).
 3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`URI` for the stored :ref:`Dataset` (via a :py:class:`DatasetHandle`)
-4. :ref:`Butler` forwards the request, with both the :ref:`URI` and the :ref:`DatasetMetatype`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(handle.uri, handle.type.meta)``).
+4. :ref:`Butler` forwards the request, with both the :ref:`URI` and the :ref:`StorageClass`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(handle.uri, handle.type.storageClass)``).
 5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`URI`.
-6. Using the :ref:`DatasetMetatype` to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`InMemoryDataset` and returns it to the :ref:`Butler`.
+6. Using the :ref:`StorageClass` to determine the appropriate deserialization function, the :ref:`Datastore` client then materializes the :ref:`InMemoryDataset` and returns it to the :ref:`Butler`.
 7. :ref:`Butler` then returns the :ref:`InMemoryDataset` to the user.
 
 See :py:meth:`the API documentation <Butler.get>` for more information.
@@ -30,7 +30,7 @@ See :py:meth:`the API documentation <Butler.get>` for more information.
 .. note::
 
     The :ref:`Datastore` request can be a simple ``HTTP GET`` request for a stored FITS file, or something more complicated.
-    In the former case the materialization would be a simple FITS read (e.g. of a ``calexp``), with the reader determined by the :ref:`DatasetMetatype` retrieved from the :ref:`Registry`.
+    In the former case the materialization would be a simple FITS read (e.g. of a ``calexp``), with the reader determined by the :ref:`StorageClass` retrieved from the :ref:`Registry`.
 
 .. note::
 
@@ -44,10 +44,10 @@ The user has a :ref:`InMemoryDataset` and wishes to store this at a particular :
 This proceeds allong the following steps:
 
 1. User calls: ``butler.put(label, inMemoryDataset)``.
-2. :ref:`Butler` expands the :py:class:`DatasetLabel` into a full :py:class:`DatasetRef` using the :ref:`Registry`, by calling ``datasetRef = butler.registry.getDatasetMetatype(butler.config.outputCollection, datasetRef)``.
+2. :ref:`Butler` expands the :py:class:`DatasetLabel` into a full :py:class:`DatasetRef` using the :ref:`Registry`, by calling ``datasetRef = butler.registry.getStorageClass(butler.config.outputCollection, datasetRef)``.
 3. :ref:`Butler` obtains a :ref:`Path` by calling ``path = datasetRef.makePath(butler.config.outputCollection, template)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.  The template is provided by the :ref:`Registry` but may be overridden by the :ref:`Butler`.
-4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(inMemoryDataset, datasetRef.type.meta, path)``.
-5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`DatasetMetatype` to serialize the :ref:`InMemoryDataset` and sends it to the :ref:`Datastore` server.
+4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(inMemoryDataset, datasetRef.type.storageClass, path)``.
+5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`StorageClass` to serialize the :ref:`InMemoryDataset` and sends it to the :ref:`Datastore` server.
    Depending on the type of server it may get back the actual :ref:`URI` or the client can generate it itself.
 6. :ref:`Datastore` returns the actual :ref:`URI` to the :ref:`Butler`.
 7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
@@ -72,9 +72,9 @@ In addition, it is desirable to **override** parts of a composite :ref:`Dataset`
 
 To support this the :ref:`Registry` is also responsible for storing the component :ref:`Datasets <Dataset>` of the **composite**.
 
-The :py:class:`DatasetHandle` returned by :py:meth:`Registry.find` therefore not only includes the :ref:`URI` and :ref:`DatasetMetatype` of the **parent** (associated with the :ref:`DatasetRef`), but also a ``components`` dictionary of ``name : DatasetHandle`` specifying its **children**.
+The :py:class:`DatasetHandle` returned by :py:meth:`Registry.find` therefore not only includes the :ref:`URI` and :ref:`StorageClass` of the **parent** (associated with the :ref:`DatasetRef`), but also a ``components`` dictionary of ``name : DatasetHandle`` specifying its **children**.
 
-The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`InMemoryDatasets <InMemoryDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`InMemoryDataset`.
+The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`InMemoryDatasets <InMemoryDataset>` and then calls the ``assemble`` function associated with the :ref:`StorageClass` of the primary to create the final composed :ref:`InMemoryDataset`.
 
 This process is most easily understood by reading the API documentation for :py:meth:`butler.get <Butler.get>` and :py:meth:`butler.put <Butler.put>`.
 

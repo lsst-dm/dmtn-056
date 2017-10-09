@@ -47,7 +47,7 @@ Python API
 
         :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset` to retrieve.
 
-        :param dict parameters: a dictionary of :ref:`DatasetMetatype`-specific parameters that can be used to obtain a slice of the :ref:`Dataset`.
+        :param dict parameters: a dictionary of :ref:`StorageClass`-specific parameters that can be used to obtain a slice of the :ref:`Dataset`.
 
         :returns: an :ref:`InMemoryDataset`.
 
@@ -57,9 +57,9 @@ Python API
 
             try:
                 handle = self.registry.find(self.config.inputCollection, label)
-                parent = self.datastore.get(uri, handle.type.meta, parameters) if uri else None
+                parent = self.datastore.get(uri, handle.type.storageClass, parameters) if uri else None
                 children = {name : self.datastore.get(childHandle, parameters) for name, childHandle in handle.components.items()}
-                return handle.type.meta.assemble(parent, children, parameters)
+                return handle.type.storageClass.assemble(parent, children, parameters)
             except NotFoundError:
                 continue
             raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
@@ -90,7 +90,7 @@ Python API
             ref = self.registry.expand(label)
             template = self.config.templates.get(ref.type.name, None)
             path = ref.makePath(self.config.outputCollection, template)
-            uri, components = self.datastore.put(inMemoryDataset, ref.type.meta, path, ref.type.name)
+            uri, components = self.datastore.put(inMemoryDataset, ref.type.storageClass, path, ref.type.name)
             self.registry.addDataset(self.config.outputCollection, ref, uri, components, quantum)
 
     .. todo::

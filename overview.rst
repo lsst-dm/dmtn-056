@@ -69,9 +69,9 @@ implementations (or backends) to be easily swapped out, potentially even at runt
 Communication between the components is mediated by the:
 
 * :ref:`URI` that records **where** a :ref:`Dataset` is stored, and the
-* :ref:`DatasetMetatype` that holds information about **how** a :ref:`Dataset` can be stored.
+* :ref:`StorageClass` that holds information about **how** a :ref:`Dataset` can be stored.
 
-The :ref:`Registry` is responsible for providing the :ref:`DatasetMetatype` for
+The :ref:`Registry` is responsible for providing the :ref:`StorageClass` for
 stored :ref:`Datasets <Dataset>` and the :ref:`Datastore` is responsible
 for providing the :ref:`URI` from where it can be subsequently retrieved.
 
