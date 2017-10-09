@@ -4,8 +4,8 @@ Operations
 
 .. _basic_io:
 
-Basic IO
-========
+Basic I/O
+=========
 
 To see how the various components interact we first examine a basic ``get`` and ``put`` operations for the basic case of a non-composite :ref:`Dataset`.
 We assume that the :ref:`Butler` is configured with an external :ref:`Registry` and :ref:`Datastore`, both consisting of a client-server pair.
@@ -77,3 +77,62 @@ The :py:class:`DatasetHandle` returned by :py:meth:`Registry.find` therefore not
 The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Datastore` as :ref:`InMemoryDatasets <InMemoryDataset>` and then calls the ``assemble`` function associated with the :ref:`DatasetMetatype` of the primary to create the final composed :ref:`InMemoryDataset`.
 
 This process is most easily understood by reading the API documentation for :py:meth:`butler.get <Butler.get>` and :py:meth:`butler.put <Butler.put>`.
+
+
+Transferring Registries and Datastores
+======================================
+
+.. todo::
+
+    Fill this in: make a new Registry with new URIs from a subset, transfer Datasets into a new Datastore explicitly.
+
+
+Remote Access and Caching
+=========================
+
+.. todo::
+
+    Fill this in: use an upstream read-only Registry and a forwarding Datastore with a cache.
+
+
+SuperTask Pre-Flight and Execution
+==================================
+
+Preflight
+---------
+
+.. todo::
+
+    Fill this in.  May want to try a few examples, covering applying master calibrations and making coadds.
+
+Direct Execution
+----------------
+
+.. todo::
+
+    Fill this in.  Run directly against a full Registry and Datastore.
+
+Staged Execution
+----------------
+
+.. todo::
+
+    Fill this in.  Run directly against a limited Registry and local Datastore that are proxies for the full ones.  Show how to do the transfers through our interfaces *and* how to get the necessary information to do them externally.
+
+
+DataUnit Updates and Inserts
+============================
+
+.. todo::
+
+    Fill these sections in.  Make sure to handle :ref:`dataunit_joins`.
+
+Raw Data Ingest
+---------------
+
+Making Master Calibrations
+--------------------------
+
+Defining SkyMaps
+----------------
+
