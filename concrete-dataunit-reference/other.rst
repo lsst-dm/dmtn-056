@@ -22,16 +22,20 @@ Dependencies:
 Python API
 ^^^^^^^^^^
 
+.. py:class:: AbstractFilter
+
+    .. py:attribute:: name
+
+        The name of the filter.
+
 .. _sql_AbstractFilter:
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
-+--------------------+---------+------------------+
-| *AbstractFilter*                                |
-+====================+=========+==================+
-| abstract_filter_id | int     | PRIMARY KEY      |
-+--------------------+---------+------------------+
-| name               | varchar | NOT NULL, UNIQUE |
-+--------------------+---------+------------------+
++--------+---------+-------------+
+| *AbstractFilter*               |
++========+=========+=============+
+| name   | varchar | PRIMARY KEY |
++--------+---------+-------------+
 
