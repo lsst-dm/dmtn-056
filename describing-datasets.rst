@@ -1,6 +1,6 @@
 
-Describing and Relating Datasets
-================================
+Describing Datasets
+===================
 
 .. _Dataset:
 
@@ -19,7 +19,6 @@ Some composites simply aggregate that are always written as part of other :ref:`
 
 Datasets may also be *sliced*, which yields an :ref:`InMemoryDataset` of the same type containing a smaller amount of data, defined by some parameters.
 Subimages and filters on catalogs are both considered slices.
-
 
 Transition
 ^^^^^^^^^^
@@ -42,21 +41,30 @@ Datasets are represented by records in a single table that includes everything i
 
 .. _sql_Dataset:
 
-+-------------------+---------+---------------------------------+
-| *Dataset*                                                     |
-+-------------------+---------+---------------------------------+
-| dataset_id        | int     | PRIMARY KEY                     |
-+-------------------+---------+---------------------------------+
-| dataset_type_id   | int     | NOT NULL                        |
-+-------------------+---------+---------------------------------+
-| unit_pack         | binary  | NOT NULL                        |
-+-------------------+---------+---------------------------------+
-| uri               | varchar |                                 |
-+-------------------+---------+---------------------------------+
-| producer_id       | int     | REFERENCES Quantum (quantum_id) |
-+-------------------+---------+---------------------------------+
-| parent_dataset_id | int     | REFERENCES Dataset (dataset_id) |
-+-------------------+---------+---------------------------------+
+Dataset
+"""""""
+Fields:
+    +---------------------+---------+----------+
+    | dataset_id          | int     | NOT NULL |
+    +---------------------+---------+----------+
+    | registry_id         | int     | NOT NULL |
+    +---------------------+---------+----------+
+    | dataset_type_name   | int     | NOT NULL |
+    +---------------------+---------+----------+
+    | unit_pack           | binary  | NOT NULL |
+    +---------------------+---------+----------+
+    | uri                 | varchar |          |
+    +---------------------+---------+----------+
+    | run_id              | int     | NOT NULL |
+    +---------------------+---------+----------+
+    | producer_id         | int     |          |
+    +---------------------+---------+----------+
+Primary Key:
+    dataset_id, registry_id
+Foreign Keys:
+    - dataset_type_name references :ref:`sql_DatasetType` (name)
+    - (run_id, registry_id) references :ref:`sql_Run` (run_id, registry_id)
+    - (producer_id, registry_id) references :ref:`sql_Quantum` (quantum_id, registry_id)
 
 Using a single table (instead of per-:ref:`DatasetType` and/or per-:ref:`Collection` tables) ensures that table-creation permissions are not required when adding new :ref:`DatasetTypes <DatasetType>` or :ref:`Collections <Collection>`.  It also makes it easier to store provenance by associating :ref:`Datasets <Dataset>` with :ref:`Quanta <Quantum>`.
 
@@ -65,28 +73,36 @@ The connections are summarized by the ``unit_pack`` field, which contains an ID 
 While a ``unit_pack`` value cannot be used to reconstruct a full :ref:`DatasetRef`, a ``unit_pack`` value can be used to quickly search for the :ref:`Dataset` matching a given :ref:`DatasetRef`.
 It also allows :py:meth:`Registry.merge` to be implemented purely as a database operation by using it as a GROUP BY column in a query over multiple :ref:`Collections <Collection>`.
 
-Composite datasets are represented in SQL as a one-to-many self-join table on :ref:`Dataset <sql_Dataset>`:
+Dataset utilizes a compound primary key that combines an autoincrement ``dataset_id`` field that is populated by the :ref:`Registry` in which the :ref:`Dataset` originated and a ``registry_id`` that identifies that :ref:`Registry`.
+When transferred between :ref:`Registries <Registry>`, the ``registry_id`` should be transferred without modification, allowing new :ref:`Datasets <Dataset>` to be assigned ``dataset_id`` values that were used or may be used in the future in the transferred-from :ref:`Registry`.
 
 .. _sql_DatasetComposition:
 
-+----------------+-----+-------------------------------------------+
-| *DatasetComposition*                                             |
-+----------------+-----+-------------------------------------------+
-| parent_id      | int | NOT NULL, REFERENCES Dataset (dataset_id) |
-+----------------+-----+-------------------------------------------+
-| component_id   | int | NOT NULL, REFERENCES Dataset (dataset_id) |
-+----------------+-----+-------------------------------------------+
-| component_name | int | NOT NULL                                  |
-+----------------+-----+-------------------------------------------+
+DatasetComposition
+^^^^^^^^^^^^^^^^^^
+Fields:
+    +-------------------------+---------+----------+
+    | parent_dataset_id       | int     | NOT NULL |
+    +-------------------------+---------+----------+
+    | parent_registry_id      | int     | NOT NULL |
+    +-------------------------+---------+----------+
+    | component_dataset_id    | int     | NOT NULL |
+    +-------------------------+---------+----------+
+    | component_registry_id   | int     | NOT NULL |
+    +-------------------------+---------+----------+
+    | component_name          | varchar | NOT NULL |
+    +-------------------------+---------+----------+
+Primary Key:
+    None
+Foreign Keys:
+    - (parent_dataset_id, parent_registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
+    - (component_dataset_id, component_registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
+A self-join table that links composite datasets to their components.
 
 * If a virtual :ref:`Dataset` was created by writing multiple component Datasets, the parent :ref:`DatasetType's <sql_DatasetType>` ``template`` field and the parent Dataset's ``uri`` field may be null (depending on whether there was also a parent Dataset stored whose components should be overridden).
 
 * If a single :ref:`Dataset` was written and we're defining virtual components, the component :ref:`DatasetTypes <sql_DatasetType>` should have null ``template`` fields, but the component Datasets will have non-null ``uri`` fields with values returned by the :ref:`Datastore` when :py:meth:`Datastore.put` was called on the parent.
-
-.. todo::
-
-    Is the ``parent_dataset_id`` field needed? Given that the join table also has this information.
 
 .. _DatasetType:
 
@@ -163,31 +179,43 @@ SQL Representation
 DatasetTypes are stored in a :ref:`Registry` using two tables.
 The first has a single record for each DatasetType and contains most of the information that defines it:
 
+.. todo::
+
+    I'm a bit worried about relying on ``name`` being globally unique across :ref:`Registries <Registry>`, but clashes should be very rare, and it might be good from a confusion-avoidance standpoint to force people to use new names when they mean something different.
+
 .. _sql_DatasetType:
 
-+---------------------+---------+------------------------------------------------------------+
-| *DatasetType*                                                                              |
-+---------------------+---------+------------------------------------------------------------+
-| dataset_type_id     | int     | PRIMARY KEY                                                |
-+---------------------+---------+------------------------------------------------------------+
-| name                | varchar | NOT NULL                                                   |
-+---------------------+---------+------------------------------------------------------------+
-| template            | varchar |                                                            |
-+---------------------+---------+------------------------------------------------------------+
-| dataset_metatype_id | int     | NOT NULL, REFERENCES DatasetMetatype (dataset_metatype_id) |
-+---------------------+---------+------------------------------------------------------------+
+DatasetType
+"""""""""""
+Fields:
+    +-----------------------+---------+----------+
+    | name                  | varchar | NOT NULL |
+    +-----------------------+---------+----------+
+    | template              | varchar |          |
+    +-----------------------+---------+----------+
+    | dataset_metatype_name | varchar | NOT NULL |
+    +-----------------------+---------+----------+
+Primary Key:
+    name
+Foreign Keys:
+    None
 
 The second table has a many-to-one relationship with the first and holds the names of the :ref:`DataUnit` types utilized by its :ref:`DatasetRefs <DatasetRef>`:
 
 .. _sql_DatasetTypeUnits:
 
-+-----------------+---------+-------------+
-| *DatasetTypeUnits*                      |
-+-----------------+---------+-------------+
-| dataset_type_id | int     | PRIMARY KEY |
-+-----------------+---------+-------------+
-| unit_name       | varchar | NOT NULL    |
-+-----------------+---------+-------------+
+DatasetTypeUnits
+""""""""""""""""
+Fields:
+    +-------------------------+---------+----------+
+    | dataset_type_name       | varchar | NOT NULL |
+    +-------------------------+---------+----------+
+    | unit_name               | varchar | NOT NULL |
+    +-------------------------+---------+----------+
+Primary Key:
+    None
+Foreign Keys:
+    - (dataset_type_name) references :ref:`sql_DatasetType` (name)
 
 .. _DatasetMetatype:
 
@@ -377,148 +405,6 @@ Transition
 
 The "python" and "persistable" entries in v14 Butler dataset policy files refer to Python and C++ InMemoryDataset types, respectively.
 
-.. _Collection:
-
-Collection
-----------
-
-An entity that contains :ref:`Datasets <Dataset>`, with the following conditions:
-
-- Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
-- Has a unique, human-readable identifier, called a CollectionTag.
-- Can be combined with a :ref:`DatasetRef` to obtain a globally unique :ref:`URI`.
-
-Transition
-^^^^^^^^^^
-
-The v14 Butler's Data Repository concept plays a similar role in many contexts, but with a very different implementation and a very different relationship to the :ref:`Registry` concept.
-
-Python API
-^^^^^^^^^^
-
-CollectionTags are simply Python strings.
-
-A :ref:`DataGraph` may be constructed to hold exactly the contents of a single :ref:`Collection`, but does not do so in general.
-
-SQL Representation
-^^^^^^^^^^^^^^^^^^
-
-Collections are defined by a pair of tables; the first simply contains the list of tags, and the second is a many-to-many join between it and the :ref:`Dataset table <sql_Dataset>`.
-
-.. _sql_CollectionTag:
-
-+-------------------+---------+-------------+
-| *CollectionTag*                           |
-+-------------------+---------+-------------+
-| collection_tag_id | int     | PRIMARY KEY |
-+-------------------+---------+-------------+
-| name              | varchar | NOT NULL    |
-+-------------------+---------+-------------+
-| CONSTRAINT UNIQUE (name)                  |
-+-------------------+---------+-------------+
-
-.. _sql_DatasetCollectionTagJoin:
-
-+-------------------+-----+-----------------------------------------------------------+
-| *DatasetCollectionTagJoin*                                                          |
-+-------------------+-----+-----------------------------------------------------------+
-| collection_tag_id | int | PRIMARY KEY, REFERENCES CollectionTag (collection_tag_id) |
-+-------------------+-----+-----------------------------------------------------------+
-| dataset_id        | int | NOT NULL, REFERENCES Dataset (dataset_id)                 |
-+-------------------+-----+-----------------------------------------------------------+
-
-These tables should be present even in :ref:`Registries <Registry>` that only represent a single Collection (though in this case they may of course be trivial views).
-
-.. _Quantum:
-
-Quantum
--------
-
-A discrete unit of work that may depend on one or more :ref:`Datasets <Dataset>` and produces one or more :ref:`Datasets <Dataset>`.
-
-Most Quanta will be executions of a particular SuperTask's ``runQuantum`` method, but they can also be used to represent discrete units of work performed manually by human operators or other software agents.
-
-Transition
-^^^^^^^^^^
-
-The Quantum concept does not exist in the v14 Butler.
-
-A Quantum is analogous to an Open Provenance Model "process".
-
-Python API
-^^^^^^^^^^
-
-.. py:class:: Quantum
-
-    .. py:attribute:: predictedInputs
-
-        A dictionary of input datasets that were expected to be used, with :ref:`DatasetType` names as keys and a :py:class:`set` of :py:class:`DatasetRef` instances as values.
-
-        Input :ref:`Datasets <Dataset>` that have already been stored may be :py:class:`DatasetHandles <DatasetHandle>`, and in many contexts may be guaranteed to be.
-
-    .. py:attribute:: actualInputs
-
-        A dictionary of input datasets that were actually used, with the same form as :py:attr:`predictedInputs`.
-
-        All returned sets must be subsets of those in :py:attr:`predictedInputs`.
-
-    .. py:attribute:: outputs
-
-        A dictionary of output datasets, with the same form as :py:attr:`predictedInputs`.
-
-    .. py:attribute:: task
-
-        If the Quantum is associated with a SuperTask, this is the SuperTask instance that produced and should execute this set of inputs and outputs.
-        If not, a human-readable string identifier for the operation.
-        Some :ref:`Registries <Registry>` may permit value to be None, but are not required to in general.
-
-    .. py::attribute:: environment
-
-        A description of the software environment and versions associated with the SuperTask instance in :py:attr:`task`, format TBD.
-
-SQL Representation
-^^^^^^^^^^^^^^^^^^
-
-Quantums are stored in a single table that records its scalar attributes:
-
- .. _sql_Quantum:
-
-+-------------------------------------------------------------+
-| *Quantum*                                                   |
-+-----------------+---------+---------------------------------+
-| quantum_id      | int     | PRIMARY KEY                     |
-+-----------------+---------+---------------------------------+
-| task            | varchar |                                 |
-+-----------------+---------+---------------------------------+
-| config_id       | int     | REFERENCES Dataset (dataset_id) |
-+-----------------+---------+---------------------------------+
-| environment_id  | int     | REFERENCES Dataset (dataset_id) |
-+-----------------+---------+---------------------------------+
-
-Both the configuration (which is part of the :py:attr:`task attribute in Python <Quantum.task>` only if the task is a SuperTask, and absent otherwise ) and the environment are stored as standard :ref:`Datasets <Dataset>`.
-This makes it impossible to query their values directly using a :ref:`Registry`, but it ensures that changes to the formats and content of these items do not require disruptive changes to the :ref:`Registry` schema.
-
-The :ref:`Datasets <Dataset>` produced by a Quantum (the :py:attr:`Quantum.outputs` attribute in Python) is stored by the producer_id field in the :ref:`Dataset table <sql_Dataset>`.  The inputs, both predicted and actual, are stored in an additional join table:
-
-.. _sql_DatasetConsumer:
-
-+-------------+------+---------------------------------------------+
-| *DatasetConsumer*                                                |
-+-------------+------+---------------------------------------------+
-| quantum_id  | int  | NOT NULL REFERENCES Quantum (quantum_id)    |
-+-------------+------+---------------------------------------------+
-| dataset_id  | int  | NOT NULL REFERENCES Dataset (dataset_id)    |
-+-------------+------+---------------------------------------------+
-| actual      | bool | NOT NULL                                    |
-+-------------+------+---------------------------------------------+
-
-There is no guarantee that the full provenance of a :ref:`Dataset` is captured by these tables in all :ref:`Registries <Registry>`, because subset and transfer operations do not require provenace information to be included.  Furthermore, :ref:`Registries <Registry>` may or may not require a :ref:`Quantum` to be provided when calling :py:meth:`Registry.addDataset` (which is called by :py:meth:`Butler.put`), making it the callers responsibility to add provenance when needed.  However, all :ref:`Registries <Registry>` (including *limited* Registries) are required to record provenance information when it is provided.
-
-.. note::
-
-   As with everything else in the common Registry schema, the provenance system used in the operations data backbone will almost certainly involve additional fields and tables, and what's in the schema will just be a view.  But the provenance tables here are even more of a blind straw-man than the rest of the schema (which is derived more directly from SuperTask requirements), and I certainly expect it to change based on feedback; I think this reflects all that we need outside the operations system, but how operations implements their system should probably influence the details.
-
-
 .. _Path:
 
 Path
@@ -686,8 +572,6 @@ SQL Representation
 There is one table for each :ref:`DataUnit` type, and a :ref:`DataUnit` instance is a row in one of those tables.
 Being abstract, there is no single table associated with :ref:`DataUnits <DataUnit>` in general.
 
-:ref:`DataUnits <DataUnit>` must be shared across different :ref:`Registries <Registry>`, so their primary keys must not be database-specific quantities such as autoincrement fields.
-
 
 .. _DataGraph:
 
@@ -702,4 +586,3 @@ Python API
 .. todo::
 
     Link to SuperTask docs, or move the authoritative description here.
-

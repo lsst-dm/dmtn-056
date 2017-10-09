@@ -1,8 +1,16 @@
 
 .. _sql_dataset_dataunit_joins:
 
-Dataset-DataUnit joins
+Dataset-DataUnit Joins
 ======================
+
+The join tables in this section relate concrete :ref:`DataUnit <DataUnit>` to :ref:`Datasets <Dataset>`.
+They thus hold the information necessary to relate :ref:`DatasetRefs <DatasetRef>` to :ref:`Datasets <Dataset>`.
+
+.. todo::
+
+    These tables all need to be updated to add ``registry_id`` and utilize the new compound :ref:`DataUnit` primary keys.
+
 
 .. _cs_table_PhysicalFilterDatasetJoin:
 

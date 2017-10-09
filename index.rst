@@ -16,7 +16,8 @@
     operations.rst
     abstract-interfaces.rst
     butler.rst
-    describing-and-relating-datasets.rst
+    describing-datasets.rst
+    grouping-and-provenance.rst
     concrete-dataunit-reference/camera.rst
     concrete-dataunit-reference/skymap.rst
     concrete-dataunit-reference/other.rst
