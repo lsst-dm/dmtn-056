@@ -183,27 +183,22 @@ Python API
 
         *Not supported by limited Registries.*
 
-    .. py:method:: export(tag) -> str
+    .. py:method:: export(expr) -> TableSet
 
-        Export contents of :ref:`Registry` for a given :ref:`CollectionTag <Collection>` in a text
-        format that can be imported into a different database.
+        Export contents of the :ref:`Registry`, limited to those reachable from the :ref:`Datasets <Dataset>` identified
+        by the expression ``expr``, into a :ref:`TableSet` format such that it can be imported into a different database.
 
-        :param str tag: a :ref:`CollectionTag <Collection>` indicating the input :ref:`Collection` to export.
+        :param str expr: an expression (SQL query that evaluates to a list of ``dataset_id``s) that selects the :ref:`Datasets <Dataset>`.
 
-        :returns: a str containing a serialized form of the subset of the :ref:`Registry`.
-
-        .. todo::
-            This may not be the most efficient way of doing things.
-            But we should provide some generic way of transporting collections between databases.
-            Maybe we should also support exporting more than one at a time?
+        :returns: a :ref:`TableSet` containing all rows, from all tables in the :ref:`Registry` that are reachable from the selected :ref:`Datasets <Dataset>`.
 
         *Not supported by limited Registries.*
 
-    .. py:method:: import(serialized)
+    .. py:method:: import(tableSet)
 
         Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
 
-        :param str serialized: a str containing a serialized form of a subset of a :ref:`Registry`.
+        :param tableSet a :ref:`TableSet` containing the exported content.
 
         *Limited Registries will import only some of the information exported by full Registry.*
 
