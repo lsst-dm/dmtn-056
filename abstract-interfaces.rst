@@ -188,7 +188,7 @@ Python API
         Export contents of the :ref:`Registry`, limited to those reachable from the :ref:`Datasets <Dataset>` identified
         by the expression ``expr``, into a :ref:`TableSet` format such that it can be imported into a different database.
 
-        :param str expr: an expression (SQL query that evaluates to a list of ``dataset_id``s) that selects the :ref:`Datasets <Dataset>`.
+        :param str expr: an expression (SQL query that evaluates to a list of ``dataset_id``) that selects the :ref:`Datasets <Dataset>`.
 
         :returns: a :ref:`TableSet` containing all rows, from all tables in the :ref:`Registry` that are reachable from the selected :ref:`Datasets <Dataset>`.
 
