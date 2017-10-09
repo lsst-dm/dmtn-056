@@ -17,18 +17,18 @@ Calibration-Observation Joins
 
 MasterCalibVisitJoin
 ^^^^^^^^^^^^^^^^^^^^
-+-------------------------+---------+----------+
-| visit_begin             | int     | NOT NULL |
-+-------------------------+---------+----------+
-| visit_end               | int     | NOT NULL |
-+-------------------------+---------+----------+
-| physical_filter_name    | varchar | NOT NULL |
-+-------------------------+---------+----------+
-| visit_number            | varchar | NOT NULL |
-+-------------------------+---------+----------+
-| camera_name             | varchar | NOT NULL |
-+-------------------------+---------+----------+
-
+Fields:
+    +-------------------------+---------+----------+
+    | visit_begin             | int     | NOT NULL |
+    +-------------------------+---------+----------+
+    | visit_end               | int     | NOT NULL |
+    +-------------------------+---------+----------+
+    | physical_filter_name    | varchar | NOT NULL |
+    +-------------------------+---------+----------+
+    | visit_number            | varchar | NOT NULL |
+    +-------------------------+---------+----------+
+    | camera_name             | varchar | NOT NULL |
+    +-------------------------+---------+----------+
 Foreign Keys:
     - (visit_begin, visit_end, physical_filter_name, camera_name) references :ref:`MasterCalib` (visit_begin, visit_end, physical_filter_name, camera_name)
     - (visit_number, camera_name) references :ref:`Visit` (number, camera_name)

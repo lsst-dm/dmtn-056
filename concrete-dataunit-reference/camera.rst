@@ -68,10 +68,13 @@ SQL Representation
 +------------+---------+-------------+
 | *Camera*                           |
 +============+=========+=============+
-| name       | varchar | PRIMARY KEY |
+| name       | varchar | NOT NULL    |
 +------------+---------+-------------+
 | module     | varchar | NOT NULL    |
 +------------+---------+-------------+
+
+Primary Key:
+    name
 
 ``module`` is a string containing a fully-qualified Python module that can be imported to ensure that ``Camera.instances[name]`` returns a :py:class:`Camera` instance.
 
