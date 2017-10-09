@@ -84,6 +84,10 @@ Composite datasets are represented in SQL as a one-to-many self-join table on :r
 
 * If a single :ref:`Dataset` was written and we're defining virtual components, the component :ref:`DatasetTypes <sql_DatasetType>` should have null ``template`` fields, but the component Datasets will have non-null ``uri`` fields with values returned by the :ref:`Datastore` when :py:meth:`Datastore.put` was called on the parent.
 
+.. todo::
+
+    Is the ``parent_dataset_id`` field needed? Given that the join table also has this information.
+
 .. _DatasetType:
 
 DatasetType
