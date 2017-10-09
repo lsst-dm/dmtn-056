@@ -7,88 +7,134 @@ Dataset-DataUnit Joins
 The join tables in this section relate concrete :ref:`DataUnit <DataUnit>` to :ref:`Datasets <Dataset>`.
 They thus hold the information necessary to relate :ref:`DatasetRefs <DatasetRef>` to :ref:`Datasets <Dataset>`.
 
-.. todo::
+.. note::
 
-    These tables all need to be updated to add ``registry_id`` and utilize the new compound :ref:`DataUnit` primary keys.
+    There is no join table to relate :ref:`Datasets <Dataset>` to :ref:`ObservedSensors <ObservedSensor>`, because the latter is itself a join table.
 
+.. _sql_PhysicalFilterDatasetJoin:
 
-.. _cs_table_PhysicalFilterDatasetJoin:
+PhysicalFilterDatasetJoins
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Fields:
+    +----------------------+---------+----------+
+    | physical_filter_name | varchar | NOT NULL |
+    +----------------------+---------+----------+
+    | camera_name          | varchar | NOT NULL |
+    +----------------------+---------+----------+
+    | dataset_id           | int     | NOT NULL |
+    +----------------------+---------+----------+
+    | registry_id          | int     | NOT NULL |
+    +----------------------+---------+----------+
+Foreign Keys:
+     - (physical_filter_name, camera_name) references :ref:`sql_PhysicalFilter` (name, camera_name)
+     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
-+--------------------+-----+----------------------------------------------------------+
-| *PhysicalFilterDatasetJoin*                                                         |
-+====================+=====+==========================================================+
-| physical_filter_id | int | NOT NULL, REFERENCES PhysicalFilter (physical_filter_id) |
-+--------------------+-----+----------------------------------------------------------+
-| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
-+--------------------+-----+----------------------------------------------------------+
-    
-.. _cs_table_PhysicalSensorDatasetJoin:
+.. _sql_PhysicalSensorDatasetJoin:
 
-+--------------------+-----+----------------------------------------------------------+
-| *PhysicalSensorDatasetJoin*                                                         |
-+====================+=====+==========================================================+
-| physical_sensor_id | int | NOT NULL, REFERENCES PhysicalSensor (physical_sensor_id) |
-+--------------------+-----+----------------------------------------------------------+
-| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
-+--------------------+-----+----------------------------------------------------------+
+PhysicalSensorDatasetJoin
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Fields:
+    +------------------------+---------+----------+
+    | physical_sensor_number | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | camera_name            | varchar | NOT NULL |
+    +------------------------+---------+----------+
+    | dataset_id             | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | registry_id            | int     | NOT NULL |
+    +------------------------+---------+----------+
+Foreign Keys:
+     - (physical_sensor_number, camera_name) references :ref:`sql_PhysicalSensor` (number, camera_name)
+     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
-.. _cs_table_VisitDatasetJoin:
+.. _sql_VisitDatasetJoin:
 
-+------------+-----+------------------------------------------------------------------+
-| *VisitDatasetJoin*                                                                  |
-+============+=====+==================================================================+
-| visit_id   | int | NOT NULL, REFERENCES Visit (visit_id)                            |
-+------------+-----+------------------------------------------------------------------+
-| dataset_id | int | NOT NULL, REFERENCES Dataset (dataset_id)                        |
-+------------+-----+------------------------------------------------------------------+
+VisitDatasetJoin
+^^^^^^^^^^^^^^^^
+Fields:
+    +------------------------+---------+----------+
+    | visit_number           | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | camera_name            | varchar | NOT NULL |
+    +------------------------+---------+----------+
+    | dataset_id             | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | registry_id            | int     | NOT NULL |
+    +------------------------+---------+----------+
+Foreign Keys:
+     - (visit_number, camera_name) references :ref:`sql_Visit` (number, camera_name)
+     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
-.. _cs_table_ObservedSensorDatasetJoin:
+.. _sql_SnapDatasetJoin:
 
-+--------------------+-----+----------------------------------------------------------+
-| *ObservedSensorDatasetJoin*                                                         |
-+====================+=====+==========================================================+
-| observed_sensor_id | int | NOT NULL, REFERENCES ObservedSensor (observed_sensor_id) |
-+--------------------+-----+----------------------------------------------------------+
-| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
-+--------------------+-----+----------------------------------------------------------+
+SnapDatasetJoin
+^^^^^^^^^^^^^^^^
+Fields:
+    +------------------------+---------+----------+
+    | snap_index             | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | visit_number           | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | camera_name            | varchar | NOT NULL |
+    +------------------------+---------+----------+
+    | dataset_id             | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | registry_id            | int     | NOT NULL |
+    +------------------------+---------+----------+
+Foreign Keys:
+     - (snap_index, visit_number, camera_name) references :ref:`sql_Snap` (index, visit_number, camera_name)
+     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
-.. _cs_table_SnapDatasetJoin:
+.. _sql_AbstractFilterDatasetJoin:
 
-+------------+-----+------------------------------------------------------------------+
-| *SnapDatasetJoin*                                                                   |
-+============+=====+==================================================================+
-| snap_id    | int | NOT NULL, REFERENCES Snap (snap_id)                              |
-+------------+-----+------------------------------------------------------------------+
-| dataset_id | int | NOT NULL, REFERENCES Dataset (dataset_id)                        |
-+------------+-----+------------------------------------------------------------------+
+AbstractFilterDatasetJoin
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Fields:
+    +----------------------+---------+----------+
+    | abstract_filter_name | varchar | NOT NULL |
+    +----------------------+---------+----------+
+    | dataset_id           | int     | NOT NULL |
+    +----------------------+---------+----------+
+    | registry_id          | int     | NOT NULL |
+    +----------------------+---------+----------+
+Foreign Keys:
+     - (abstract_filter_name) references :ref:`sql_AbstractFilter` (name)
+     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
-.. _cs_table_AbstractFilterDatasetJoin:
+.. _sql_TractDatasetJoin:
 
-+--------------------+-----+----------------------------------------------------------+
-| *AbstractFilterDatasetJoin*                                                         |
-+====================+=====+==========================================================+
-| abstract_filter_id | int | NOT NULL, REFERENCES AbstractFilter (abstract_filter_id) |
-+--------------------+-----+----------------------------------------------------------+
-| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
-+--------------------+-----+----------------------------------------------------------+
+TractDatasetJoin
+^^^^^^^^^^^^^^^^
+Fields:
+    +----------------------+---------+----------+
+    | tract_number         | int     | NOT NULL |
+    +----------------------+---------+----------+
+    | skymap_name          | varchar | NOT NULL |
+    +----------------------+---------+----------+
+    | dataset_id           | int     | NOT NULL |
+    +----------------------+---------+----------+
+    | registry_id          | int     | NOT NULL |
+    +----------------------+---------+----------+
+Foreign Keys:
+     - (tract_number, skymap_name) references :ref:`sql_Tract` (number, skymap_name)
+     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
-.. _cs_table_TractDatasetJoin:
+.. _sql_PatchDatasetJoin:
 
-+--------------------+-----+----------------------------------------------------------+
-| *TractDatasetJoin*                                                                  |
-+====================+=====+==========================================================+
-| tract_id           | int | NOT NULL, REFERENCES Tract (tract_id)                    |
-+--------------------+-----+----------------------------------------------------------+
-| dataset_id         | int | NOT NULL, REFERENCES Dataset (dataset_id)                |
-+--------------------+-----+----------------------------------------------------------+
-
-.. _cs_table_PatchDatasetJoin:
-
-+------------+-----+------------------------------------------------------------------+
-| *PatchDatasetJoin*                                                                  |
-+============+=====+==================================================================+
-| patch_id   | int | NOT NULL, REFERENCES Patch (patch_id)                            |
-+------------+-----+------------------------------------------------------------------+
-| dataset_id | int | NOT NULL, REFERENCES Dataset (dataset_id)                        |
-+------------+-----+------------------------------------------------------------------+
-
+PatchDatasetJoin
+^^^^^^^^^^^^^^^^
+Fields:
+    +----------------------+---------+----------+
+    | patch_index          | int     | NOT NULL |
+    +----------------------+---------+----------+
+    | tract_number         | int     | NOT NULL |
+    +----------------------+---------+----------+
+    | skymap_name          | varchar | NOT NULL |
+    +----------------------+---------+----------+
+    | dataset_id           | int     | NOT NULL |
+    +----------------------+---------+----------+
+    | registry_id          | int     | NOT NULL |
+    +----------------------+---------+----------+
+Foreign Keys:
+     - (patch_index, tract_number, skymap_name) references :ref:`sql_Patch` (index, tract_number, skymap_name)
+     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
