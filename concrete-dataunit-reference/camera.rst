@@ -424,10 +424,17 @@ MasterCalib
 
 MasterCalibs are the DataUnits that label master calibration products, and are defined as a range of :ref:`Visits <Visit>` from a given :ref:`Camera`.
 
-MasterCalibs may additionally be specialized for a particular :ref:`PhysicalFilter`, or may be appropriate for all PhysicalFilters by setting the ``physical_filter_name`` field to ``NULL``.
+MasterCalibs may additionally be specialized for a particular :ref:`PhysicalFilter`, or may be appropriate for all PhysicalFilters by setting the ``physical_filter_name`` field to an empty string ``""``, though we map this to ``None`` in Python.
 
-The MasterCalib associated with not-yet-observed :ref:`Visits <Visit>` may be indicated by setting ``visit_end`` to ``-1``.
-We probably can't use ``NULL`` instead because ``visit_end`` is part of the compound primary key.
+The MasterCalib associated with not-yet-observed :ref:`Visits <Visit>` may be indicated by setting ``visit_end`` to ``-1``.  This is also mapped to ``None`` in Python.
+
+We probably can't use ``NULL`` for ``physical_filter_name`` and ``visit_end`` because these are part of the compound primary key.
+
+.. note::
+
+    The fact that all of the fields in this table are part of the compound primary key is a little worrying.
+    If we could come up with some other globally-meaningful label for a set of master calibrations, we could instead make the join-to-visit table authoritative (instead of an easily-calculated view).
+    But that would require some ugly two-way synchronizations whenever either MasterCalib or Visit DataUnits are added.
 
 Value:
     visit_begin, visit_end
@@ -472,13 +479,13 @@ SQL Representation
 +-----------------------+---------+----------+
 | visit_end             | int     | NOT NULL |
 +-----------------------+---------+----------+
-| camera_name           | varchar | NOT NULL |
+| physical_filter_name  | varchar | NOT NULL |
 +-----------------------+---------+----------+
-| physical_filter_name  | varchar |          |
+| camera_name           | varchar | NOT NULL |
 +-----------------------+---------+----------+
 
 Primary Key:
-    (visit_begin, visit_end, camera_name)
+    (visit_begin, visit_end, camera_name, physical_filter_name)
 
 Foreign Keys:
     - (camera_name) references :ref:`Camera` (name)

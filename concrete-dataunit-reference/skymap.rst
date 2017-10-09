@@ -11,7 +11,8 @@ SkyMap
 
 Each SkyMap entry represents a different way to subdivide the sky into tracts and patches, including any parameters involved in those definitions.
 
-SkyMaps in Python are part of a polymorphic hierarchy, but unlike Cameras, their instances are not singletons, so we can't just store them in a global dictionary in the software stack.  Instead, we serialize SkyMap instances directly into the :ref:`Registry` as blobs.
+SkyMaps in Python are part of a polymorphic hierarchy, but unlike Cameras, their instances are not singletons, so we can't just store them in a global dictionary in the software stack.
+Instead, we serialize SkyMap instances directly into the :ref:`Registry` as blobs.
 
 Value:
     name
