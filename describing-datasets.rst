@@ -318,10 +318,11 @@ Like a :py:class:`DatasetRef`, a :py:class:`DatasetLabel` only fully identifies 
 Most interactive analysis code will interact primarily with :py:class:`DatasetLabels <DatasetLabel>`, as these provide the simplest, least-structured way to use the :ref:`Butler` interface.
 
 The next class, :py:class:`DatasetRef` itself, provides access to the associated :ref:`DataUnit` instances and the :py:class:`DatasetType`.
-A :py:class:`DatasetRef` instance cannot be constructed without a :ref:`Registry`, making it somewhat more cumbersome to use in interactive contexts.
+A :py:class:`DatasetRef` instance cannot be constructed without complete :ref:`DataUnits <DataUnit>` and a complete :ref:`DatasetType`, making it somewhat more cumbersome to use in interactive contexts.
 The SuperTask pattern hides those extra construction steps from both SuperTask authors and operators, however, and :py:class:`DatasetRef` is the class SuperTask authors will use most.
 
 Instances of the final class in the hierarchy, :py:class:`DatasetHandle`, always correspond to a :ref:`Datasets <Dataset>` that has already been stored in a :ref:`Datastore`.
+A :py:class:`DatasetHandle` instance cannot be constructed without interacting directly with a :ref:`Registry`.
 In addition to the :ref:`DataUnits <DataUnit>` and :ref:`DatasetType` exposed by :py:class:`DatasetRef`, a :py:class:`DatasetHandle` also provides access to its :ref:`URI` and component :ref:`Datasets <Dataset>`.
 The additional functionality provided by :py:class:`DatasetHandle` is rarely needed unless one is interacting directly with a :py:class:`Registry` or :py:class:`Datastore` (instead of a :py:class:`Butler`), but the :py:class:`DatasetRef` instances that appear in SuperTask code may actually be :py:class:`DatasetHandle` instances (in a language other than Python, this would have been handled as a :py:class:`DatasetRef` pointer to a :py:class:`DatasetHandle`, ensuring that the user sees only the :py:class:`DatasetRef` interface, but Python has no such concept).
 
@@ -334,6 +335,10 @@ All three classes are immutable.
         Construct a DatasetLabel from the name of a :ref:`DatasetType` and a keyword arguments providing :ref:`DataUnit` key-value pairs.
 
 .. py:class:: DatasetRef(DatasetLabel)
+
+    .. py:method:: __init__(self, type, units):
+
+        Construct a DatasetRef from a :py:class:`DatasetType` and a complete tuple of :py:class:`DataUnits <DataUnit>`.
 
     .. py:attribute:: type
 
@@ -363,10 +368,29 @@ All three classes are immutable.
 
         :returns: a str :ref:`Path`
 
-    .. todo::
+    .. py:attribute:: producer
 
-        Add method for packing DataUnits and a Collection into unique integer IDs.
-        Need to think about whether that combination is actually globally unique if the first Collection a Dataset is defined in changes.
+        The :py:class:`Quantum` instance that produced (or will produce) the :ref:`Dataset`.
+
+        Read-only; update via :py:meth:`Registry.addDataset`, :py:meth:`DataGraph.addDataset`, or :py:meth:`Butler.put`.
+
+        May be None.
+
+    .. py:attribute:: predictedConsumers
+
+        A sequence of :py:class:`Quantum` instances that list this :ref:`Dataset` in their :py:attr:`predictedInputs <Quantum.predictedInputs>` attributes.
+
+        Read-only; update via :py:meth:`Quantum.addInput`.
+
+        May be None.
+
+    .. py:attribute:: actualConsumers
+
+        A sequence of :py:class:`Quantum` instances that list this :ref:`Dataset` in their :py:attr:`actualInputs <Quantum.actualInputs>` attributes.
+
+        Read-only; update via :py:meth:`Quantum.addInput`.
+
+        May be None.
 
 .. py:class:: DatasetHandle(DatasetRef)
 
@@ -489,6 +513,8 @@ Every DataUnit type also has a "value".  This is a POD (usually a string or inte
 
 The :py:class:`DataUnitTypeSet` class provides methods that enforce and utilize these rules, providing a centralized implementation to which all other objects that operate on groups of DataUnits can delegate.
 
+The full set of concrete DataUnits are described in :ref:`camera_dataunits`, :ref:`skymap_dataunits`, and :ref:`other_dataunits`.
+
 Transition
 ^^^^^^^^^^
 
@@ -583,6 +609,47 @@ A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUni
 Python API
 ^^^^^^^^^^
 
-.. todo::
+.. py:class:: DataGraph
 
-    Link to SuperTask docs, or move the authoritative description here.
+    .. py:attribute:: datasets
+
+        A dictionary with :ref:`DatasetType` names as keys and sets of :py:class:`DatasetRefs <Dataset>` of those types as values.
+
+        Read-only (possibly only by convention); use :py:meth:`addDataset` to insert new :py:class:`DatasetRefs <DatasetRef>`.
+
+    .. py:attribute:: quanta
+
+        A sequence of :py:class:`Quantum` instances whose order is consistent with their dependency ordering.
+
+        Read-only (possibly only by convention); use :py:meth:`addQuantum` to insert new :py:class:`Quantums <Quantum>`.
+
+    .. py:method:: addQuantum(quantum)
+
+        Add a :py:class:`Quantum` to the graph.
+
+        Any entries in :py:attr:`Quantum.predictedInputs` or :py:attr:`Quantum.actualInputs` must already be present in the graph.
+        The :py:attr:`Quantum.outputs` attribute should be empty.
+
+    .. py:method:: addDataset(ref, producer)
+
+        Add a :py:class:`DatasetRef` to the graph.
+
+        :param DatasetRef ref: a pointer to the :ref:`Dataset` to be added.
+
+        :param Quantum producer: the :py:class:`Quantum` responsible for producing the :ref:`Dataset`.
+
+    .. py:method:: relate(unitTypes)
+
+        Iterate over tuples of :py:class:`DataUnits <DataUnit>` related by dependency and many-to-many relationships.
+
+        :param DataUnitTypeSet unitTypes: a tuple of :py:class:`DataUnit` (subclass) instances.
+
+        :returns: an iterator over tuples of :ref:`DataUnit` (subclass) instances.
+
+        .. todo::
+
+            Implementing this method will require DataGraph to have more state than just the :py:attr:`datasets` and :py:attr:`quanta` attributes.
+            The extra state I have in mind is a table containing all of the :ref:`DataUnit` values for the :ref:`DataUnit` types included in the graph (which will include lots of NULLs, of course).
+            That's the natural result of the SQL that :py:meth:`Registry.makeDataGraph`, which works out perfectly for the SuperTask Preflight use case.
+            But we don't have an easy way to make that table when we instead construct a DataGraph to report the provenance of existing :ref:`Datasets <Dataset>`, and I'm inclined to just let the method throw in that case.
+            A slightly cleaner but more verbose option would be to return to having two completely distinct graph classes.

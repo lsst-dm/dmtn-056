@@ -144,15 +144,32 @@ Python API
 
         Input :ref:`Datasets <Dataset>` that have already been stored may be :py:class:`DatasetHandles <DatasetHandle>`, and in many contexts may be guaranteed to be.
 
+        Read only; update via :py:meth:`addInput`.
+
     .. py:attribute:: actualInputs
 
         A dictionary of input datasets that were actually used, with the same form as :py:attr:`predictedInputs`.
 
         All returned sets must be subsets of those in :py:attr:`predictedInputs`.
 
+        Read only; update via :py:meth:`addInput`.
+
+    .. py:method:: addInput(ref, actual=True)
+
+        Add an input :ref:`DatasetRef` to the :ref:`Quantum`.
+
+        This does not automatically update a :ref:`Registry`.
+
+        .. todo::
+
+            How do we synchronize in-memory Quanta with those in a Registry?
+            Need to work through the SuperTask use cases, probably.
+
     .. py:attribute:: outputs
 
         A dictionary of output datasets, with the same form as :py:attr:`predictedInputs`.
+
+        Read-only; update via :py:meth:`Registry.addDataset`, :py:meth:`DataGraph.addDataset`, or :py:meth:`Butler.put`.
 
     .. py:attribute:: task
 
