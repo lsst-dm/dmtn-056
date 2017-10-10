@@ -22,6 +22,9 @@ Value:
 Dependencies:
     None
 
+Many-to-Many Joins:
+    None
+
 Transition
 ^^^^^^^^^^
 Camera subclasses take over many of the roles played by ``obs_`` package ``Mapper`` subclasses in the v14 Butler (with :ref:`Path` creation an important and intentional exception).
@@ -92,7 +95,11 @@ Value:
     name
 
 Dependencies:
-    :ref:`Camera`
+    - :ref:`Camera`
+    - :ref:`AbstractFilter` (optional)
+
+Many-to-Many Joins:
+    None
 
 Python API
 ^^^^^^^^^^
@@ -155,7 +162,10 @@ Value:
     number
 
 Dependencies:
-    :ref:`Camera`
+    - :ref:`Camera`
+
+Many-to-Many Joins:
+    - :ref:`Visit` via :ref:`ObservedSensor`
 
 Python API
 ^^^^^^^^^^
@@ -223,7 +233,13 @@ Value:
     number
 
 Dependencies:
-    :ref:`Camera`
+    - :ref:`Camera`
+
+Many-to-Many Joins:
+    - :ref:`PhysicalSensor` via :ref:`ObservedSensor`
+    - :ref:`Tract` via :ref:`sql_VisitTractJoin`
+    - :ref:`Patch` via :ref:`sql_VisitPatchJoin`
+
 
 Python API
 ^^^^^^^^^^
@@ -306,7 +322,12 @@ Value:
     None
 
 Dependencies:
-    :ref:`Visit` and :ref:`PhysicalSensor`
+    - :ref:`Visit`
+    - :ref:`PhysicalSensor`
+
+Many-to-Many Joins:
+    - :ref:`Tract` via :ref:`sql_SensorTractJoin`
+    - :ref:`Patch` via :ref:`sql_SensorPatchJoin`
 
 Python API
 ^^^^^^^^^^
@@ -370,6 +391,9 @@ Value:
 
 Dependencies:
     :ref:`Visit`
+
+Many-to-Many Joins:
+    None
 
 Python API
 ^^^^^^^^^^
@@ -443,7 +467,11 @@ Value:
     visit_begin, visit_end
 
 Dependencies:
-    :ref:`Camera` and :ref:`PhysicalFilter`
+    - :ref:`Camera`
+    - :ref:`PhysicalFilter` (optional)
+
+Many-to-Many Joins:
+    - :ref:`Visit` via :ref:`sql_MasterCalibVisitJoin`
 
 Python API
 ^^^^^^^^^^
