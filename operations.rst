@@ -120,7 +120,7 @@ We will ignore the last one for now and focus on the first two instead.
                 handle = src.registry.find(tag, label)
 
                 uri, components = dst.datastore.transfer(src.datastore, handle.uri, ref.type.storageClass, path, ref.type.name)
-                dst.registry.addDataset(tag, ref, uri, components, quantum)
+                dst.registry.addDataset(tag, ref, uri, components, ref.producer)
         else:
             # The following assumes the old datastore was empty and that the datastore will be
             # read-only.  Otherwise we will have to some chaining.
@@ -129,10 +129,12 @@ We will ignore the last one for now and focus on the first two instead.
 
     .. todo::
 
-        * Where does ``quantum`` come from?
-        * Should we update instead of add? 
-        * What should happen if the composition is different in the output datastore?
-        * Can we reuse the list of labels that we get from the initial registry transfer?
+        This is just a draft implementation to show the interfaces enable it to be written.
+        However there are many remaining details to be worked out. Such as:
+
+            * What should happen if the :ref:`Dataset` composition is different in the output datastore?
+            * How exactly to implement :ref:`Datastore` chaining?
+            * How to make this transactionally safe?
 
 Remote Access and Caching
 =========================
