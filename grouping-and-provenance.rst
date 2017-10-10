@@ -94,6 +94,10 @@ Python API
 
         The ``(run_id, registry_id)`` tuple used to uniquely identify this Run, or ``None`` if it has not yet been inserted into a :ref:`Registry`.
 
+.. todo::
+
+    If a :ref:`Collection` table is adopted, the ``tag`` can be replaced by a ``collection_id`` for increased space efficiency.
+
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
