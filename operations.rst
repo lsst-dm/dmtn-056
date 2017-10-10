@@ -78,6 +78,7 @@ The :ref:`Butler` retrieves **all** :ref:`Datasets <Dataset>` from the :ref:`Dat
 
 This process is most easily understood by reading the API documentation for :py:meth:`butler.get <Butler.get>` and :py:meth:`butler.put <Butler.put>`.
 
+.. _transferring_registries_and_datastores:
 
 Transferring Registries and Datastores
 ======================================
@@ -206,25 +207,75 @@ SuperTask Pre-Flight and Execution
 Preflight
 ---------
 
-SuperTask Preflight begins with an activator
+The inputs to SuperTask preflight are considered here to be:
+ - an input :ref:`Registry` instance (may be read-only)
+ - an input :ref:`Datastore` instance (may be read-only)
+ - an output :ref:`Registry` instance (may be the same as the input :ref:`Registry`, but must not be read-only)
+ - an output :ref:`Datastore` instance (may be the same as the input :ref:`Datastore`, but must not be read-only)
+ - a Pipeline (contains SuperTasks, configuration, and the set of :ref:`DatasetTypes <DatasetType>` needed as inputs and expected as outputs)
+ - a user expression that limits the :ref:`DataUnits <DataUnit>` to process.
+ - an ordered list of :ref:`CollectionTags <Collection>` from which to obtain inputs
+ - a :ref:`CollectionTag <Collection>` that labels the processing run.
 
 .. todo::
 
-    Fill this in.  May want to try a few examples, covering applying master calibrations and making coadds.
+    In order to construct the SuperTasks in a Pipeline (and extract the :ref:`DatasetTypes <DatasetType>`), we need to pass the SuperTask constructors a :ref:`Butler` or some other way to load the schemas of any catalogs they will use as input datasets.  These may differ between collections!
+
+#. Preflight begins with the activator calling :py:class:`Registry.makeDataGraph` with the given expression, list of input tags, and the sets of :ref:`DatasetTypes <DatasetType>` implicit in the Pipeline.
+The returned :ref:`QuantumGraph` contains both the full set of input :ref:`Datasets <Dataset>` that may be required and the full set of :ref:`DataUnits <DataUnit>` that will be used to describe any future :ref:`Datasets <Dataset>`.
+
+#. If the output :ref:`Registry` is not the same as the input :ref:`Registry`, the activator transfers (see :ref:`transferring_registries_and_datastores`) all :ref:`Registry` content associated with the :ref:`Datasets <Dataset>` in the graph to the output :ref:`Registry`.
+
+#. The activator calls :py:meth:`Registry.makeRun` on the output :ref:`Registry` with the output :ref:`CollectionTag <Collection>`, obtaining a :py:class:`Run` instance.
+
+#. The activator adds all input :ref:`Datasets <Dataset>` to the :ref:`Run's <Run>` :ref:`Collection`.
+
+#. The activator constructs a :ref:`Butler` from the output :ref:`Registry` (which can now also be used as input), the :ref:`Run's <Run>` :ref:`Collection`, and either the given :ref:`Datastore` (if the same one is used for input and output) or a pass-through :ref:`Datastore` that forwards input and output requests to the two given ones appropriately.
+
+#. The activator records the Pipeline configuration and a description of the software environment (as regular :ref:`Datasets <Dataset>`) using the :ref:`Butler` and associates them with the :ref:`Run` by calling :py:meth:`Registry.updateRun`.
+
+#. The activator calls ``defineQuanta`` on each of the SuperTasks in the Pipeline, passing them the :ref:`Run` and the :ref:`QuantumGraph`.  Each SuperTask manipulates the :ref:`QuantumGraph` to add its :ref:`Quanta <Quantum>` and output :ref:`DatasetRef <DatasetRef>` to it.
+
+    .. note::
+
+        This differs slightly from the SuperTask design in DMTN-055, in which SuperTasks return unstructured lists of Quanta and the activator assembles them into a graph.
+
+After these steps, the :ref:`QuantumGraph` contains a complete description of the processing to be run, with each :ref:`Quantum` it holds having complete :py:attr:`predictedInputs <Quantum.predictedInputs>` and :py:attr:`outputs <Quantum.outputs>` lists.
+The :ref:`QuantumGraph` can then be serialized or otherwise transferred to a workflow system to schedule execution.
+
+At the end of preflight, the only modifications that have been made to the output :ref:`Registry` are the addition of a :ref:`Run`, the association of all input :ref:`Datasets <Dataset>` with the :ref:`Run's <Run>` :ref:`Collection`, and the addition of :ref:`Datasets <Dataset>` recording the configuration and software environment.  Those two :ref:`Datasets <Dataset>` are the only modifications to the output :ref:`Datastore`.
+
+.. todo::
+
+    May want to try a few examples of ``defineQuanta`` implementations, perhaps covering applying master calibrations and making coadds.
+
+.. _staged_supertask_execution:
 
 Direct Execution
 ----------------
 
+This section describes executing SuperTasks in an environment in which the same output :ref:`Registry` and :ref:`Datastore` used for preflight are directly accessible to the worker processes.
+See :ref:`staged_supertask_execution` for SuperTask execution in an environment where workers cannot access the :ref:`Datastore` or the output :ref:`Registry`.
+
+#. The activator constructs an input/output :ref:`Butler` with the same :ref:`Registry` and :ref:`Datastore` used in preflight.
+
+#. The activator loops over all :ref:`Quanta <Quantum>` it has been assigned by the workflow system.  For each one, it:
+
+    #. adds the :ref:`Quantum` to the :ref:`Registry` by calling :py:meth:`Registry.addQuantum`.  This stores the "predictedInput" provenance in the :ref:`Registry`;
+
+    #. calls ``SuperTask.runQuantum`` with the :py:class:`Quantum` instance and the :py:class:`Butler` instance.  The SuperTask calls :py:meth:`Butler.get` (using the :ref:`DatasetRefs <DatasetRef>` in :py:attr:`Quantum.predictedInputs`) to obtain its inputs, and indicates the ones it actually utilizes by calling :py:meth:`Butler.markInputUsed`.  Outputs are saved with :py:meth:`Butler.put`, which is passed the :py:class:`Quantum` instance to automatically record "output" provenance.
+
+If the SuperTask throws an exception or otherwise experiences a fatal error, the :ref:`Quantum` that defined its execution will thus have already been added to the :ref:`Registry` which as much information as possible about its inputs and outputs, making it useful for debugging.
+
+
+.. _shared_nothing_supertask_execution:
+
+Shared-Nothing Execution
+------------------------
+
 .. todo::
 
-    Fill this in.  Run directly against a full Registry and Datastore.
-
-Staged Execution
-----------------
-
-.. todo::
-
-    Fill this in.  Run directly against a limited Registry and local Datastore that are proxies for the full ones.  Show how to do the transfers through our interfaces *and* how to get the necessary information to do them externally.
+    Fill this in.  Run directly against a "limited" Registry and local Datastore that are proxies for the full ones.  Show how to do the staging transfers through our interfaces *and* how to get the necessary information (e.g. filenames) to do them externally.
 
 
 DataUnit Updates and Inserts

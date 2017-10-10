@@ -20,6 +20,10 @@ In general, limited Registries have enough functionality to support :py:meth:`Bu
 A limited Registry may be implented on top of a simple persistent key-value store (e.g. a YAML file) rather than a full SQL database.
 The operations supported by a limited Registry are indicated in the Python API section below.
 
+.. todo::
+
+    Limited registries that are used on scratch space during processing need to handle provenance, but dumb ones used for one-off, interactive work do not.
+
 Transition
 ^^^^^^^^^^
 
@@ -182,11 +186,11 @@ Python API
 
         :returns: a :py:class:`DatasetHandle` instance
 
-    .. py:method:: makeDataGraph(tag, expr, neededDatasetTypes, futureDatasetTypes)
+    .. py:method:: makeDataGraph(tags, expr, neededDatasetTypes, futureDatasetTypes)
 
         Evaluate a filter expression and lists of :ref:`DatasetTypes <DatasetType>` and return a :ref:`QuantumGraph`.
 
-        :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to search.
+        :param list[str] tags: an ordered list :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to search for :ref:`Datasets <Dataset>`.
 
         :param str expr: an expression that limits the :ref:`DataUnits <DataUnit>` and (indirectly) the :ref:`Datasets <Dataset>` returned.
 

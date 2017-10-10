@@ -81,7 +81,7 @@ Python API
             Or maybe the activator can turn all ``predictedInputs`` a Quantum into handles before calling the task?
             That'd be nice for raising exceptions earlier, too.
 
-    .. py:method:: put(label, dataset, producer)
+    .. py:method:: put(label, dataset, producer=None)
 
         :param DatasetLabel label: a :py:class:`DatasetLabel` that will identify the :ref:`Dataset` being stored.
 
@@ -98,6 +98,21 @@ Python API
             path = ref.makePath(self.config.outputCollection, template)
             uri, components = self.datastore.put(inMemoryDataset, ref.type.storageClass, path, ref.type.name)
             self.registry.addDataset(self.config.outputCollection, ref, uri, components, quantum)
+
+    .. py:method:: markInputUsed(quantum, ref)
+
+        Mark a :ref:`Dataset` as having been "actually" (not just predicted-to-be) used by a :ref:`Quantum`.
+
+        :param Quantum quantum: the dependent :ref:`Quantum`.
+
+        :param DatasetRef ref: the :ref:`Dataset` that is a true dependency of ``quantum``.
+
+        Implemented as:
+
+        .. code:: python
+
+            handle = self.registry.find(self.config.inputCollection, ref)
+            self.registry.markInputUsed(handle, quantum)
 
     .. todo::
 
