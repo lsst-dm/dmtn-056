@@ -77,9 +77,8 @@ Python API
 
     A concrete, final class representing a Run.
 
-    .. py:method:: __init__(self, tag, environment=None)
+    Run instances in Python can only be created by :py:meth:`Registry.makeRun`.
 
-        Initialize the Run with the given :ref:`Collection` tag and optional environment :py:class:`DatasetHandle`.
 
     .. py:attribute:: tag
 
@@ -90,9 +89,13 @@ Python API
 
         A :py:class:`DatasetHandle` that can be used to retreive a description of the software environment used to create the Run.
 
+    .. py:attribute:: pipeline
+
+        A :py:class:`DatasetHandle` that can be used to retreive the Pipeline (including configuration) used during this Run.
+
     .. py::attribute:: pkey
 
-        The ``(run_id, registry_id)`` tuple used to uniquely identify this Run, or ``None`` if it has not yet been inserted into a :ref:`Registry`.
+        The ``(run_id, registry_id)`` tuple used to uniquely identify this Run.
 
 .. todo::
 
@@ -113,12 +116,15 @@ Fields:
     +---------------------+---------+----------+
     | tag                 | varchar |          |
     +---------------------+---------+----------+
-    | environment_id      | int     | NOT NULL |
+    | environment_id      | int     |          |
+    +---------------------+---------+----------+
+    | pipeline_id         | int     |          |
     +---------------------+---------+----------+
 Primary Key:
     run_id, registry_id
 Foreign Keys:
     - (environment_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
+    - (pipeline_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
 Run uses the same compound primary key approach as :ref:`sql_Dataset`.
 
@@ -161,18 +167,13 @@ Python API
 
         All returned sets must be subsets of those in :py:attr:`predictedInputs`.
 
-        Read only; update via :py:meth:`addInput`.
+        Read only; update via :py:meth:`Registry.markInputUsed`.
 
-    .. py:method:: addInput(ref, actual=True)
+    .. py:method:: addPredictedInput(ref)
 
         Add an input :ref:`DatasetRef` to the :ref:`Quantum`.
 
-        This does not automatically update a :ref:`Registry`.
-
-        .. todo::
-
-            How do we synchronize in-memory Quanta with those in a Registry?
-            Need to work through the SuperTask use cases, probably.
+        This does not automatically update a :ref:`Registry`; all ``predictedInputs`` must be present before a :py:meth:`Registry.addQuantum` is called.
 
     .. py:attribute:: outputs
 
@@ -210,18 +211,11 @@ Fields:
     +-----------------+---------+----------+
     | task            | varchar |          |
     +-----------------+---------+----------+
-    | config_id       | int     |          |
-    +-----------------+---------+----------+
+
 Primary Key:
     quantum_id, registry_id
 Foreign Keys:
     - (run_id, registry_id) references :ref:`sql_Run` (run_id, registry_id)
-    - (config_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
-
-Run uses the same compound primary key approach as :ref:`sql_Dataset`.
-
-The configuration (which is part of the :py:attr:`task attribute in Python <Quantum.task>` only if the task is a SuperTask, and absent otherwise ) is stored as a standard :ref:`Datasets <Dataset>`.
-This makes it impossible to query its values directly using a :ref:`Registry`, but it ensures that changes to its formats and content of these items do not require disruptive changes to the :ref:`Registry` schema.
 
 Quantum uses the same compound primary key approach as :ref:`sql_Dataset`.
 

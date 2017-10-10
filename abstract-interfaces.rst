@@ -65,7 +65,7 @@ Python API
 
         Return the :py:class:`DatasetType` associated with the given name.
 
-    .. py:method:: addDataset(tag, label, uri, components, quantum=None)
+    .. py:method:: addDataset(tag, label, uri, components, run=None, quantum=None)
 
         Add a :ref:`Dataset` to a :ref:`Collection`.
 
@@ -81,19 +81,39 @@ Python API
 
         :param dict components: if the :ref:`Dataset` is a composite, a ``{name : URI}`` dictionary of its named components and storage locations.
 
+        :param Run run: the Run instance that produced the Dataset.  Falls back to ``quantum.run`` if ``None``, but must be provided if :ref:`Quantum` is ``None``.
+
+        :param Quantum quantum: the Quantum instance that produced the Dataset.  May be ``None`` to store no provenance information, but if present the :py:class:`Quantum` must already have been added to the Registry.
+
         :return: a newly-created :py:class:`DatasetHandle` instance.
 
         :raises: an exception if a :ref:`Dataset` with the given :ref:`DatasetRef` already exists in the given :ref:`Collection`.
 
-    .. py:method:: associate(tag, handle)
+    .. py:method:: associate(tag, handles)
 
-        Add an existing :ref:`Dataset` to an existing :ref:`Collection`.
+        Add existing :ref:`Datasets <Dataset>` to a :ref:`Collection`, possibly creating the :ref:`Collection` in the process.
 
-        :param str tag: a :ref:`CollectionTag <Collection>` indicating the Collection the :ref:`DatasetType` should be associated with.
+        :param str tag: a :ref:`CollectionTag <Collection>` indicating the Collection the :ref:`Datasets <Dataset>` should be associated with.
 
-        :param DatasetHandle handle: a :py:class:`DatasetHandle` instance that already exists in another :ref:`Collection` in this :ref:`Registry`.
+        :param list[DatasetHandle] handles: a list of :py:class:`DatasetHandle` instances that already exist in this :ref:`Registry`.
 
         :return: None
+
+        *Not supported by limited Registries.*
+
+    .. py:method:: makeRun(tag)
+
+        Create a new :ref:`Run` in the :ref:`Registry` and return it.
+
+        :param str tag: the :ref:`CollectionTag <Collection>` used to identify all inputs and outputs of the :ref:`Run`.
+
+        :returns: a :py:class:`Run` instance.
+
+        *Not supported by limited Registries.*
+
+    .. py:method:: updateRun(run)
+
+        Update the ``environment`` and/or ``pipeline`` of the given Run in the database, given the :py:class:`DatasetHandles <DatasetHandle>` attributes of the given :py:class:`Run`.
 
         *Not supported by limited Registries.*
 
@@ -103,9 +123,18 @@ Python API
 
         :param Quantum quantum: a :py:class:`Quantum` instance to add to the :ref:`Registry`.
 
-        .. todo::
+        The given Quantum must not already be present in the Registry (or any other); its :py:attr:`pkey <Quantum.pkey>` attribute must be ``None``.
 
-            How do we label/identify Quanta, and associate their Python objects with database records?
+        The :py:attr:`predictedInputs <Quantum.predictedInputs>` attribute must be fully populated with :py:class:`DatasetHandles <DatasetHandle>`.
+        The :py:attr:`actualInputs <Quantum.actualInputs>` and :py:attr:`outputs <Quantum.outputs>` will be ignored.
+
+    .. py:method:: markInputUsed(quantum, handle)
+
+        Record that the given :py:class:`DatasetHandle` as an actual (not just predicted) input of the given :ref:`Quantum`.
+
+        This updates both the Registry's :ref:`Quantum <sql_Quantum>` table and the Python :py:attr:`Quantum.actualInputs` attribute.
+
+        Raises an exception if ``handle`` is not already in the predicted inputs list.
 
     .. py:method:: addDataUnit(unit, replace=False)
 
@@ -114,6 +143,20 @@ Python API
         :param DataUnit unit: the :py:class:`DataUnit` to add or replace.
 
         :param bool replace: if True, replace any matching :ref:`DataUnit` that already exists (updating its non-unique fields) instead of raising an exception.
+
+        *Not supported by limited Registries.*
+
+    .. py:method:: findDataUnit(cls, pkey)
+
+        Return a :ref:`DataUnit` given the values of its primary key.
+
+        :param type cls: a class that inherits from :py:class:`DataUnit`.
+
+        :param tuple pkey: a tuple of primary key values that uniquely identify the :ref:`DataUnit`; see :py:attr:`DataUnit.pkey`.
+
+        :returns: a :py:class:`DataUnit` instance of type ``cls``, or ``None`` if no matching unit is found.
+
+        See also :py:meth:`DataGraph.findDataUnit`.
 
         *Not supported by limited Registries.*
 
@@ -139,15 +182,17 @@ Python API
 
         :returns: a :py:class:`DatasetHandle` instance
 
-    .. py:method:: makeDataGraph(tag, expr, datasetTypes) -> DataGraph
+    .. py:method:: makeDataGraph(tag, expr, neededDatasetTypes, futureDatasetTypes) -> DataGraph
 
-        Evaluate a filter expression and a list of :ref:`DatasetTypes <DatasetType>` and return a :ref:`DataGraph`.
+        Evaluate a filter expression and lists of :ref:`DatasetTypes <DatasetType>` and return a :ref:`DataGraph`.
 
         :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to search.
 
         :param str expr: an expression that limits the :ref:`DataUnits <DataUnit>` and (indirectly) the :ref:`Datasets <Dataset>` returned.
 
-        :param list[DatasetType] datasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances should be included in the graph.
+        :param list[DatasetType] neededDatasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances should be included in the graph and limit its extent.
+
+        :param list[DatasetType] futureDatasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances will be added to the graph later, which requires that their :ref:`DataUnit` types must be present in the graph.
 
         .. todo::
 

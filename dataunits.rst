@@ -46,6 +46,8 @@ Python API
 
         A tuple of POD values that uniquely identify the DataUnit, corresponding to the values in the SQL primary key.
 
+        *Primary keys in Python are always tuples, even when a single value is needed to identify the DataUnit type.*
+
     .. py:attribute:: value
 
         Read-only pure-virtual instance attribute (must be implemented by subclasses).
@@ -98,11 +100,13 @@ Python API
 
         This method must be used to populate the ``unit_pack`` field in the :ref:``sql_Dataset table`.
 
-    .. py::method:: expand(registry, values)
+    .. py::method:: expand(findfunc, values)
 
-        Transform a dictionary of DataUnit instances from a dictionary of DataUnit "values" by querying the given :py:class:`Registry`.
+        Transform a dictionary of DataUnit instances from a dictionary of DataUnit "values".
 
-        This can (and generally should) be used by concrete :ref:`Registries <Registry>` to implement :py:meth:`Registry.expand`, as it only uses :py:class:`Registry.query`.
+        :param findfunc: a callable with the same signature and behavior :py:meth:`Registry.findDataUnit` or :py:meth:`DataUnit.findDataUnit`.
+
+        This can (and generally should) be used by concrete :ref:`Registries <Registry>` to implement :py:meth:`Registry.expand`.
 
 
 SQL Representation

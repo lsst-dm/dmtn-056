@@ -75,6 +75,12 @@ Python API
             Recursive composites were broken by a minor update.
             Would probably not be hard to add back in if we decide we need them, but they'd make the logic a bit harder to follow so not worth doing now.
 
+        .. todo::
+
+            It'd be really nice if we could return the :py:class:`DatasetHandle` back to the user somehow if the input is just a :py:class:`DatasetLabel` or :py:class:`DatasetRef`; a SuperTask caller will need a :py:class:`DatasetHandle` to record "actual input" provenance.
+            Or maybe the activator can turn all ``predictedInputs`` a Quantum into handles before calling the task?
+            That'd be nice for raising exceptions earlier, too.
+
     .. py:method:: put(label, dataset, producer)
 
         :param DatasetLabel label: a :py:class:`DatasetLabel` that will identify the :ref:`Dataset` being stored.
@@ -95,7 +101,7 @@ Python API
 
     .. todo::
 
-        How much more of :ref:`Registry's <Registry>` should Butler forward.
+        How much more of :ref:`Registry's <Registry>` should Butler forward?
 
 
 .. py:class:: ButlerConfiguration

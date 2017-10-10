@@ -536,6 +536,18 @@ Python API
 
         :param Quantum producer: the :py:class:`Quantum` responsible for producing the :ref:`Dataset`.
 
+    .. py:method:: findDataUnit(cls, pkey)
+
+        Return a :ref:`DataUnit` given the values of its primary key.
+
+        :param type cls: a class that inherits from :py:class:`DataUnit`.
+
+        :param tuple pkey: a tuple of primary key values that uniquely identify the :ref:`DataUnit`; see :py:attr:`DataUnit.pkey`.
+
+        :returns: a :py:class:`DataUnit` instance of type ``cls``, or ``None`` if no matching unit is found in the graph.
+
+        See also :py:meth:`Registry.findDataUnit`.
+
     .. py:method:: relate(unitTypes)
 
         Iterate over tuples of :py:class:`DataUnits <DataUnit>` related by dependency and many-to-many relationships.
