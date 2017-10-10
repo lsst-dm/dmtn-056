@@ -710,6 +710,8 @@ Python API
         Add other methods from ``lsst.skymap.BaseSkyMap``, including iteration over Tracts.
         That may suggest removing :py:meth:`makeTracts` if it becomes redundant, or adding arguments to :py:meth:`deserialize` to provide Tracts and Patches from their tables instead of the blob.
 
+        What is the connection between ``serialize()``, ``deserialize()`` and ``__reduce__``?
+
 
 .. _sql_SkyMap:
 
@@ -718,7 +720,7 @@ SQL Representation
 +----------------+---------+--------------+
 | *SkyMap*                                |
 +================+=========+==============+
-| name           | varchar | NOt nUll     |
+| name           | varchar | NOT NULL     |
 +----------------+---------+--------------+
 | module         | varchar | NOT NULL     |
 +----------------+---------+--------------+
