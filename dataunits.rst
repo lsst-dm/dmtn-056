@@ -163,7 +163,7 @@ SQL Representation
 Camera
 ------
 
-Camera :ref:`DataUnit` <DataUnit>` are essentially just sources of raw data with a constant layout of PhysicalSensors and a self-constent numbering system for Visits.
+Camera :ref:`DataUnit <DataUnit>` are essentially just sources of raw data with a constant layout of PhysicalSensors and a self-constent numbering system for Visits.
 
 Different versions of the same camera (due to e.g. changes in hardware) should still correspond to a single Camera :ref:`DataUnit`.
 There are thus multiple ``afw.cameraGeom.Camera`` objects associated with a single Camera :ref:`DataUnit`; the most natural approach to relating them would be to store the ``afw.cameraGeom.Camera`` as a :ref:`MasterCalib` :ref:`Dataset`.
