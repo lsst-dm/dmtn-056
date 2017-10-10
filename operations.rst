@@ -107,7 +107,7 @@ This is most easily supported by through a **caching** :ref:`Datastore`. The :re
     DatastoreCache -> Datastore [arrowtail=odiamond];
     Butler -> Registry [arrowtail=odiamond];
 
-An trivial implementation, for a non-persistent cache, could be:
+A trivial implementation, for a non-persistent cache, could be:
 
 .. py:class:: DatastoreCache
 
