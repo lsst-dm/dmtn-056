@@ -203,6 +203,19 @@ Python API
         *Limited Registries will import only some of the information exported by full Registry.*
 
 
+.. _TableSet:
+
+TableSet
+--------
+
+A serialializable set of exported database tables.
+
+.. note::
+
+    A :ref:`TableSet` does not need to cointain all information needed to recreate the database
+    tables themselves (since the tables are part of the common schema), but should contain all
+    nessesary information to recreate all the content within them.
+
 .. _Datastore:
 
 Datastore
@@ -245,6 +258,23 @@ Python API
         :param str path: A :ref:`Path` that provides a hint that the :ref:`Datastore` may use as [part of] the :ref:`URI`.
 
         :param str typeName: The :ref:`DatasetType` name, which may be used by the :ref:`Datastore` to override the default serialization format for the :ref:`StorageClass`.
+
+        :returns: the :py:class:`str` :ref:`URI` and a dictionary of :ref:`URIs <URI>` for the :ref:`Dataset's <Dataset>` components.  The latter will be empty (or None?) if the :ref:`Dataset` is not a composite.
+
+    .. py:method:: transfer(inputDatastore, inputUri, storageClass, path, typeName=None) -> URI, {name: URI}
+
+        Retrieve a :ref:`Dataset` with a given :ref:`URI` from an input :ref:`Datastore`,
+        and store the result in this :ref:`Datastore`.
+
+        :param Datastore inputDatastore: the external :ref:`Datastore` from which to retreive the :ref:`Dataset`.
+
+        :param str inputUri: the :ref:`URI` of the :ref:`Dataset` in the input :ref:`Datastore`.
+
+        :param StorageClass storageClass: the :ref:`StorageClass` associated with the :ref:`DatasetType`.
+
+        :param str path: A :ref:`Path` that provides a hint that this :ref:`Datastore` may use as [part of] the :ref:`URI`.
+
+        :param str typeName: The :ref:`DatasetType` name, which may be used by this :ref:`Datastore` to override the default serialization format for the :ref:`StorageClass`.
 
         :returns: the :py:class:`str` :ref:`URI` and a dictionary of :ref:`URIs <URI>` for the :ref:`Dataset's <Dataset>` components.  The latter will be empty (or None?) if the :ref:`Dataset` is not a composite.
 
