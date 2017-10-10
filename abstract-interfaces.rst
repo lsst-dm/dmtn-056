@@ -247,15 +247,17 @@ Python API
 
         *Not supported by limited Registries.*
 
-    .. py:method:: import(tableSet)
+    .. py:method:: import(tableSet, tag)
 
         Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
 
         :param tableSet a :ref:`TableSet` containing the exported content.
 
+        :param tag str: an additional CollectionTag assigned to the newly imported :ref:`Datasets <Dataset>`.
+
         *Limited Registries will import only some of the information exported by full Registry.*
 
-    .. py:method:: transfer(inputRegistry, expr)
+    .. py:method:: transfer(inputRegistry, expr, tag)
 
         Transfer contents from input :ref:`Registry`, limited to those reachable from the :ref:`Datasets <Dataset>` identified
         by the expression ``expr``, into this :ref:`Registry`.

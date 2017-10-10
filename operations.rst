@@ -92,30 +92,46 @@ There are three cases:
 
 We will ignore the last one for now and focus on the first two instead.
 
-The first case is implemented by swapping the remote registry for a newly created
-local one after transfering the requested subset into it using ``registry.transfer``.
+.. py:function:: transfer(dst, src, expr, tag, copyDatasets=False)
 
-.. code:: python
+    Transfer :ref:`Datasets <Dataset>` and related entities between :ref:`Butlers <Butler>`.
 
-    oldRegistry = butler.registry
-    newRegistry = Registry() # in practice probably an explicit subclass or factory function
-    newRegistry.transfer(oldRegistry, expr)
-    butler.registry = newRegistry
+    :param Butler dst: :ref:`Butler` instance of destination.
+    :param Butler src: :ref:`Butler` instance of source.
+    :param str expr: an expression (SQL query that evaluates to a list of dataset_id) that selects the Datasets.
+    :param str tag: a CollectionTag used to identify the requested transfered :ref:`Datasets <Dataset>` in the :ref:`Registry` of the destination :ref:`Butler`.
+    :param bool copyDatasets: Should the :ref:`Datasets <Dataset>` be copied from the source to the destination :ref:`Datastore`?
 
-.. note::
+    A possible implementation could be:
 
-    Swapping after the transfer is complete prevents corrupting the :ref:`Butler` instance.
+    .. code:: python
+    
+        dst.registry.transfer(src.registry, expr, tag)
 
-After this step, all :ref:`URIs <URI>` still point to the remote :ref:`Datastore`. If the user decides to also transfer the files themselves to a local :ref:`Datastore` this can be implemented using ``datastore.transfer``.
+        if copyDatasets:
+            for label in dst.query(
+                # get DatasetLabels for all Datasets in tag
+                ):
 
-.. code:: python
+                ref = dst.registry.expand(label)
+                template = dst.config.templates.get(ref.type.name, None)
+                path = ref.makePath(dst.config.outputCollection, template)
+                handle = src.registry.find(tag, label)
 
-    newDatastore = Datastore() # in practice probably an explicit subclass or factory function
-    for datasetLabel in butler.registry.?:
-        uri, storageClass, path, typeName = butler.registry.?
-        uri, components = newDatastore.transfer(butler.datastore, uri, storageClass, path, typeName)
-        butler.registry.updateDatasetLocation?(datasetLabel, uri, components)
+                uri, components = dst.datastore.transfer(src.datastore, handle.uri, ref.type.storageClass, path, ref.type.name)
+                dst.registry.addDataset(tag, ref, uri, components, quantum)
+        else:
+            # The following assumes the old datastore was empty and that the datastore will be
+            # read-only.  Otherwise we will have to some chaining.
+            dst.datastore = src.datastore
 
+
+    .. todo::
+
+        * Where does ``quantum`` come from?
+        * Should we update instead of add? 
+        * What should happen if the composition is different in the output datastore?
+        * Can we reuse the list of labels that we get from the initial registry transfer?
 
 Remote Access and Caching
 =========================
