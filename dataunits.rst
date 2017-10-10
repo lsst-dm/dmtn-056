@@ -163,7 +163,7 @@ SQL Representation
 Camera
 ------
 
-Camera :ref:`DataUnit <DataUnit>` are essentially just sources of raw data with a constant layout of PhysicalSensors and a self-constent numbering system for Visits.
+Camera :ref:`DataUnit <DataUnit>` are essentially just sources of raw data with a constant layout of :ref:`PhysicalSensors <PhysicalSensor>` and a self-constent numbering system for :ref:`Visits <Visit>`.
 
 Different versions of the same camera (due to e.g. changes in hardware) should still correspond to a single Camera :ref:`DataUnit`.
 There are thus multiple ``afw.cameraGeom.Camera`` objects associated with a single Camera :ref:`DataUnit`; the most natural approach to relating them would be to store the ``afw.cameraGeom.Camera`` as a :ref:`MasterCalib` :ref:`Dataset`.
@@ -445,6 +445,10 @@ SQL Representation
 | region                | blob     |          |
 +-----------------------+----------+----------+
 
+.. todo::
+
+    Visits should probably have a fair amount of additional metadata.
+
 
 .. _ObservedSensor:
 
@@ -454,10 +458,6 @@ ObservedSensor
 An ObservedSensor is simply a combination of a :ref:`Visit` and a :ref:`PhysicalSensor`.
 
 Unlike most other :ref:`DataUnit join tables <dataunit_joins>` (which are not typically :ref:`DataUnits <DataUnit>` themselves), this one is both ubuiquitous and contains additional information: a ``region`` that represents the position of the observed sensor image on the sky.
-
-.. todo::
-
-    Visits should probably have a fair amount of additional metadata.
 
 Value:
     None
