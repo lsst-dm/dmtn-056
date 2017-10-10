@@ -51,6 +51,11 @@ Foreign Keys:
 
 This tables should be present even in :ref:`Registries <Registry>` that only represent a single Collection (though in this case it may of course be a trivial views on :ref:`sql_Dataset`).
 
+.. todo::
+
+    Storing the tag name for every :ref:`Dataset` is costly (but may be mitigated by compression).
+    Perhaps better to have a separate :ref:`Collection` table and reference by ``collection_id`` instead?
+
 .. _Run:
 
 Run
