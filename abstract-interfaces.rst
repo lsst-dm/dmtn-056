@@ -255,6 +255,17 @@ Python API
 
         *Limited Registries will import only some of the information exported by full Registry.*
 
+    .. py:method:: transfer(inputRegistry, expr)
+
+        Transfer contents from input :ref:`Registry`, limited to those reachable from the :ref:`Datasets <Dataset>` identified
+        by the expression ``expr``, into this :ref:`Registry`.
+
+        Implemented as:
+
+        .. code:: python
+
+            def transfer(self, inputRegistry, expr):
+                self.import(inputRegistry.export(expr))
 
 .. _TableSet:
 

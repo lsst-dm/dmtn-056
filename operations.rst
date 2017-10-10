@@ -82,9 +82,39 @@ This process is most easily understood by reading the API documentation for :py:
 Transferring Registries and Datastores
 ======================================
 
-.. todo::
+A user has a :ref:`Butler` instance that holds a :ref:`Registry` client instance and a :ref:`Datastore` client instance, both connected to their remote server equivalents. Now the user wants to obtain a local subset of the upstream :ref:`Datasets <Dataset>` (and all related :ref:`DataUnits <DataUnit>`, :ref:`DatasetTypes <DatasetType>` and possibly :ref:`Quanta <Quantum>` and :ref:`Collections <Collection>`) held by the :ref:`Registry`.
 
-    Fill this in: make a new Registry with new URIs from a subset, transfer Datasets into a new Datastore explicitly.
+There are three cases:
+
+* Transfer a subset of the :ref:`Registry`, but not the actual :ref:`Datasets <Dataset>` held by the :ref:`Datastore`, and
+* Transfer both a subset of the :ref:`Registry` and the :ref:`Datasets <Dataset>` themselves.
+* *Transfer only the* :ref:`Datasets <Dataset>` *from the* :ref:`Datastore` *but keep the remote* :ref:`Registry`.
+
+We will ignore the last one for now and focus on the first two instead.
+
+The first case is implemented by swapping the remote registry for a newly created
+local one after transfering the requested subset into it using ``registry.transfer``.
+
+.. code:: python
+
+    oldRegistry = butler.registry
+    newRegistry = Registry() # in practice probably an explicit subclass or factory function
+    newRegistry.transfer(oldRegistry, expr)
+    butler.registry = newRegistry
+
+.. note::
+
+    Swapping after the transfer is complete prevents corrupting the :ref:`Butler` instance.
+
+After this step, all :ref:`URIs <URI>` still point to the remote :ref:`Datastore`. If the user decides to also transfer the files themselves to a local :ref:`Datastore` this can be implemented using ``datastore.transfer``.
+
+.. code:: python
+
+    newDatastore = Datastore() # in practice probably an explicit subclass or factory function
+    for datasetLabel in butler.registry.?:
+        uri, storageClass, path, typeName = butler.registry.?
+        uri, components = newDatastore.transfer(butler.datastore, uri, storageClass, path, typeName)
+        butler.registry.updateDatasetLocation?(datasetLabel, uri, components)
 
 
 Remote Access and Caching
