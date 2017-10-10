@@ -151,8 +151,16 @@ An trivial implementation, for a non-persistent cache, could be:
 SuperTask Pre-Flight and Execution
 ==================================
 
+.. note::
+
+    This description currently has the SuperTask *control code* operating directly on :ref:`Registry` and :ref:`Datastore` objects instead of :ref:`Butlers <Butler>`.
+    Actual SuperTasks, of course, still only see a :ref:`Butler`.
+    But we should decide when the design is more mature whether to hide the interfaces the control code uses behind :ref:`Butler` as well.
+
 Preflight
 ---------
+
+SuperTask Preflight begins with an activator
 
 .. todo::
 

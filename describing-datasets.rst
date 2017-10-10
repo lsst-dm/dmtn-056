@@ -351,8 +351,6 @@ All three classes are immutable.
         Read-only instance attribute.
 
         A tuple (or ``frozenset``?) of :py:class:`DataUnit` instances that label the :ref:`DatasetRef` within a :ref:`Collection`.
-        Because the :py:class:`DataUnit` instances may link to other :py:class:`DataUnit` instances, a collection of DatasetRefs naturally forms a graph structure.
-        This is discussed more fully in the documentation for :ref:`DataGraph`.
 
     .. py:method:: makePath(tag, template=None) -> Path
 
@@ -372,7 +370,7 @@ All three classes are immutable.
 
         The :py:class:`Quantum` instance that produced (or will produce) the :ref:`Dataset`.
 
-        Read-only; update via :py:meth:`Registry.addDataset`, :py:meth:`DataGraph.addDataset`, or :py:meth:`Butler.put`.
+        Read-only; update via :py:meth:`Registry.addDataset`, :py:meth:`QuantumGraph.addDataset`, or :py:meth:`Butler.put`.
 
         May be None.
 
@@ -380,7 +378,7 @@ All three classes are immutable.
 
         A sequence of :py:class:`Quantum` instances that list this :ref:`Dataset` in their :py:attr:`predictedInputs <Quantum.predictedInputs>` attributes.
 
-        Read-only; update via :py:meth:`Quantum.addInput`.
+        Read-only; update via :py:meth:`Quantum.addPredictedInput`.
 
         May be None.
 
@@ -388,7 +386,7 @@ All three classes are immutable.
 
         A sequence of :py:class:`Quantum` instances that list this :ref:`Dataset` in their :py:attr:`actualInputs <Quantum.actualInputs>` attributes.
 
-        Read-only; update via :py:meth:`Quantum.addInput`.
+        Read-only; update via :py:meth:`Registry.markInputUsed`.
 
         May be None.
 
@@ -495,71 +493,3 @@ SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
 URIs are stored as a field in the :ref:`Dataset table <sql_Dataset>`.
-
-
-.. _DataGraph:
-
-DataGraph
----------
-
-A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`DataUnits <DataUnit>` and/or :ref:`Quanta <Quantum>`, and the edges are the relations between them.
-
-Python API
-^^^^^^^^^^
-
-.. py:class:: DataGraph
-
-    .. py:attribute:: datasets
-
-        A dictionary with :ref:`DatasetType` names as keys and sets of :py:class:`DatasetRefs <DatasetRef>` of those types as values.
-
-        Read-only (possibly only by convention); use :py:meth:`addDataset` to insert new :py:class:`DatasetRefs <DatasetRef>`.
-
-    .. py:attribute:: quanta
-
-        A sequence of :py:class:`Quantum` instances whose order is consistent with their dependency ordering.
-
-        Read-only (possibly only by convention); use :py:meth:`addQuantum` to insert new :py:class:`Quantums <Quantum>`.
-
-    .. py:method:: addQuantum(quantum)
-
-        Add a :py:class:`Quantum` to the graph.
-
-        Any entries in :py:attr:`Quantum.predictedInputs` or :py:attr:`Quantum.actualInputs` must already be present in the graph.
-        The :py:attr:`Quantum.outputs` attribute should be empty.
-
-    .. py:method:: addDataset(ref, producer)
-
-        Add a :py:class:`DatasetRef` to the graph.
-
-        :param DatasetRef ref: a pointer to the :ref:`Dataset` to be added.
-
-        :param Quantum producer: the :py:class:`Quantum` responsible for producing the :ref:`Dataset`.
-
-    .. py:method:: findDataUnit(cls, pkey)
-
-        Return a :ref:`DataUnit` given the values of its primary key.
-
-        :param type cls: a class that inherits from :py:class:`DataUnit`.
-
-        :param tuple pkey: a tuple of primary key values that uniquely identify the :ref:`DataUnit`; see :py:attr:`DataUnit.pkey`.
-
-        :returns: a :py:class:`DataUnit` instance of type ``cls``, or ``None`` if no matching unit is found in the graph.
-
-        See also :py:meth:`Registry.findDataUnit`.
-
-    .. py:method:: relate(unitTypes)
-
-        Iterate over tuples of :py:class:`DataUnits <DataUnit>` related by dependency and many-to-many relationships.
-
-        :param DataUnitTypeSet unitTypes: a tuple of :py:class:`DataUnit` (subclass) instances.
-
-        :returns: an iterator over tuples of :ref:`DataUnit` (subclass) instances.
-
-        .. todo::
-
-            Implementing this method will require DataGraph to have more state than just the :py:attr:`datasets` and :py:attr:`quanta` attributes.
-            The extra state I have in mind is a table containing all of the :ref:`DataUnit` values for the :ref:`DataUnit` types included in the graph (which will include lots of NULLs, of course).
-            That's the natural result of the SQL that :py:meth:`Registry.makeDataGraph`, which works out perfectly for the SuperTask Preflight use case.
-            But we don't have an easy way to make that table when we instead construct a DataGraph to report the provenance of existing :ref:`Datasets <Dataset>`, and I'm inclined to just let the method throw in that case.
-            A slightly cleaner but more verbose option would be to return to having two completely distinct graph classes.

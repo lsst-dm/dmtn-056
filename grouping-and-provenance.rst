@@ -23,7 +23,7 @@ Python API
 
 CollectionTags are simply Python strings.
 
-A :ref:`DataGraph` may be constructed to hold exactly the contents of a single :ref:`Collection`, but does not do so in general.
+A :ref:`QuantumGraph` may be constructed to hold exactly the contents of a single :ref:`Collection`, but does not do so in general.
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
@@ -159,7 +159,7 @@ Python API
 
         Input :ref:`Datasets <Dataset>` that have already been stored may be :py:class:`DatasetHandles <DatasetHandle>`, and in many contexts may be guaranteed to be.
 
-        Read only; update via :py:meth:`addInput`.
+        Read only; update via :py:meth:`addPredictedInput`.
 
     .. py:attribute:: actualInputs
 
@@ -179,7 +179,7 @@ Python API
 
         A dictionary of output datasets, with the same form as :py:attr:`predictedInputs`.
 
-        Read-only; update via :py:meth:`Registry.addDataset`, :py:meth:`DataGraph.addDataset`, or :py:meth:`Butler.put`.
+        Read-only; update via :py:meth:`Registry.addDataset`, :py:meth:`QuantumGraph.addDataset`, or :py:meth:`Butler.put`.
 
     .. py:attribute:: task
 
@@ -187,7 +187,7 @@ Python API
         If not, a human-readable string identifier for the operation.
         Some :ref:`Registries <Registry>` may permit value to be None, but are not required to in general.
 
-    .. py::attribute:: pkey
+    .. py:attribute:: pkey
 
         The ``(quantum_id, registry_id)`` tuple used to uniquely identify this Run, or ``None`` if it has not yet been inserted into a :ref:`Registry`.
 
@@ -249,3 +249,49 @@ However, all :ref:`Registries <Registry>` (including *limited* Registries) are r
 .. note::
 
    As with everything else in the common Registry schema, the provenance system used in the operations data backbone will almost certainly involve additional fields and tables, and what's in the schema will just be a view.  But the provenance tables here are even more of a blind straw-man than the rest of the schema (which is derived more directly from SuperTask requirements), and I certainly expect it to change based on feedback; I think this reflects all that we need outside the operations system, but how operations implements their system should probably influence the details.
+
+
+.. _QuantumGraph:
+
+QuantumGraph
+------------
+
+A graph in which the nodes are :ref:`DatasetRefs <DatasetRef>` and :ref:`Quanta <Quantum>` and the edges are the producer/consumer relations between them.
+
+Python API
+^^^^^^^^^^
+
+.. py:class:: QuantumGraph
+
+    .. py:attribute:: datasets
+
+        A dictionary with :ref:`DatasetType` names as keys and sets of :py:class:`DatasetRefs <DatasetRef>` of those types as values.
+
+        Read-only (possibly only by convention); use :py:meth:`addDataset` to insert new :py:class:`DatasetRefs <DatasetRef>`.
+
+    .. py:attribute:: quanta
+
+        A sequence of :py:class:`Quantum` instances whose order is consistent with their dependency ordering.
+
+        Read-only (possibly only by convention); use :py:meth:`addQuantum` to insert new :py:class:`Quantums <Quantum>`.
+
+    .. py:method:: addQuantum(quantum)
+
+        Add a :py:class:`Quantum` to the graph.
+
+        Any entries in :py:attr:`Quantum.predictedInputs` or :py:attr:`Quantum.actualInputs` must already be present in the graph.
+        The :py:attr:`Quantum.outputs` attribute should be empty.
+
+    .. py:method:: addDataset(ref, producer)
+
+        Add a :py:class:`DatasetRef` to the graph.
+
+        :param DatasetRef ref: a pointer to the :ref:`Dataset` to be added.
+
+        :param Quantum producer: the :py:class:`Quantum` responsible for producing the :ref:`Dataset`.  Must already be present in the graph.
+
+    .. py:attribute:: units
+
+        A :py:class:`DataUnitMap` that describes the relationships between the :ref:`DataUnits <DataUnit>` that label the graph's :ref:`Datasets <Dataset>`.
+
+        May be ``None`` in some QuantumGraphs.

@@ -51,8 +51,7 @@ They can use this instance to:
 
 * Load a :ref:`Dataset` associated with a particular :py:class:`DatasetLabel`,
 * Store a :ref:`Dataset` associated with a particular :py:class:`DatasetLabel`, and
-* Obtain a :ref:`DataGraph`, which is a related set of :ref:`DatasetRefs <DatasetRef>` and
-  :ref:`DataUnits <DataUnit>` corresponding to a (limited) SQL query.
+* Obtain a metadata and relationship information via SQL queries.
 
 The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Registry`
 and **a single instance** of :ref:`Datastore`, to which it delegates the calls (note, however,
