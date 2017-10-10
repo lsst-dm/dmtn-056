@@ -156,7 +156,7 @@ Python API
 
         :returns: a :py:class:`DataUnit` instance of type ``cls``, or ``None`` if no matching unit is found.
 
-        See also :py:meth:`DataGraph.findDataUnit`.
+        See also :py:meth:`DataUnitMap.findDataUnit`.
 
         *Not supported by limited Registries.*
 
@@ -182,9 +182,9 @@ Python API
 
         :returns: a :py:class:`DatasetHandle` instance
 
-    .. py:method:: makeDataGraph(tag, expr, neededDatasetTypes, futureDatasetTypes) -> DataGraph
+    .. py:method:: makeDataGraph(tag, expr, neededDatasetTypes, futureDatasetTypes)
 
-        Evaluate a filter expression and lists of :ref:`DatasetTypes <DatasetType>` and return a :ref:`DataGraph`.
+        Evaluate a filter expression and lists of :ref:`DatasetTypes <DatasetType>` and return a :ref:`QuantumGraph`.
 
         :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to search.
 
@@ -192,13 +192,13 @@ Python API
 
         :param list[DatasetType] neededDatasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances should be included in the graph and limit its extent.
 
-        :param list[DatasetType] futureDatasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances will be added to the graph later, which requires that their :ref:`DataUnit` types must be present in the graph.
+        :param list[DatasetType] futureDatasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances may be added to the graph later, which requires that their :ref:`DataUnit` types must be present in the graph.
 
         .. todo::
 
             More complete description for expressions.
 
-        :returns: a :ref:`DataGraph` instance
+        :returns: a :ref:`QuantumGraph` instance with a :py:attr:`QuantumGraph.units` attribute that is not ``None``.
 
         *Not supported by limited Registries.*
 
@@ -227,6 +227,14 @@ Python API
         :param list[str] inputTags: a list of :ref:`CollectionTags <Collection>` to combine.
 
         *Not supported by limited Registries.*
+
+    .. py:method:: makeProvenanceGraph(expr, types=None)
+
+        Return a :ref:`QuantumGraph` that contains the full provenance of all :ref:`Dataset <Dataset>` matching an expression.
+
+        :param str expr: an expression (SQL query that evaluates to a list of ``dataset_id``) that selects the :ref:`Datasets <Dataset>`.
+
+        :return: a :py:class:`QuantumGraph` instance (with :py:attr:`units <QuantumGraph.units>` set to None).
 
     .. py:method:: export(expr) -> TableSet
 

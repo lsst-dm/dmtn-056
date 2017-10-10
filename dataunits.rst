@@ -77,19 +77,35 @@ Python API
 
         Initialize the DataUnitTypeSet with a reordered and augmented version of the given DataUnit types as described above.
 
-    .. py::method:: __iter__()
+    .. py:method:: __iter__()
 
         Iterate over the DataUnit types in the set.
 
-    .. py::method:: __len__()
+    .. py:method:: __len__()
 
         Return the number of DataUnit types in the set.
 
-    .. py::method:: __getitem__(name)
+    .. py:method:: __eq__(other)
+
+        Compare two DataUnitTypeSets for equality.
+
+        Also supports comparisons with other sequences by converting them to DataUnitTypeSets.
+
+    .. py:method:: __ne__(other)
+
+        Compare two DataUnitTypeSets for inequality.
+
+        Also supports comparisons with other sequences by converting them to DataUnitTypeSets.
+
+    .. py:method:: __contains__(k)
+
+        Return True if the DataUnitTypeSet contains either the given DataUnit type or DataUnit type name.
+
+    .. py:method:: __getitem__(name)
 
         Return the DataUnit type with the given name.
 
-    .. py::method:: pack(values)
+    .. py:method:: pack(values)
 
         Compute an integer that uniquely identifies the given combination of
         :ref:`DataUnit` values.
@@ -98,15 +114,63 @@ Python API
 
         :returns: a 64-bit unsigned :py:class:`int`.
 
-        This method must be used to populate the ``unit_pack`` field in the :ref:``sql_Dataset table`.
+        This method must be used to populate the ``unit_pack`` field in the :ref:`sql_Dataset` table.
 
-    .. py::method:: expand(findfunc, values)
+    .. py:method:: expand(findfunc, values)
 
         Transform a dictionary of DataUnit instances from a dictionary of DataUnit "values".
 
-        :param findfunc: a callable with the same signature and behavior :py:meth:`Registry.findDataUnit` or :py:meth:`DataUnit.findDataUnit`.
+        :param findfunc: a callable with the same signature and behavior :py:meth:`Registry.findDataUnit` or :py:meth:`DataUnitMap.findDataUnit`.
 
         This can (and generally should) be used by concrete :ref:`Registries <Registry>` to implement :py:meth:`Registry.expand`.
+
+
+.. py:class:: DataUnitMap
+
+    An object that holds a collection of related DataUnits.
+
+    .. py:attribute:: types
+
+        A :py:class:`DataUnitTypeSet` containing exactly the DataUnit types present in the map.
+
+    .. py:method:: extract(types)
+
+        Iterate over tuples of DataUnit instances.
+
+        :param DataUnitTypeSet types: the DataUnit types to iterate over.  Must be a subset of :py:attr:`self.types <DataUnitMap.types>`.
+
+        :returns: a sequence of tuples of DataUnits whose types correspond to the ``types`` argument (in the same order).
+
+    .. py:method:: group(types)
+
+        Group the DataUnitMap according to a subset of its DataUnit types.
+
+        :param DataUnitTypeSet types: the DataUnit types to group by.  Must be a subset of :py:attr:`self.types <DataUnitMap.types>`.
+
+        :returns: a sequence of tuples of ``(units, submap)``, where ``types`` is a tuple of DataUnits whose types correspond to the ``types`` argument (in the same order), and ``submap`` is a DataUnitMap containing only the DataUnits and DatasetRefs related to the ones in ``units``.  The types in ``submap`` are the same as those in ``self``.
+
+        For example, the following code performs a nested iteration over the :ref:`Tracts <Tract>` and :ref:`Patches <Patch>` in a DataUnitMap
+
+        .. code:: python
+
+            assert map.types == (SkyMap, Tract, Patch)
+
+            for (skymap, tract), submap in map.group((SkyMap, Tract)):
+                assert submap.types == (SkyMap, Tract, Patch)
+                for patch in submap.extract(Patch):
+                    ...
+
+    .. py:method:: findDataUnit(cls, pkey)
+
+        Return a :ref:`DataUnit` given the values of its primary key.
+
+        :param type cls: a class that inherits from :py:class:`DataUnit`.
+
+        :param tuple pkey: a tuple of primary key values that uniquely identify the :ref:`DataUnit`; see :py:attr:`DataUnit.pkey`.
+
+        :returns: a :py:class:`DataUnit` instance of type ``cls``, or ``None`` if no matching unit is found.
+
+        See also :py:meth:`Registry.findDataUnit`.
 
 
 SQL Representation

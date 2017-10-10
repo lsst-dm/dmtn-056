@@ -7,7 +7,7 @@ DataUnit Joins
 The tables (which of course may be views) in this section define many-to-many joins between :ref:`DataUnits <DataUnit>`.
 Each consists of only the (compound) primary key fields of the tables being joined.
 
-These join tables have no direct representation in Python, though the connections they define appear in a :py:class:`DataGraph`.
+These join tables have no direct representation in Python, though the connections they define appear in a :py:class:`DataUnitMap`.
 
 The following direct connections exist:
 
