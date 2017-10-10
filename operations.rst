@@ -90,10 +90,63 @@ Transferring Registries and Datastores
 Remote Access and Caching
 =========================
 
+The user has a :ref:`Butler` instance. This :ref:`Butler` instance holds a local :ref:`Registry` client instance, that is connected to a remote **read-only** :ref:`Registry` server (database). It also holds a local :ref:`Datastore` client that also is connected to a remote :ref:`Datastore`.
+
+The user now calls ``butler.get()`` to obtain an :ref:`InMemoryDataset` from the :ref:`Datastore`. Then does some further processing, and subsequently wants to load the **same** :ref:`InMemoryDataset` again.
+
+This is most easily supported by through a **caching** :ref:`Datastore`. The :ref:`Butler` now holds an instance of the caching :ref:`Datastore` instead. And the caching :ref:`Datastore` in turn holds the client to the remote :ref:`Datastore`.
+
+.. digraph:: ButlerWithDatastoreCache
+    :align: center
+
+    node[shape=record]
+    edge[dir=back, arrowtail=empty]
+
+    Butler -> ButlerConfiguration [arrowtail=odiamond];
+    Butler -> DatastoreCache [arrowtail=odiamond];
+    DatastoreCache -> Datastore [arrowtail=odiamond];
+    Butler -> Registry [arrowtail=odiamond];
+
+An trivial implementation, for a non-persistent cache, could be:
+
+.. py:class:: DatastoreCache
+
+    .. py:attribute:: cache
+
+        A dictionary of ``{(URI, parameters) : InMemoryDataset}``.
+
+    .. py:attribute:: datastore
+
+        The chained :ref:`Datastore`.
+
+    .. py:method:: __init__(datastore)
+
+        Initialize with chained :ref:`Datastore`.
+
+    .. py:method:: get(uri, parameters=None)
+
+        Implemented as:
+
+        .. code:: python
+
+            def get(uri, parameters=None):
+                if (uri, parameters) not in self.cache:
+                    self.cache[(uri, parameters)] = self.datastore.get(uri, parameters)
+
+                return self.cache[(uri, parameters)]
+
+    .. py:method:: put(inMemoryDataset, storageClass, path, typeName=None) -> URI, {name: URI}
+
+        Direct forward to ``self.datastore.put``.
+
+    .. py:method:: transfer(inputDatastore, inputUri, storageClass, path, typeName=None) -> URI, {name: URI}
+
+        Direct forward to ``self.datastore.transfer`` (probably).
+
 .. todo::
 
-    Fill this in: use an upstream read-only Registry and a forwarding Datastore with a cache.
-
+    * What to when ``parameters`` differ? Should we re-slice?
+    * What about ``transfer``?
 
 SuperTask Pre-Flight and Execution
 ==================================
