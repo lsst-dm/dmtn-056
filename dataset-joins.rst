@@ -12,13 +12,13 @@ The following direct connections exist:
 .. graph:: dataset_dataunit_joins
     :align: center
 
-    PhysicalFilter -- Dataset
-    PhysicalSensor -- Dataset
     Visit -- Dataset
     Snap -- Dataset
-    AbstractFilter -- Dataset
     Tract -- Dataset
     Patch -- Dataset
+    AbstractFilter -- Dataset
+    PhysicalFilter -- Dataset
+    PhysicalSensor -- Dataset
 
 .. note::
 
