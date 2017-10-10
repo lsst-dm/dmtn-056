@@ -7,6 +7,19 @@ Dataset-DataUnit Joins
 The join tables in this section relate concrete :ref:`DataUnit <DataUnit>` to :ref:`Datasets <Dataset>`.
 They thus hold the information necessary to relate :ref:`DatasetRefs <DatasetRef>` to :ref:`Datasets <Dataset>`.
 
+The following direct connections exist:
+
+.. graph:: dataset_dataunit_joins
+    :align: center
+
+    PhysicalFilter -- Dataset
+    PhysicalSensor -- Dataset
+    Visit -- Dataset
+    Snap -- Dataset
+    AbstractFilter -- Dataset
+    Tract -- Dataset
+    Patch -- Dataset
+
 .. note::
 
     There is no join table to relate :ref:`Datasets <Dataset>` to :ref:`ObservedSensors <ObservedSensor>`, because the latter is itself a join table.

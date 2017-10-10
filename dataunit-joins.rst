@@ -9,6 +9,16 @@ Each consists of only the (compound) primary key fields of the tables being join
 
 These join tables have no direct representation in Python, though the connections they define appear in a :py:class:`DataGraph`.
 
+The following direct connections exist:
+
+.. graph:: dataunit_joins
+    :align: center
+
+    MasterCalib -- Visit;
+    Visit -- Patch;
+    Visit -- Tract;
+    Sensor -- Patch;
+    Sensor -- Tract;
 
 Calibration-Observation Joins
 -----------------------------
