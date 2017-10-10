@@ -1,5 +1,5 @@
 
-.. _cs_calibration_dataunits:
+.. _other_dataunits:
 
 Other DataUnits
 =====================
@@ -19,6 +19,9 @@ Value:
 Dependencies:
     None
 
+Many-to-Many Joins:
+    None
+
 Python API
 ^^^^^^^^^^
 
@@ -36,6 +39,8 @@ SQL Representation
 +--------+---------+-------------+
 | *AbstractFilter*               |
 +========+=========+=============+
-| name   | varchar | PRIMARY KEY |
+| name   | varchar | NOT NULL    |
 +--------+---------+-------------+
 
+Primary Key:
+    name
