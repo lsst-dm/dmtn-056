@@ -1,7 +1,157 @@
-.. _camera_dataunits:
 
-Camera DataUnits
-================
+.. _dataunits:
+
+DataUnit Reference
+==================
+
+.. _DataUnit:
+
+DataUnit
+--------
+
+A DataUnit is a discrete abstract unit of data that can be associated with metadata and used to label :ref:`Datasets <Dataset>`.
+
+Visit, tract, and filter are examples of *types* of DataUnits; individual visits, tracts, and filters would thus be DataUnit instances.
+
+Each DataUnit type has both a concrete Python class (inheriting from the abstract :py:class:`DataUnit` base class) and a SQL table in the common :ref:`Registry` schema.
+
+A DataUnit type may *depend* on another.
+In SQL, this is expressed as a foreign key field in the table for the dependent DataUnit that points to the primary key field of its table for the DataUnit it depends on.
+
+Some DataUnits represent joins between other DataUnits.
+A join DataUnit *depends* on the two DataUnits it connects, but is also included automatically in any sequence or container in which its dependencies are both present.
+
+Every DataUnit type also has a "value".
+This is a POD (usually a string or integer, but sometimes a tuple of these) that is both its default human-readable representation *and* a "semi-unique" identifier for the DataUnit: when combined with the "values" of any other :ref:`DataUnit`
+
+DataUnit tables in SQL typically have compound primary keys that include the primary keys of the DataUnits they depend on.  These primary keys are also meaningful in Python; they can be accessed as tuples via the :py:attr:`DataUnit.pkey` attribute and are frequently used in dictionaries containing :ref:`DataUnits`.
+
+The :py:class:`DataUnitTypeSet` class provides methods that enforce and utilize these rules, providing a centralized implementation to which all other objects that operate on groups of DataUnits can delegate.
+
+Transition
+^^^^^^^^^^
+
+The string keys of data ID dictionaries passed to the v14 Butler are similar to DataUnits.
+
+Python API
+^^^^^^^^^^
+
+.. py:class:: DataUnit
+
+    An abstract base class whose subclasses represent concrete :ref:`DataUnits <DataUnit>`.
+
+    .. py:attribute:: pkey
+
+        Read-only pure-virtual instance attribute (must be implemented by subclasses).
+
+        A tuple of POD values that uniquely identify the DataUnit, corresponding to the values in the SQL primary key.
+
+    .. py:attribute:: value
+
+        Read-only pure-virtual instance attribute (must be implemented by subclasses).
+
+        An integer or string that identifies the :ref:`DataUnit` when combined with any "foreign key" connections to other :ref:`DataUnits <DataUnit>`.
+        For example, a Visit's number is its value, because it uniquely labels a Visit as long as its Camera (its only foreign key :ref:`DataUnit`) is also specified.
+
+        .. todo::
+
+            Rephrase the above to make it more clear and preferably avoid using the phrase "foreign key", as that's a SQL concept that doesn't have an obvious meaning in Python.
+            We may need to have a Python way to expose the dependencies.
+
+.. py:class:: DataUnitTypeSet
+
+    An ordered tuple of unique DataUnit subclasses.
+
+    Unlike a regular Python tuple or set, a DataUnitTypeSet's elements are always sorted (by the DataUnit type name, though the actual sort order is irrelevant).
+    In addition, the inclusion of certain DataUnit types can automatically lead to to the inclusion of others.  This can happen because one DataUnit depends on another (most depend on either Camera or SkyMap, for instance), or because a DataUnit (such as ObservedSensor) represents a join between others (such as Visit and PhysicalSensor).
+    For example, if any of the following combinations of DataUnit types are used to initialize a DataUnitTypeSet, its elements will be ``[Camera, ObservedSensor, PhysicalSensor, Visit]``:
+
+    - ``[Visit, PhysicalSensor]``
+    - ``[ObservedSensor]``
+    - ``[Visit, ObservedSensor, Camera]``
+    - ``[Visit, PhysicalSensor, ObservedSensor]``
+
+    .. py:method:: __init__(elements)
+
+        Initialize the DataUnitTypeSet with a reordered and augmented version of the given DataUnit types as described above.
+
+    .. py::method:: __iter__()
+
+        Iterate over the DataUnit types in the set.
+
+    .. py::method:: __len__()
+
+        Return the number of DataUnit types in the set.
+
+    .. py::method:: __getitem__(name)
+
+        Return the DataUnit type with the given name.
+
+    .. py::method:: pack(values)
+
+        Compute an integer that uniquely identifies the given combination of
+        :ref:`DataUnit` values.
+
+        :param dict values: A dictionary that maps :ref:`DataUnit` type names to either the "values" of those units or actual :ref:`DataUnit` instances.
+
+        :returns: a 64-bit unsigned :py:class:`int`.
+
+        This method must be used to populate the ``unit_pack`` field in the :ref:``sql_Dataset table`.
+
+    .. py::method:: expand(registry, values)
+
+        Transform a dictionary of DataUnit instances from a dictionary of DataUnit "values" by querying the given :py:class:`Registry`.
+
+        This can (and generally should) be used by concrete :ref:`Registries <Registry>` to implement :py:meth:`Registry.expand`, as it only uses :py:class:`Registry.query`.
+
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
+There is one table for each :ref:`DataUnit` type, and a :ref:`DataUnit` instance is a row in one of those tables.
+Being abstract, there is no single table associated with :ref:`DataUnits <DataUnit>` in general.
+
+
+.. _AbstractFilter:
+
+AbstractFilter
+--------------
+
+AbstractFilters are used to label :ref:`Datasets <Dataset>` that aggregate data from multiple :ref:`Visits <Visit>` (and possibly multiple :ref:`Cameras <Camera>`.
+
+Having two different :ref:`DataUnits <DataUnit>` for filters is necessary to make it possible to combine data from :ref:`Visits <Visit>` taken with different :ref:`PhysicalFilters <PhysicalFilter>`.
+
+Value:
+    name
+
+Dependencies:
+    None
+
+Primary Key:
+    name
+
+Many-to-Many Joins:
+    None
+
+Python API
+^^^^^^^^^^
+
+.. py:class:: AbstractFilter
+
+    .. py:attribute:: name
+
+        The name of the filter.
+
+.. _sql_AbstractFilter:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
+
++--------+---------+-------------+
+| *AbstractFilter*               |
++========+=========+=============+
+| name   | varchar | NOT NULL    |
++--------+---------+-------------+
 
 
 .. _Camera:
@@ -21,6 +171,9 @@ Value:
 
 Dependencies:
     None
+
+Primary Key:
+    name
 
 Many-to-Many Joins:
     None
@@ -76,9 +229,6 @@ SQL Representation
 | module     | varchar | NOT NULL    |
 +------------+---------+-------------+
 
-Primary Key:
-    name
-
 ``module`` is a string containing a fully-qualified Python module that can be imported to ensure that ``Camera.instances[name]`` returns a :py:class:`Camera` instance.
 
 
@@ -95,8 +245,11 @@ Value:
     name
 
 Dependencies:
-    - :ref:`Camera`
-    - :ref:`AbstractFilter` (optional)
+    - (camera_name) -> :ref:`Camera` (name)
+    - (abstract_filter_name) -> :ref:`AbstractFilter` (optional)
+
+Primary Key:
+    camera_name, name
 
 Many-to-Many Joins:
     None
@@ -135,13 +288,6 @@ SQL Representation
 | abstract_filter_name | varchar |          |
 +----------------------+---------+----------+
 
-Primary Key:
-    (name, camera_name)
-
-Foreign Keys:
-    - (camera_name) references :ref:`Camera` (name)
-    - (abstract_filter_name) references :ref:`AbstractFilter` (name)
-
 
 .. _PhysicalSensor:
 
@@ -162,7 +308,10 @@ Value:
     number
 
 Dependencies:
-    - :ref:`Camera`
+    - (camera_name) -> :ref:`Camera` (name)
+
+Primary Key:
+    (number, camera_name)
 
 Many-to-Many Joins:
     - :ref:`Visit` via :ref:`ObservedSensor`
@@ -199,7 +348,6 @@ Python API
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
-
 +--------------------+---------+----------+
 | *PhysicalSensor*   |                    |
 +====================+=========+==========+
@@ -214,12 +362,6 @@ SQL Representation
 | purpose            | varchar |          |
 +--------------------+---------+----------+
 
-Primary Key:
-    (number, camera_name)
-
-Foreign Keys:
-    - (camera_name) references :ref:`Camera` (name)
-
 .. _Visit:
 
 Visit
@@ -233,7 +375,10 @@ Value:
     number
 
 Dependencies:
-    - :ref:`Camera`
+    - (camera_name) -> :ref:`Camera` (name)
+
+Primary Key:
+    (number, camera_name)
 
 Many-to-Many Joins:
     - :ref:`PhysicalSensor` via :ref:`ObservedSensor`
@@ -280,7 +425,6 @@ Python API
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
-
 +-----------------------+----------+----------+
 | *Visit*                          |          |
 +=======================+==========+==========+
@@ -296,13 +440,6 @@ SQL Representation
 +-----------------------+----------+----------+
 | region                | blob     |          |
 +-----------------------+----------+----------+
-
-Primary Key:
-    (number, camera_name)
-
-Foreign Keys:
-    - (camera_name) references :ref:`Camera` (name)
-    - (camera_name, physical_filter_name) references :ref:`PhysicalFilter` (camera_name, name)
 
 
 .. _ObservedSensor:
@@ -322,10 +459,15 @@ Value:
     None
 
 Dependencies:
-    - :ref:`Visit`
-    - :ref:`PhysicalSensor`
+    - (camera_name) -> :ref:`Camera` (name)
+    - (visit_number, camera_name) -> :ref:`Visit` (number, camera_name)
+    - (physical_sensor_number, camera_name) -> :ref:`PhysicalSensor` (number, camera_name)
+
+Primary Key:
+    (visit_number, physical_sensor_number, camera_name)
 
 Many-to-Many Joins:
+    - :ref:`MasterCalib` via :ref:`sql_MasterCalibVisitJoin`
     - :ref:`Tract` via :ref:`sql_SensorTractJoin`
     - :ref:`Patch` via :ref:`sql_SensorPatchJoin`
 
@@ -355,7 +497,6 @@ Python API
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
-
 +------------------------+---------+----------+
 | *ObservedSensor*                            |
 +========================+=========+==========+
@@ -367,14 +508,6 @@ SQL Representation
 +------------------------+---------+----------+
 | region                 | blob    |          |
 +------------------------+---------+----------+
-
-Primary Key:
-    (visit_number, physical_sensor_number, camera_name)
-
-Foreign Keys:
-    - (camera_name) references :ref:`Camera` (name)
-    - (camera_name, visit_number) references :ref:`Visit` (camera_name, number)
-    - (camera_name, physical_sensor_number) references :ref:`PhysicalSensor` (camera_name, number)
 
 
 .. _Snap:
@@ -390,7 +523,11 @@ Value:
     index
 
 Dependencies:
-    :ref:`Visit`
+    (camera_name) -> :ref:`Camera` (name)
+    (visit_number, camera_name) -> :ref:`Visit` (number, camera_name)
+
+Primary Key:
+    (index, visit_number, camera_name)
 
 Many-to-Many Joins:
     None
@@ -421,7 +558,6 @@ Python API
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
-
 +---------------+----------+----------+
 | *Snap*                              |
 +===============+==========+==========+
@@ -435,13 +571,6 @@ SQL Representation
 +---------------+----------+----------+
 | obs_end       | datetime | NOT NULL |
 +---------------+----------+----------+
-
-Primary Key:
-    (visit_number, index, camera_name)
-
-Foreign Keys:
-    - (camera_name) references :ref:`Camera` (name)
-    - (camera_name, visit_number) references :ref:`Visit` (camera_name, number)
 
 
 .. _MasterCalib:
@@ -467,8 +596,11 @@ Value:
     visit_begin, visit_end
 
 Dependencies:
-    - :ref:`Camera`
-    - :ref:`PhysicalFilter` (optional)
+    - (camera_name) -> :ref:`Camera` (name)
+    - (physical_filter_name, camera_name) -> :ref:`PhysicalFilter` (name, camera_name)
+
+Primary Key:
+    (visit_begin, visit_end, physical_filter_name, camera_name)
 
 Many-to-Many Joins:
     - :ref:`Visit` via :ref:`sql_MasterCalibVisitJoin`
@@ -515,9 +647,201 @@ SQL Representation
 | camera_name           | varchar | NOT NULL |
 +-----------------------+---------+----------+
 
-Primary Key:
-    (visit_begin, visit_end, camera_name, physical_filter_name)
 
-Foreign Keys:
-    - (camera_name) references :ref:`Camera` (name)
-    - (camera_name, physical_filter_name) references :ref:`Visit` (camera_name, number)
+.. _SkyMap:
+
+SkyMap
+------
+
+Each SkyMap entry represents a different way to subdivide the sky into tracts and patches, including any parameters involved in those definitions.
+
+SkyMaps in Python are part of a polymorphic hierarchy, but unlike Cameras, their instances are not singletons, so we can't just store them in a global dictionary in the software stack.
+Instead, we serialize SkyMap instances directly into the :ref:`Registry` as blobs.
+
+Value:
+    name
+
+Dependencies:
+    None
+
+Primary Key:
+    name
+
+Many-to-Many Joins:
+    None
+
+Transition
+^^^^^^^^^^
+
+Ultimately this SkyMap hierarchy should entirely replace those in the v14 SkyMap packages, and we'll store the SkyMap information directly in the Registry database rather than a separate pickle file.
+There's no need for two parallel class hierarchies to represent the same concepts.
+
+Python API
+^^^^^^^^^^
+
+.. py:class:: SkyMap
+
+    .. py:attribute:: name
+
+        A unique, human-readable name for the SkyMap.
+
+        A string name for the SkyMap that can be used as its primary key in SQL.
+
+    .. py:method:: makeTracts()
+
+        Return the full list of :py:class:`Tract` instances associated with the Skymap.
+
+        This virtual method will be called by a :ref:`Registry` when it adds a new :ref:`SkyMap` to populate its :ref:`Tract <sql_Tract>` and :ref:`Patch <sql_Patch>` tables.
+
+    .. py:method:: serialize()
+
+        Write the SkyMap to a blob.
+
+    .. py:classmethod:: deserialize(name, blob)
+
+        Reconstruct a SkyMap instance from a blob.
+
+    .. todo::
+
+        Add other methods from ``lsst.skymap.BaseSkyMap``, including iteration over Tracts.
+        That may suggest removing :py:meth:`makeTracts` if it becomes redundant, or adding arguments to :py:meth:`deserialize` to provide Tracts and Patches from their tables instead of the blob.
+
+
+.. _sql_SkyMap:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
++----------------+---------+--------------+
+| *SkyMap*                                |
++================+=========+==============+
+| name           | varchar | NOt nUll     |
++----------------+---------+--------------+
+| module         | varchar | NOT NULL     |
++----------------+---------+--------------+
+| serialized     | blob    | NOT NULL     |
++----------------+---------+--------------+
+
+
+.. _Tract:
+
+Tract
+-----
+
+A Tract is a contiguous, simple area on the sky with a 2-d Euclidian coordinate system related to spherical coordinates by a single map projection.
+
+.. todo::
+
+    If the parameters of the sky projection and/or the Tract's various bounding boxes can be standardized across all SkyMap implementations, it may be useful to include them in the table as well.
+
+Value:
+    number
+
+Dependencies:
+    - (skymap_name) -> :ref:`SkyMap` (name)
+
+Primary Key:
+    (number, skymap_name)
+
+Many-to-Many Joins:
+    - :ref:`ObservedSensor` via :ref:`sql_SensorTractJoin`
+    - :ref:`Visit` via :ref:`sql_VisitTractJoin`
+
+Transition
+^^^^^^^^^^
+
+Should eventually fully replace v14's ``lsst.skymap.TractInfo``.
+
+Python API
+^^^^^^^^^^
+
+.. py:class:: Tract
+
+    .. py:attribute:: skymap
+
+    .. py:attribute:: number
+
+    .. py:attribute:: region
+
+    .. py:attribute:: patches
+
+    .. todo::
+
+        Add other methods from ``lsst.skymap.TractInfo``.
+
+.. _sql_Tract:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
++-------------+---------+----------+
+| *Tract*                          |
++=============+=========+==========+
+| number      | int     | NOT NULL |
++-------------+---------+----------+
+| skymap_name | varchar | NOT NULL |
++-------------+---------+----------+
+| region      | blob    |          |
++-------------+---------+----------+
+
+
+.. _Patch:
+
+Patch
+-----
+
+:ref:`Tracts <Tract>` are subdivided into Patches, which share the :ref:`Tract` coordinate system and define similarly-sized regions that overlap by a configurable amount.
+
+.. todo::
+
+    As with Tracts, we may want to include fields to describe Patch boundaries in this table in the future.
+
+Value:
+    index
+
+Dependencies:
+    - (skymap_name) -> :ref:`SkyMap` (name)
+    - (tract_number, skymap_name) -> :ref:`Tract` (number, skymap_name)
+
+Primary Key:
+    (index, tract_number, skymap_name)
+
+Many-to-Many Joins:
+    - :ref:`ObservedSensor` via :ref:`sql_SensorPatchJoin`
+    - :ref:`Visit` via :ref:`sql_VisitPatchJoin`
+
+Transition
+^^^^^^^^^^
+
+Should eventually fully replace v14's ``lsst.skymap.PatchInfo``.
+
+Python API
+^^^^^^^^^^
+
+.. py:class:: Tract
+
+    .. py:attribute:: skymap
+
+    .. py:attribute:: tract
+
+    .. py:attribute:: index
+
+    .. py:attribute:: region
+
+    .. todo::
+
+        Add other methods from ``lsst.skymap.PatchInfo``.
+
+.. _sql_Patch:
+
+SQL Representation
+^^^^^^^^^^^^^^^^^^
++--------------+---------+----------+
+| *Patch*                           |
++==============+=========+==========+
+| index        | int     | NOT NULL |
++--------------+---------+----------+
+| tract_number | int     | NOT NULL |
++--------------+---------+----------+
+| skymap_name  | varchar | NOT NULL |
++--------------+---------+----------+
+| region       | blob    |          |
++--------------+---------+----------+
