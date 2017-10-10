@@ -18,11 +18,9 @@
     butler.rst
     describing-datasets.rst
     grouping-and-provenance.rst
-    concrete-dataunit-reference/camera.rst
-    concrete-dataunit-reference/skymap.rst
-    concrete-dataunit-reference/other.rst
-    concrete-dataunit-reference/dataunit-joins.rst
-    concrete-dataunit-reference/dataset-joins.rst
+    dataunits.rst
+    dataunit-joins.rst
+    dataset-joins.rst
 
 .. .. rubric:: References
 

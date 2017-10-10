@@ -496,108 +496,6 @@ SQL Representation
 
 URIs are stored as a field in the :ref:`Dataset table <sql_Dataset>`.
 
-.. _DataUnit:
-
-DataUnit
---------
-
-A discrete abstract unit of data that can be associated with metadata or used to label a :ref:`Dataset`.
-
-Examples: individual Visits, Tracts, or Filters.
-
-A DataUnit type may *depend* on another.  In SQL, this is expressed as a foreign key field in the table for the dependent DataUnit that points to the primary key field of its table for the DataUnit it depends on.
-
-Some DataUnits represent joins between other DataUnits.  A join DataUnit *depends* on the two DataUnits it connects, but is also included automatically in any sequence or container in which its dependencies are both present.
-
-Every DataUnit type also has a "value".  This is a POD (usually a string or integer, but sometimes a tuple of these) that is both its default human-readable representation *and* a "semi-unique" identifier for the DataUnit: when combined with the "values" of any other :ref:`DataUnit`
-
-The :py:class:`DataUnitTypeSet` class provides methods that enforce and utilize these rules, providing a centralized implementation to which all other objects that operate on groups of DataUnits can delegate.
-
-The full set of concrete DataUnits are described in :ref:`camera_dataunits`, :ref:`skymap_dataunits`, and :ref:`other_dataunits`.
-
-Transition
-^^^^^^^^^^
-
-The string keys of data ID dictionaries passed to the v14 Butler are similar to DataUnits.
-
-Python API
-^^^^^^^^^^
-
-.. py:class:: DataUnit
-
-    An abstract base class whose subclasses represent concrete :ref:`DataUnits <DataUnit>`.
-
-    .. py:attribute:: id
-
-        Read-only pure-virtual instance attribute (must be implemented by subclasses).
-
-        An integer that fully identifies the :ref:`DataUnit` instance, and is used as the primary key in the :ref:`Registry Schema <Registry>` table for that :ref:`DataUnit`.
-
-    .. py:attribute:: value
-
-        Read-only pure-virtual instance attribute (must be implemented by subclasses).
-
-        An integer or string that identifies the :ref:`DataUnit` when combined with any "foreign key" connections to other :ref:`DataUnits <DataUnit>`.
-        For example, a Visit's number is its value, because it uniquely labels a Visit as long as its Camera (its only foreign key :ref:`DataUnit`) is also specified.
-
-        .. todo::
-
-            Rephrase the above to make it more clear and preferably avoid using the phrase "foreign key", as that's a SQL concept that doesn't have an obvious meaning in Python.
-            We may need to have a Python way to expose the connections to other DataUnits on which a DataUnit's value.
-
-.. py:class:: DataUnitTypeSet
-
-    An ordered tuple of unique DataUnit subclasses.
-
-    Unlike a regular Python tuple or set, a DataUnitTypeSet's elements are always sorted (by the DataUnit type name, though the actual sort order is irrelevant).
-    In addition, the inclusion of certain DataUnit types can automatically lead to to the inclusion of others.  This can happen because one DataUnit depends on another (most depend on either Camera or SkyMap, for instance), or because a DataUnit (such as ObservedSensor) represents a join between others (such as Visit and PhysicalSensor).
-    For example, if any of the following combinations of DataUnit types are used to initialize a DataUnitTypeSet, its elements will be ``[Camera, ObservedSensor, PhysicalSensor, Visit]``:
-
-    - ``[Visit, PhysicalSensor]``
-    - ``[ObservedSensor]``
-    - ``[Visit, ObservedSensor, Camera]``
-    - ``[Visit, PhysicalSensor, ObservedSensor]``
-
-    .. py:method:: __init__(elements)
-
-        Initialize the DataUnitTypeSet with a reordered and augmented version of the given DataUnit types as described above.
-
-    .. py::method:: __iter__()
-
-        Iterate over the DataUnit types in the set.
-
-    .. py::method:: __len__()
-
-        Return the number of DataUnit types in the set.
-
-    .. py::method:: __getitem__(name)
-
-        Return the DataUnit type with the given name.
-
-    .. py::method:: pack(values)
-
-        Compute an integer that uniquely identifies the given combination of
-        :ref:`DataUnit` values.
-
-        :param dict values: A dictionary that maps :ref:`DataUnit` type names to either the "values" of those units or actual :ref:`DataUnit` instances.
-
-        :returns: a 64-bit unsigned :py:class:`int`.
-
-        This method must be used to populate the ``unit_pack`` field in the :ref:``sql_Dataset table`.
-
-    .. py::method:: expand(registry, values)
-
-        Transform a dictionary of DataUnit instances from a dictionary of DataUnit "values" by querying the given :py:class:`Registry`.
-
-        This can (and generally should) be used by concrete :ref:`Registries <Registry>` to implement :py:meth:`Registry.expand`, as it only uses :py:class:`Registry.query`.
-
-
-SQL Representation
-^^^^^^^^^^^^^^^^^^
-
-There is one table for each :ref:`DataUnit` type, and a :ref:`DataUnit` instance is a row in one of those tables.
-Being abstract, there is no single table associated with :ref:`DataUnits <DataUnit>` in general.
-
 
 .. _DataGraph:
 
@@ -613,7 +511,7 @@ Python API
 
     .. py:attribute:: datasets
 
-        A dictionary with :ref:`DatasetType` names as keys and sets of :py:class:`DatasetRefs <Dataset>` of those types as values.
+        A dictionary with :ref:`DatasetType` names as keys and sets of :py:class:`DatasetRefs <DatasetRef>` of those types as values.
 
         Read-only (possibly only by convention); use :py:meth:`addDataset` to insert new :py:class:`DatasetRefs <DatasetRef>`.
 
