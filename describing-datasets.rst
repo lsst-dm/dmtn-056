@@ -20,7 +20,9 @@ Some composites simply aggregate that are always written as part of other :ref:`
 Datasets may also be *sliced*, which yields an :ref:`InMemoryDataset` of the same type containing a smaller amount of data, defined by some parameters.
 Subimages and filters on catalogs are both considered slices.
 
-Datasets may be objects that be considered to hold metadata, but :ref:`Registries <Registry>` never hold :ref:`Dataset` metadata directly - all metadata is instead associated with the :ref:`DataUnits <DataUnit>` associated with a :ref:`Dataset`.
+Datasets may include metadata in their persisted form in a :ref:`Datastore`, but :ref:`Registries <Registry>` never hold :ref:`Dataset` metadata *directly* - all metadata is instead associated with the :ref:`DataUnits <DataUnit>` associated with a :ref:`Dataset`.
+For example, metadata associated with an observation (e.g. zenith angle) would be associated with a :ref:`Visit` (or perhaps :ref:`Snap` or :ref:`ObservedSensor`) rather than a ``raw`` :ref:`DatasetType`.
+Because a ``raw`` is associated with those :ref:`DataUnits <DataUnit>`, it is still associated with the metadata, but the association is indirect, and the metadata is also automatically associated with other :ref:`Datasets <Dataset>` that are associated with those units, like ``calexp`` or ``src``.
 
 Transition
 ^^^^^^^^^^
