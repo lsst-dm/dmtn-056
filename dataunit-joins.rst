@@ -41,7 +41,7 @@ Fields:
     +-------------------------+---------+----------+
 Foreign Keys:
     - (visit_begin, visit_end, physical_filter_name, camera_name) references :ref:`MasterCalib` (visit_begin, visit_end, physical_filter_name, camera_name)
-    - (visit_number, camera_name) references :ref:`Visit` (number, camera_name)
+    - (visit_number, camera_name) references :ref:`Visit` (visit_number, camera_name)
 
 .. note::
 
@@ -104,7 +104,7 @@ Fields:
 
 Foreign Keys:
     - (visit_number, physical_sensor_number, camera_name) references :ref:`ObservedSensor` (visit_number, physical_sensor_number, camera_name)
-    - (tract_number, patch_index, skymap_name) references :ref:`Patch` (tract_number, index, skymap_name)
+    - (tract_number, patch_index, skymap_name) references :ref:`Patch` (tract_number, patch_index, skymap_name)
 
 
 .. _sql_SensorTractJoin:
@@ -162,7 +162,7 @@ Fields:
 
 Foreign Keys:
     - (visit_number, camera_name) references :ref:`Visit` (visit_number, camera_name)
-    - (tract_number, patch_index, skymap_name) references :ref:`Patch` (tract_number, index, skymap_name)
+    - (tract_number, patch_index, skymap_name) references :ref:`Patch` (tract_number, patch_index, skymap_name)
 
 May be implemented as:
 

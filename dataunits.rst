@@ -189,13 +189,13 @@ AbstractFilters are used to label :ref:`Datasets <Dataset>` that aggregate data 
 Having two different :ref:`DataUnits <DataUnit>` for filters is necessary to make it possible to combine data from :ref:`Visits <Visit>` taken with different :ref:`PhysicalFilters <PhysicalFilter>`.
 
 Value:
-    name
+    abstract_filter_name
 
 Dependencies:
     None
 
 Primary Key:
-    name
+    abstract_filter_name
 
 Many-to-Many Joins:
     None
@@ -214,11 +214,11 @@ Python API
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
-+--------+---------+-------------+
-| *AbstractFilter*               |
-+========+=========+=============+
-| name   | varchar | NOT NULL    |
-+--------+---------+-------------+
++----------------------------+---------+-------------+
+| *AbstractFilter*                                   |
++============================+=========+=============+
+| abstract_filter_namename   | varchar | NOT NULL    |
++----------------------------+---------+-------------+
 
 
 .. _Camera:
@@ -234,13 +234,13 @@ There are thus multiple ``afw.cameraGeom.Camera`` objects associated with a sing
 Like :ref:`SkyMap` but unlike every other :ref:`DataUnit`, :ref:`Cameras <Camera>` are represented by a polymorphic class hierarchy in Python rather than a single concrete class.
 
 Value:
-    name
+    camera_name
 
 Dependencies:
     None
 
 Primary Key:
-    name
+    camera_name
 
 Many-to-Many Joins:
     None
@@ -288,13 +288,13 @@ Python API
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
-+------------+---------+-------------+
-| *Camera*                           |
-+============+=========+=============+
-| name       | varchar | NOT NULL    |
-+------------+---------+-------------+
-| module     | varchar | NOT NULL    |
-+------------+---------+-------------+
++-------------+---------+-------------+
+| *Camera*                            |
++=============+=========+=============+
+| camera_name | varchar | NOT NULL    |
++-------------+---------+-------------+
+| module      | varchar | NOT NULL    |
++-------------+---------+-------------+
 
 ``module`` is a string containing a fully-qualified Python module that can be imported to ensure that ``Camera.instances[name]`` returns a :py:class:`Camera` instance.
 
@@ -309,14 +309,14 @@ PhysicalFilters represent the bandpass filters that can be associated with a :re
 A PhysicalFilter may or may not be associated with a particular AbstractFilter.
 
 Value:
-    name
+    physical_filter_name
 
 Dependencies:
-    - (camera_name) -> :ref:`Camera` (name)
-    - (abstract_filter_name) -> :ref:`AbstractFilter` (name) [optional]
+    - (camera_name) -> :ref:`Camera` (camera_name)
+    - (abstract_filter_name) -> :ref:`AbstractFilter` (abstract_filter_name) [optional]
 
 Primary Key:
-    camera_name, name
+    camera_name, physical_filter_name
 
 Many-to-Many Joins:
     None
@@ -348,7 +348,7 @@ SQL Representation
 +----------------------+---------+----------+
 | *PhysicalFilter*                          |
 +======================+=========+==========+
-| name                 | varchar | NOT NULL |
+| physical_filter_name | varchar | NOT NULL |
 +----------------------+---------+----------+
 | camera_name          | varchar | NOT NULL |
 +----------------------+---------+----------+
@@ -372,10 +372,10 @@ The ``purpose`` field indicates the role of the sensor (such as science, wavefro
 Valid choices should be standardized across :ref:`Cameras <Camera>`, but are currently TBD.
 
 Value:
-    number
+    physical_sensor_number
 
 Dependencies:
-    - (camera_name) -> :ref:`Camera` (name)
+    - (camera_name) -> :ref:`Camera` (camera_name)
 
 Primary Key:
     (number, camera_name)
@@ -415,19 +415,19 @@ Python API
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
-+--------------------+---------+----------+
-| *PhysicalSensor*   |                    |
-+====================+=========+==========+
-| number             | varchar | NOT NULL |
-+--------------------+---------+----------+
-| name               | varchar |          |
-+--------------------+---------+----------+
-| camera_name        | varchar | NOT NULL |
-+--------------------+---------+----------+
-| group              | varchar |          |
-+--------------------+---------+----------+
-| purpose            | varchar |          |
-+--------------------+---------+----------+
++--------------------------+---------+----------+
+| *PhysicalSensor*         |                    |
++==========================+=========+==========+
+| physical_sensor_number   | varchar | NOT NULL |
++--------------------------+---------+----------+
+| name                     | varchar |          |
++--------------------------+---------+----------+
+| camera_name              | varchar | NOT NULL |
++--------------------------+---------+----------+
+| group                    | varchar |          |
++--------------------------+---------+----------+
+| purpose                  | varchar |          |
++--------------------------+---------+----------+
 
 .. _Visit:
 
@@ -439,13 +439,14 @@ Visits correspond to observations with the full camera at a particular pointing,
 A Visit's ``region`` field holds an approximate but inclusive representation of its position on the sky that can be compared to the ``regions`` of other DataUnits.
 
 Value:
-    number
+    visit_number
 
 Dependencies:
-    - (camera_name) -> :ref:`Camera` (name)
+    - (camera_name) -> :ref:`Camera` (camera_name)
+    - (physical_filter_name) -> ref:`PhysicalFilter` (physical_filter_name)
 
 Primary Key:
-    (number, camera_name)
+    (visit_number, camera_name)
 
 Many-to-Many Joins:
     - :ref:`PhysicalSensor` via :ref:`ObservedSensor`
@@ -501,7 +502,7 @@ SQL Representation
 +-----------------------+----------+----------+
 | *Visit*                          |          |
 +=======================+==========+==========+
-| number                | int      | NOT NULL |
+| visit_number          | int      | NOT NULL |
 +-----------------------+----------+----------+
 | camera_name           | varchar  | NOT NULL |
 +-----------------------+----------+----------+
@@ -529,8 +530,8 @@ Value:
     None
 
 Dependencies:
-    - (camera_name) -> :ref:`Camera` (name)
-    - (visit_number, camera_name) -> :ref:`Visit` (number, camera_name)
+    - (camera_name) -> :ref:`Camera` (camera_name)
+    - (visit_number, camera_name) -> :ref:`Visit` (visit_number, camera_name)
     - (physical_sensor_number, camera_name) -> :ref:`PhysicalSensor` (number, camera_name)
 
 Primary Key:
@@ -590,14 +591,14 @@ A Snap is a single-exposure subset of a :ref:`Visit`.
 Most non-LSST :ref:`Visits <Visit>` will have only a single Snap.
 
 Value:
-    index
+    snap_index
 
 Dependencies:
-    - (camera_name) -> :ref:`Camera` (name)
-    - (visit_number, camera_name) -> :ref:`Visit` (number, camera_name)
+    - (camera_name) -> :ref:`Camera` (camera_name)
+    - (visit_number, camera_name) -> :ref:`Visit` (visit_number, camera_name)
 
 Primary Key:
-    (index, visit_number, camera_name)
+    (snap_index, visit_number, camera_name)
 
 Many-to-Many Joins:
     None
@@ -633,7 +634,7 @@ SQL Representation
 +===============+==========+==========+
 | visit_number  | int      | NOT NULL |
 +---------------+----------+----------+
-| index         | int      | NOT NULL |
+| snap_index    | int      | NOT NULL |
 +---------------+----------+----------+
 | camera_name   | varchar  | NOT NULL |
 +---------------+----------+----------+
@@ -666,8 +667,8 @@ Value:
     visit_begin, visit_end
 
 Dependencies:
-    - (camera_name) -> :ref:`Camera` (name)
-    - (physical_filter_name, camera_name) -> :ref:`PhysicalFilter` (name, camera_name) [optional]
+    - (camera_name) -> :ref:`Camera` (camera_name)
+    - (physical_filter_name, camera_name) -> :ref:`PhysicalFilter` (physical_filter_name, camera_name) [optional]
 
 Primary Key:
     (visit_begin, visit_end, physical_filter_name, camera_name)
@@ -729,13 +730,13 @@ SkyMaps in Python are part of a polymorphic hierarchy, but unlike Cameras, their
 Instead, we serialize SkyMap instances directly into the :ref:`Registry` as blobs.
 
 Value:
-    name
+    skymap_name
 
 Dependencies:
     None
 
 Primary Key:
-    name
+    skymap_name
 
 Many-to-Many Joins:
     None
@@ -785,7 +786,7 @@ SQL Representation
 +----------------+---------+--------------+
 | *SkyMap*                                |
 +================+=========+==============+
-| name           | varchar | NOT NULL     |
+| skymap_name    | varchar | NOT NULL     |
 +----------------+---------+--------------+
 | module         | varchar | NOT NULL     |
 +----------------+---------+--------------+
@@ -805,13 +806,13 @@ A Tract is a contiguous, simple area on the sky with a 2-d Euclidian coordinate 
     If the parameters of the sky projection and/or the Tract's various bounding boxes can be standardized across all SkyMap implementations, it may be useful to include them in the table as well.
 
 Value:
-    number
+    tract_number
 
 Dependencies:
-    - (skymap_name) -> :ref:`SkyMap` (name)
+    - (skymap_name) -> :ref:`SkyMap` (skymap_name)
 
 Primary Key:
-    (number, skymap_name)
+    (tract_number, skymap_name)
 
 Many-to-Many Joins:
     - :ref:`ObservedSensor` via :ref:`sql_SensorTractJoin`
@@ -847,15 +848,15 @@ Python API
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
-+-------------+---------+----------+
-| *Tract*                          |
-+=============+=========+==========+
-| number      | int     | NOT NULL |
-+-------------+---------+----------+
-| skymap_name | varchar | NOT NULL |
-+-------------+---------+----------+
-| region      | blob    |          |
-+-------------+---------+----------+
++--------------+---------+----------+
+| *Tract*                           |
++==============+=========+==========+
+| tract_number | int     | NOT NULL |
++--------------+---------+----------+
+| skymap_name  | varchar | NOT NULL |
++--------------+---------+----------+
+| region       | blob    |          |
++--------------+---------+----------+
 
 
 .. _Patch:
@@ -870,14 +871,14 @@ Patch
     As with Tracts, we may want to include fields to describe Patch boundaries in this table in the future.
 
 Value:
-    index
+    patch_index
 
 Dependencies:
-    - (skymap_name) -> :ref:`SkyMap` (name)
-    - (tract_number, skymap_name) -> :ref:`Tract` (number, skymap_name)
+    - (skymap_name) -> :ref:`SkyMap` (skymap_name)
+    - (tract_number, skymap_name) -> :ref:`Tract` (tract_number, skymap_name)
 
 Primary Key:
-    (index, tract_number, skymap_name)
+    (patch_index, tract_number, skymap_name)
 
 Many-to-Many Joins:
     - :ref:`ObservedSensor` via :ref:`sql_SensorPatchJoin`
@@ -920,7 +921,7 @@ SQL Representation
 +--------------+---------+----------+
 | *Patch*                           |
 +==============+=========+==========+
-| index        | int     | NOT NULL |
+| patch_index  | int     | NOT NULL |
 +--------------+---------+----------+
 | tract_number | int     | NOT NULL |
 +--------------+---------+----------+
