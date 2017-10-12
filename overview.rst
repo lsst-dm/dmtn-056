@@ -16,6 +16,9 @@ The in-memory manifestation of a :ref:`Dataset` (e.g. as a Python object) is cal
 load and store :ref:`InMemoryDatasets <InMemoryDataset>`, and query the metadata of
 and relationships between :ref:`Datasets <Dataset>`.
 
+:ref:`Datasets <Dataset>` are associated with a :ref:`DatasetType`, which combines a name (e.g. "calexp") with a :ref:`StorageClass` (e.g. "Exposure") and a set of :ref:`DataUnit` types (e.g. "visit" and "sensor") that label it.
+The :ref:`StorageClass` defines both the Python type used for :ref:`InMemoryDatasets <InMemoryDataset>` and the (possibly multiple) storage formats that can be used to store the :ref:`Datasets <Dataset>`.
+
 Relations between :ref:`Datasets <Dataset>`, :ref:`Quanta <Quantum>`, and locations
 for stored objects are kept in a database called a :ref:`Registry` which implements a common SQL schema.
 
@@ -23,17 +26,14 @@ In the database, the :ref:`Datasets <Dataset>` are grouped into :ref:`Collection
 which are identified by a *CollectionTag*.
 Within a given :ref:`Collection` a :ref:`Dataset` is uniquely identified by a :ref:`DatasetRef`.
 
-Conceptually a :ref:`DatasetRef` is a combination of a :ref:`DatasetType` (e.g. ``calexp``)
-and a set of :ref:`DataUnits <DataUnit>`.  A :ref:`DataUnit` is a discrete unit of
-data (e.g. a particular visit, tract, or filter).
+Conceptually a :ref:`DatasetRef` is a combination of a :ref:`DatasetType` and a set of :ref:`DataUnits <DataUnit>`.
+A :ref:`DataUnit` holds the label (e.g. visit number) and metadata (e.g. observation date) associated with a discrete unit of data.  :ref:`DataUnits <DataUnit>` can also hold links to other :ref:`DataUnits <DataUnit>`, such as the filter (itself a valid unit of data) associated with a visit.
 
-A :ref:`DatasetRef` is thus a label that refers to different-but-related :ref:`Datasets <Dataset>`
-in different :ref:`Collections <Collection>`. An example is a ``calexp`` for a particular visit
-and CCD produced in different processing :ref:`Runs <Run>` (each processing :ref:`Run` then has a corresponding
-:ref:`Collection`).
+A :ref:`DatasetRef` is thus a label that refers to different-but-related :ref:`Datasets <Dataset>` in different :ref:`Collections <Collection>`.
+For example, a :ref:`DatasetRef` might refer to the ``calexp`` for a particular visit and sensor; this could be used retrieve different :ref:`Datasets <Dataset>` produced by different processing runs.
 
-A :py:class:`DatasetLabel` is a opaque, lightweight :ref:`DatasetRef` that is easier to
-construct; it just holds POD values that identify :ref:`DataUnits <DataUnit>` and a :ref:`DatasetType`.
+A :py:class:`DatasetLabel` is an opaque, lightweight :ref:`DatasetRef` that is easier to construct.
+It just holds POD values that identify :ref:`DataUnits <DataUnit>` and the name of a :ref:`DatasetType`, while the full :ref:`DataUnit` and :ref:`DatasetType` objects held by a :ref:`DatasetRef` contain information that in general must be retrieved from a :ref:`Registry`.
 
 Storing the :ref:`Datasets <Dataset>` themselves, as opposed to information about them, is the
 responsibility of the :ref:`Datastore`.
@@ -55,7 +55,7 @@ They can use this instance to:
 * Obtain a metadata and relationship information via SQL queries.
 
 The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Registry`
-and **a single instance** of :ref:`Datastore`, to which it delegates the calls (note, however,
+and **a single instance** of :ref:`Datastore` (as well as a :ref:`Collection` tag), to which it delegates the calls (note, however,
 that this :ref:`Datastore` may delegate to one or more other :ref:`Datastores <Datastore>`).
 
 These components constitute a separation of concerns:

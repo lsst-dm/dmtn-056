@@ -66,7 +66,7 @@ A :ref:`Dataset` can be **composite**, in which case it consists of a **parent**
 
 In either case the user expects to be able to read an individual component, and in case the components are stored separately the transfer should be efficient.
 
-In addition, it is desirable to **override** parts of a composite :ref:`Dataset` (e.g. updated metadata), by defining a new :ref:`DatasetType` that mixes components from the original :ref:`Dataset` with new ones.
+In addition, it is desirable to be able to **override** parts of a composite :ref:`Dataset` (e.g. updated metadata), by defining a new :ref:`DatasetType` that mixes components from the original :ref:`Dataset` with new ones.
 
 To support this the :ref:`Registry` is also responsible for storing the component :ref:`Datasets <Dataset>` of the **composite**.
 
@@ -204,7 +204,7 @@ A trivial implementation, for a non-persistent cache, could be:
 
 .. todo::
 
-    * What to when ``parameters`` differ? Should we re-slice?
+    * What to do when ``parameters`` differ? Should we re-slice?
 
     * Work out how persistable caches should be implemented.
 
@@ -245,7 +245,7 @@ The inputs to SuperTask preflight are considered here to be:
 
 #. The activator calls :py:meth:`Registry.makeRun` on the output :ref:`Registry` with the output :ref:`CollectionTag <Collection>`, obtaining a :py:class:`Run` instance.
 
-#. The activator adds all input :ref:`Datasets <Dataset>` to the :ref:`Run's <Run>` :ref:`Collection` (in the :ref:`Registry`; this does not affect the :ref:`Datastore` at all).
+#. The activator adds all input :ref:`Datasets <Dataset>` to the :ref:`Run's <Run>` :ref:`Collection` (in the :ref:`Registry`; this does not affect the :ref:`Datastore` at all).  Note that from this point forward, we need only work with a single :ref:`Collection`, as we have aggregated everything relevant from the multiple input :ref:`Collections <Collection>` into a single input/output :ref:`Collection`.
 
 #. The activator constructs a :ref:`Butler` from the output :ref:`Registry` (which can now also be used as input), the :ref:`Run's <Run>` :ref:`Collection`, and either the given :ref:`Datastore` (if the same one is used for input and output) or a pass-through :ref:`Datastore` that forwards input and output requests to the two given ones appropriately.
 
