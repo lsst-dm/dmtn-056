@@ -269,7 +269,7 @@ At the end of preflight, the only modifications that have been made to the outpu
 .. _building_preflight_queries:
 
 Building Preflight Queries
---------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The call to :py:meth:`Registry.makeDataGraph` at the start of Preflight hides a great deal of complexity that is central to how the :ref:`Registry` schema supports SuperTask Preflight.
 The implementation of :py:meth:`makeDataGraph <Registry.makeDataGraph>` is responsible for generating a complex SQL query, interpreting the results, and packaging them into a data structure (a :py:class:`QuantumGraph` with a :py:class:`DataUnitMap`) that can be queried and extended by ``SuperTask.defineQuanta``.
@@ -288,10 +288,10 @@ The :ref:`DataUnit` types associated with ``warp`` are:
 
  while those associated with ``coadd`` are:
 
-  - :ref:`Patch`
-  - :ref:`Tract`
-  - :ref:`SkyMap`
-  - :ref:`AbstractFilter`
+ - :ref:`Patch`
+ - :ref:`Tract`
+ - :ref:`SkyMap`
+ - :ref:`AbstractFilter`
 
 It's worth noting that of these, only :ref:`Visit` and :ref:`Patch` are needed to fully identify a ``warp`` and only :ref:`Patch` and :ref:`AbstractFilter` are needed to identify a ``coadd``; all of the other :ref:`DataUnit` types are uniquely identifed as foreign key targets of these.
 
@@ -428,8 +428,152 @@ A few things stand out:
 
  - The expressions can get quite verbose, as there's a lot of redundancy between the table names and the field names.  We might be able to eliminate a lot of that via a regular expression or other string substitution that transforms any comparison on a :ref:`DataUnit` type (e.g. ``Visit = 500``) name to a comparison on its "value" field (e.g. ``Visit.visit_number = 500``).
 
-- We can't (currently) filter on :ref:`DataUnits <DataUnit>` that *aren't* utilized by the :ref:`DatasetTypes <DatasetType>` produced or consumed by the Pipeline.  That makes it impossible to e.g. filter on :ref:`Tract` if you're just running a single-visit processing Pipeline.  This is not a fundamental limitation, though; we just need to find some way for the user to declare in advance what additional :ref:`DataUnits <DataUnit>` their expression will use.  It'd be best if we could infer that by actually parsing their expression, but if that's hard we could just make them declare the extra :ref:`DataUnits <DataUnit>` explicitly to the activator.
+ - We can't (currently) filter on :ref:`DataUnits <DataUnit>` that *aren't* utilized by the :ref:`DatasetTypes <DatasetType>` produced or consumed by the Pipeline.  That makes it impossible to e.g. filter on :ref:`Tract` if you're just running a single-visit processing Pipeline.  This is not a fundamental limitation, though; we just need to find some way for the user to declare in advance what additional :ref:`DataUnits <DataUnit>` their expression will use.  It'd be best if we could infer that by actually parsing their expression, but if that's hard we could just make them declare the extra :ref:`DataUnits <DataUnit>` explicitly to the activator.
 
+To restrict the query to :ref:`DataUnits <DataUnit>` associated with already-existing input data (``warps``, in this case), we iterate over the :ref:`DatasetTypes <DatasetType>` in the ``neededDatasetTypes`` list and, for each :ref:`DatasetType`, add:
+
+ - the :ref:`Dataset <sql_Dataset>` table to the ``FROM`` list (again as an ``INNER JOIN``), aliased to the :ref:`DatasetType`;
+
+ - the primary key of the :ref:`Dataset <sql_Dataset>` table, ``(dataset_id, registry_id)``, again aliased, to the ``SELECT`` field list;
+
+ - a ``WHERE`` restriction on the aliased :ref:`Dataset <sql_Dataset>` to restrict it to that :ref:`DatasetType`;
+
+ - all :ref:`Dataset-DataUnit join tables <dataset_joins>` for the *minimal* set of :ref:`DataUnits <DataUnit>` needed to identify the current :ref:`DatasetType`;
+
+ - a ``WHERE`` restriction joining the join tables to the aliased :ref:`DatasetType`;
+
+ - a join table and restriction to limit us to the :ref:`Collection(s) <Collection>` arguments passed to :py:meth:`makeDataGraph <Registry.makeDataGraph>`.
+
+In the coaddition example, that makes our full query (now completed):
+
+.. code:: sql
+
+    SELECT
+        Visit.visit_number,
+        PhysicalFilter.physical_filter_name,
+        Camera.camera_name,
+        Patch.patch_index,
+        Tract.tract_number,
+        SkyMap.skymap_name,
+        AbstractFilter.abstract_filter_name,
+        warp.dataset_id AS warp_dataset_id,
+        warp.registry_id AS warp_registry_id
+    FROM
+        Visit
+        INNER JOIN PhysicalFilter
+        INNER JOIN Camera
+        INNER JOIN Patch
+        INNER JOIN Tract
+        INNER JOIN SkyMap
+        INNER JOIN AbstractFilter
+        INNER JOIN VisitPatchJoin
+        INNER JOIN Dataset AS warp
+        INNER JOIN DatasetVisitJoin AS warpVisitJoin
+        INNER JOIN DatasetPatchJoin AS warpPatchJoin
+        INNER JOIN DatasetCollections AS warpCollections
+    WHERE
+        Visit.physical_filter_name = PhysicalFilter.physical_filter_name
+            AND
+        Visit.camera_name = Camera.camera_name
+            AND
+        PhysicalFilter.camera_name = Camera.camera_name
+            AND
+        Patch.tract_number = Tract.tract_number
+            AND
+        Patch.skymap_name = SkyMap.skymap_name
+            AND
+        Tract.skymap_name = SkyMap.skymap_name
+            AND
+        PhysicalFilter.abstract_filter_name = AbstractFilter.abstract_filter_name
+            AND
+        VisitPatchJoin.visit_number = Visit.visit_number
+            AND
+        VisitPatchJoin.camera_name = Visit.camera_name
+            AND
+        VisitPatchJoin.patch_index = Patch.patch_index
+            AND
+        VisitPatchJoin.tract_number = Patch.tract_number
+            AND
+        VisitPatchJoin.skymap_name = Patch.skymap_name
+            AND
+        warp.dataset_type_name = 'warp'
+            AND
+        warp.dataset_id = warpVisitJoin.dataset_id
+            AND
+        warp.registry_id = warpVisitJoin.registry_id
+            AND
+        warpVisitJoin.visit_number = Visit.visit_number
+            AND
+        warpVisitJoin.camera_name = Visit.camera_name
+            AND
+        warp.dataset_id = warpPatchJoin.dataset_id
+            AND
+        warp.registry_id = warpPatchJoin.registry_id
+            AND
+        warpPatchJoin.patch_index = Patch.patch_index
+            AND
+        warpPatchJoin.tract_number = Patch.tract_number
+            AND
+        warpPatchJoin.skymap_name = Patch.skymap_name
+            AND
+        warpCollections.dataset_id = warp.dataset_id
+            AND
+        warpCollections.registry_id = warp.registry_id
+            AND
+        warpCollections.tag = ($USER_TAG)
+        ($USER_EXPRESSION)
+    ;
+
+.. note::
+
+    The example above demonstrates using only a single :ref:`Collection`.
+    Handling multiple :ref:`Collections <Collection>` is quite a bit trickier.
+    It can obviously be accomplished with temporary tables, views, or subqueries that create a de-duplicated list of :ref:`Datasets <Dataset>` for each :ref:`DatasetType` across all given :ref:`Collections <Collection>` before joining them into the main query.
+    It is not clear whether it can be accomplished directly within a single query with no subqueries.
+
+Adding the :ref:`Dataset` fields to the ``SELECT`` field list is clearly unnecessary for constraining the query; that all happens in the ``WHERE`` clause.
+What these do is identify the set of input :ref:`Datasets <Dataset>` that will be used by the processing.
+In this example, each row has a unique (compound) ``warp`` ID, but that's not always true - to be safe in general, duplicates will have to be removed.
+
+As written, this query doesn't pull down *everything* about the :ref:`Datasets <Dataset>`.
+Including all of the fields that describe a :ref:`Dataset` in the same query is clearly possible (albeit a bit tricky in the case of composites), but it's not obviously more efficient than running smaller follow-up queries to get the extra Dataset fields when the original query may have a lot of duplicates.
+
+We actually face the same problem for the extra fields associated with the :ref:`DataUnits <DataUnit>`; our query so far generates all of the primary key values and relationship information we'll need, but we'll need to follow that up with later queries to fill in the extra fields or add a lot more fields.
+And as with the :ref:`Datasets <Dataset>`, we could instead add the extra fields to the main query, but doing so will in general involve a lot of duplicate values.
+
+We will assume for now that we'll leave the main query as-is and use follow-up queries to expand its results into a list of :py:class:`DatasetHandles <DatasetHandle>` that we can add to the :py:class:`QuantumGraph`.
+As noted above, the :ref:`DataUnit` primary keys from the main query are sufficient to construct a :py:class:`DataUnitMap` to attach to it, and the implementation of :py:meth:`Registry.makeDataGraph` is complete.
+
+
+Fine-Grained Input Control
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+The tags and expression passed to :py:meth:`Registry.makeDataGraph` provide a level of control over processing inputs that should be sufficient for most SuperTask execution invoked by developers and science users.
+That level of control may not be sufficient for production operators, however -- though in most cases, it's actually that exercising the levels of control operators require may be unpleasant or inconvenient.
+
+That's because the :ref:`Collection` tag system is already extremely flexible.
+As long as an operator is permitted to apply tags to :ref:`Datasets <Dataset>` in the database that backs a :ref:`Registry` (which may not involve going through the :ref:`Registry` interface, they can create a :ref:`Collection` including (and more importantly, not including) any :ref:`Datasets <Dataset>` they'd like, whether that's generated by one or more SQL queries, external programs, or human inspections.
+This mechanism should be strongly considered as at least part of any implentation of a fine-grained control use case before we add additional logic to :py:meth:`Registry.makeDataGraph`.
+We will, after all, be adding all input data to the :ref:`Collection` associated with each :ref:`Run` during the course of preflight anyway, and it is perfectly acceptable to do this prior to preflight and then use that existing :ref:`Collection` to label the :ref:`Run` (making the later assignment of the input data to that :ref:`Collection` a no-op).
+
+Two types of fine-grained control stand out as being difficult (perhaps impossible) to handle with just :ref:`Collections <Collection>`:
+
+ - blacklists that apply to only some processing steps, not all of them;
+ - manual alterations of the relationships between raw science images and master calibration :ref:`Datasets <Dataset>`.
+
+The current system could easily be extended to support these use cases in other ways, however:
+
+ - Blacklisting that only applies to a single SuperTask could be implemented as a blacklist  :ref:`Dataset` (possibly a database-backed one) that is passed to the SuperTask's ``defineQuanta`` method and applied there.  This would require adding some mechanism for passing :ref:`Datasets <Dataset>` to ``defineQuanta`` without permitting SuperTasks to load arbitrary :ref:`Datasets <Dataset>` at that stage.
+
+ - Manual alterations of calibration product relationships could be implemented by creating a new set of :ref:`MasterCalib` :ref:`DataUnits <DataUnit>` and assigning existing them to new :ref:`Datasets <Dataset>` in a new :ref:`Collection` whose :ref:`URIs <URI>` are taken from existing :ref:`Datasets <Dataset>`.  We'd need to think through the implications of having multiple :ref:`Datasets <Dataset>` with the same :ref:`URIs <URI>`, and we'd certainly need some new high-level code to make this easy to do.
+
+This does not rule out adding new logic and arguments to :py:meth:`Registry.makeDataGraph` to meet fine-grained input control requirements, of course, and it is also possible that we could let operators write the entire query generated by :py:meth:`makeDataGraph <Registry.makeDataGraph>` manually.
+The complexity of the those queries makes writing them manually from scratch a significant ask, of course, so it might be best to instead let operators *modify* a generated query after it has been generated.
+That would generally involve editing only the ``FROM`` and ``WHERE`` clauses, as downstream code that interprets the query results would require the field list to remain unchanged.
+
+Because a single query is used to define the inputs for all processing steps, however, even manual control over the query would not permit operators to control which inputs are used in different steps independently.
+Complete operator control over that would probably have to involve generating :ref:`Quanta <Quantum>` to pass to ``SuperTask.runQuantum`` manually, without calling ``defineQuanta`` or other standard preflight code at all.
+While probably possible (and perhaps not even too difficult) for a fixed Pipeline, this would make it harder to propagate changes to the Pipeline into the production system.
+It also raises a fundamental philosophical question about the degree of determinism (vs. runtime flexibility) we expect from a particular release of Science Pipelines code, because it makes it impossible to guarantee that input-selection logic will be the same in production as it was in development.
 
 
 .. _direct_supertask_execution:
