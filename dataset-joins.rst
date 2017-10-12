@@ -1,5 +1,5 @@
 
-.. _sql_dataset_dataunit_joins:
+.. _dataset_joins:
 
 Dataset-DataUnit Joins
 ======================
