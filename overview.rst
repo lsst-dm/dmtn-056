@@ -13,8 +13,7 @@ between them.
 
 The in-memory manifestation of a :ref:`Dataset` (e.g. as a Python object) is called a
 :ref:`InMemoryDataset`.  The :ref:`Butler` is the user-facing interface employed to
-load and store :ref:`InMemoryDatasets <InMemoryDataset>`, and query the metadata of
-and relationships between :ref:`Datasets <Dataset>`.
+load and store :ref:`InMemoryDatasets <InMemoryDataset>`.
 
 :ref:`Datasets <Dataset>` are associated with a :ref:`DatasetType`, which combines a name (e.g. "calexp") with a :ref:`StorageClass` (e.g. "Exposure") and a set of :ref:`DataUnit` types (e.g. "visit" and "sensor") that label it.
 The :ref:`StorageClass` defines both the Python type used for :ref:`InMemoryDatasets <InMemoryDataset>` and the (possibly multiple) storage formats that can be used to store the :ref:`Datasets <Dataset>`.
@@ -51,12 +50,13 @@ Users primarily interact with a particular :ref:`Butler` instance that
 They can use this instance to:
 
 * Load a :ref:`Dataset` associated with a particular :py:class:`DatasetLabel`,
-* Store a :ref:`Dataset` associated with a particular :py:class:`DatasetLabel`, and
-* Obtain a metadata and relationship information via SQL queries.
+* Store a :ref:`Dataset` associated with a particular :py:class:`DatasetLabel`.
 
 The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Registry`
 and **a single instance** of :ref:`Datastore` (as well as a :ref:`Collection` tag), to which it delegates the calls (note, however,
 that this :ref:`Datastore` may delegate to one or more other :ref:`Datastores <Datastore>`).
+
+Currently, :ref:`Registry` must be used directly to perform general metadata and relationship queries, though we may add :ref:`Butler` forwarding interfaces for these as the design matures.
 
 These components constitute a separation of concerns:
 
