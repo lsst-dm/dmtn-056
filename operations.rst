@@ -297,6 +297,31 @@ Shared-Nothing Execution
     Fill this in.  Run directly against a "limited" Registry (e.g. backed by just a YAML file) and local Datastore (e.g. backed by a simple POSIX directory) that are proxies for the full ones.  Show how to do the staging transfers through our interfaces *and* how to get the necessary information (e.g. filenames) to do them externally.
 
 
+.. _running_comparison_supertasks:
+
+Running Comparison SuperTasks
+-----------------------------
+
+SuperTasks that compare their input :ref:`Datasets <Dataset>`, and hence wish to access :ref:`Datasets <Dataset>` with the same :ref:`DataUnits <DataUnit>` in different :ref:`Collections <Collection>`, were not anticipated by the original SuperTask design and are not included in the description of SuperTask covered above.
+
+These can be supported by the current data access design, with the following qualifications:
+
+ - As executing a Pipeline always outputs to a single :ref:`Run` and a single :ref:`Collection`, only one of the :ref:`Collections <Collection>` being compared by a SuperTask can have outputs written to it by the same Pipeline that includes the comparison SuperTask.  For example, this allows a Pipeline that processes data to also include a SuperTask that compares the results to an existing :ref:`Collection`, but it does not permit different configurations of the same Pipeline to be executed and compared in a single step.
+
+ - The contents of one :ref:`Collection` shall be used to construct the :ref:`QuantumGraph` that defines the full execution plan.  This makes it impossible to e.g. process only :ref:`DatasetRefs <DatasetRef>` for which a :ref:`Dataset` exists in all compared :ref:`Collections <Collection>`.  It also means that the ``defineQuanta`` method for comparison SuperTasks should expect to see only one :ref:`DatasetRef` of any set to be compared *at this time*.
+
+To implement Preflight for a Pipeline containing comparison SuperTasks, then, the activator simply executes the normal Preflight process on one of the :ref:`Collections <Collection>` to be compared.
+The activator then walks the resulting :ref:`QuantumGraph`, identifying any :ref:`DatasetRefs <DatasetRef>` that represent comparisons by some combination of task names and :ref:`DatasetType` names obtainable from the Pipeline.
+For each of these, it searches for matching :py:class:`DatasetHandles <DatasetHandle>` in the other :ref:`Collections <Collection>` and attaches these to the :ref:`Quantum` as additional inputs.  SuperTask execution can then be run as usual.
+
+This adds a few small requirements on the interfaces of some of the classes involved:
+
+ - When passed a :py:class:`DatasetHandle`, :ref:`Butler` must permit it to be loaded using the :ref:`URI` (and any component :ref:`URIs <URI>`) it holds, rather than interpreting it as a :py:class:`DatasetRef` to be combined with the :ref:`Butler's <Butler>` own :ref:`Collection` to obtain a new :ref:`URI`.  This has been added to the design as :py:meth:`Butler.getDirect`.
+
+ - The container type used to implement :py:attr:`Quantum.predictedInputs` must be able to hold multiple :py:class:`DatasetHandles <DatasetHandle>` that appear equivalent when compared as :py:class:`DatasetRefs <DatasetRef>`.
+
+ - Either :py:class:`DatasetHandle` or the :py:attr:`Quantum.predictedInputs` container must provide a way for the SuperTask to ascertain which of the input :ref:`Collections <Collection>` it was retreived from.
+
 DataUnit Updates and Inserts
 ============================
 

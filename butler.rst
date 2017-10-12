@@ -45,7 +45,7 @@ Python API
 
     .. py:method:: get(label, parameters=None)
 
-        Load a :ref:`Dataset` or a slice thereof.
+        Load a :ref:`Dataset` or a slice thereof from the Butler's :ref:`Collection`.
 
         :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset` to retrieve.
 
@@ -57,14 +57,8 @@ Python API
 
         .. code:: python
 
-            try:
-                handle = self.registry.find(self.config.collection, label)
-                parent = self.datastore.get(handle.uri, handle.type.storageClass, parameters) if handle.uri else None
-                children = {name : self.datastore.get(childHandle, parameters) for name, childHandle in handle.components.items()}
-                return handle.type.storageClass.assemble(parent, children, parameters)
-            except NotFoundError:
-                continue
-            raise NotFoundError("DatasetRef {} not found in any input collection".format(datasetRef))
+            handle = self.registry.find(self.config.collection, label)
+            return self.getDirect(handle, parameters)
 
         .. todo::
 
@@ -74,6 +68,27 @@ Python API
 
             * Recursive composites were broken by a minor update.
               Would probably not be hard to add back in if we decide we need them, but they'd make the logic a bit harder to follow so not worth doing now.
+
+    .. py:method:: getDirect(handle, parameters=None)
+
+        Load a :ref:`Dataset` or a slice thereof from a :py:class:`DatasetHandle`.
+
+        Unless :py:meth:`Butler.get`, this method allows :ref:`Datasets <Dataset>` outside the Butler's :ref:`Collection` to be read as long as the :py:class:`DatasetHandle` that identifies them can be obtained separately.
+        This is needed to support the :ref:`Comparison SuperTasks <running_comparison_supertasks>` use case.
+
+        :param DatasetHandle handle: a pointer to the :ref:`Dataset` to load.
+
+        :param dict parameters: a dictionary of :ref:`StorageClass`-specific parameters that can be used to obtain a slice of the :ref:`Dataset`.
+
+        :returns: an :ref:`InMemoryDataset`.
+
+        Implemented as:
+
+        .. code:: python
+
+            parent = self.datastore.get(handle.uri, handle.type.storageClass, parameters) if handle.uri else None
+            children = {name : self.datastore.get(childHandle, parameters) for name, childHandle in handle.components.items()}
+            return handle.type.storageClass.assemble(parent, children, parameters)
 
     .. py:method:: put(label, dataset, producer=None)
 
