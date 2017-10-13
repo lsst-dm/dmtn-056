@@ -48,7 +48,7 @@ This proceeds allong the following steps:
 5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`StorageClass` to serialize the :ref:`InMemoryDataset` and sends it to the :ref:`Datastore` server.
    Depending on the type of server it may get back the actual :ref:`URI` or the client can generate it itself.
 6. :ref:`Datastore` returns the actual :ref:`URI` to the :ref:`Butler`.
-7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset` to the collection.
+7. :ref:`Butler` calls the :ref:`Registry` function ``addDataset`` to add the :ref:`Dataset`.
 8. :ref:`Butler` returns a :py:class:`DatasetHandle` to the user.
 
 See :py:class:`the API documentation <Butler.put>` for more information.
@@ -120,7 +120,7 @@ While no high-level API for transfers exists in the current design, it is relati
                 handle = src.registry.find(tag, label)
 
                 uri, components = dst.datastore.transfer(src.datastore, handle.uri, ref.type.storageClass, path, ref.type.name)
-                dst.registry.addDataset(tag, ref, uri, components, ref.producer)
+                dst.registry.addDataset(ref, uri, components, handle.producer, handle.run)
         else:
             # The following assumes the old datastore was empty and that the datastore will be
             # read-only.  Otherwise we will have to some chaining.

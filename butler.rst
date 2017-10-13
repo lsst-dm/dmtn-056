@@ -4,7 +4,7 @@
 Butler
 ======
 
-A high level object that provides access to the :ref:`Datasets <Dataset>` in a single :ref:`Collection`.
+A high level object that provides read access to the :ref:`Datasets <Dataset>` in a single :ref:`Collection` and write access to a single :ref:`Run`.
 
 Butler is a concrete, final Python class in the current design; all extensibility is provided by the :ref:`Registry` and :ref:`Datastore` instances it holds.
 
@@ -45,6 +45,8 @@ Python API
 
     .. py:method:: get(label, parameters=None)
 
+        Load a :ref:`Dataset` or a slice thereof.
+
         :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset` to retrieve.
 
         :param dict parameters: a dictionary of :ref:`StorageClass`-specific parameters that can be used to obtain a slice of the :ref:`Dataset`.
@@ -56,7 +58,7 @@ Python API
         .. code:: python
 
             try:
-                handle = self.registry.find(self.config.inputCollection, label)
+                handle = self.registry.find(self.config.collection, label)
                 parent = self.datastore.get(handle.uri, handle.type.storageClass, parameters) if handle.uri else None
                 children = {name : self.datastore.get(childHandle, parameters) for name, childHandle in handle.components.items()}
                 return handle.type.storageClass.assemble(parent, children, parameters)
@@ -75,11 +77,13 @@ Python API
 
     .. py:method:: put(label, dataset, producer=None)
 
+        Write a :ref:`Dataset`.
+
         :param DatasetLabel label: a :py:class:`DatasetLabel` that will identify the :ref:`Dataset` being stored.
 
         :param dataset: the :ref:`InMemoryDataset` to store.
 
-        :param Quantum producer: the :ref:`Quantum` instance that produced the :ref:`Dataset`.  May be ``None`` for some :ref:`Registries <Registry>`.
+        :param Quantum producer: the :ref:`Quantum` instance that produced the :ref:`Dataset`.  May be ``None`` for some :ref:`Registries <Registry>`.  ``producer.run`` must match ``self.config.run``.
 
         :returns: a :py:class:`DatasetHandle`
 
@@ -88,10 +92,12 @@ Python API
         .. code:: python
 
             ref = self.registry.expand(label)
+            run = self.config.run
+            assert(producer is None or run == producer.run)
             template = self.config.templates.get(ref.type.name, None)
-            path = ref.makePath(self.config.outputCollection, template)
+            path = ref.makePath(run, template)
             uri, components = self.datastore.put(inMemoryDataset, ref.type.storageClass, path, ref.type.name)
-            return self.registry.addDataset(self.config.outputCollection, ref, uri, components, producer)
+            return self.registry.addDataset(ref, uri, components, producer=producer, run=run)
 
     .. py:method:: markInputUsed(quantum, ref)
 
@@ -105,7 +111,7 @@ Python API
 
         .. code:: python
 
-            handle = self.registry.find(self.config.inputCollection, ref)
+            handle = self.registry.find(self.config.collection, ref)
             self.registry.markInputUsed(handle, quantum)
 
     .. todo::
@@ -115,13 +121,17 @@ Python API
 
 .. py:class:: ButlerConfiguration
 
-    .. py:attribute:: inputCollection
+    .. py:attribute:: collection
 
         The :ref:`CollectionTag <Collection>` of the input collection.
 
-    .. py:attribute:: outputCollection
+    .. py:attribute:: run
 
-        The :ref:`CollectionTag <Collection>` of the output collection.  May be the same as :py:attr:`inputCollection`.
+        The :ref:`Run` instance used for all outputs.
+
+        May be ``None`` to construct a read-only Butler.
+
+        The :ref:`Run's <Run>` :ref:`Collection` is always used as the input collection when a :ref:`Run` is provided.
 
     .. py:attribute:: templates
 

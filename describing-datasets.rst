@@ -157,13 +157,9 @@ Python API
 
         Read-only instance attribute.
 
-        A string with ``str.format``-style replacement patterns that can be used to create a :ref:`Path` from a :ref:`CollectionTag <Collection>` and a :ref:`DatasetRef`.
+        A string with ``str.format``-style replacement patterns that can be used to create a :ref:`Path` from a :ref:`Run` (and optionally its associated :ref:`Collection`) and a :ref:`DatasetRef`.
 
         May be None to indicate a read-only :ref:`Dataset` or one whose templates must be provided at a higher level.
-
-        .. todo:
-
-            Templates should probably operate on a Run (which implies a Collection) rather than on a Collection directly.
 
     .. py:attribute:: units
 
@@ -356,7 +352,7 @@ All three classes are immutable.
 
         A tuple of :py:class:`DataUnit` instances that label the :ref:`DatasetRef` within a :ref:`Collection`.
 
-    .. py:method:: makePath(tag, template=None) -> Path
+    .. py:method:: makePath(run, template=None) -> Path
 
         Construct the :ref:`Path` part of a :ref:`URI` by filling in ``template`` with the :ref:`CollectionTag <Collection>` and the values in the :py:attr:`units` tuple.
 
@@ -364,15 +360,11 @@ All three classes are immutable.
 
         Although a :ref:`Dataset` may belong to multiple :ref:`Collections <Collection>`, only the first :ref:`Collection` it is added to is used in its :ref:`Path`.
 
-        :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to which the :ref:`Dataset` will be added.
+        :param Run run: the :ref:`Run` to which the new :ref:`Dataset` will be added; always implies a collection :ref:`Collection` that can also be used in the template.
 
         :param str template: a path template to fill in.  If None, the :py:attr:`template <DatasetType.template>` attribute of :py:attr:`type` will be used.
 
         :returns: a str :ref:`Path`
-
-        .. todo::
-
-            As per TODO item in :ref:`DatasetType`, should use Run instead of Collection here.
 
     .. py:attribute:: producer
 

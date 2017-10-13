@@ -69,7 +69,7 @@ Python API
 
         Return the :py:class:`DatasetType` associated with the given name.
 
-    .. py:method:: addDataset(tag, ref, uri, components, run=None, quantum=None)
+    .. py:method:: addDataset(ref, uri, components, producer=None, run=None)
 
         Add a :ref:`Dataset` to a :ref:`Collection`.
 
@@ -77,25 +77,19 @@ Python API
 
         The :ref:`Quantum` that generated the :ref:`Dataset` can optionally be provided to add provenance information.
 
-        :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` the :ref:`DatasetType` should be associated with.
-
         :param ref: a :ref:`DatasetRef` that identifies the :ref:`Dataset` and contains its :ref:`DatasetType`.
 
         :param str uri: the :ref:`URI` that has been associated with the :ref:`Dataset` by a :ref:`Datastore`.
 
         :param dict components: if the :ref:`Dataset` is a composite, a ``{name : URI}`` dictionary of its named components and storage locations.
 
-        :param Run run: the Run instance that produced the Dataset.  Falls back to ``quantum.run`` if ``None``, but must be provided if :ref:`Quantum` is ``None``.
+        :param Run run: the :ref:`Run` instance that produced the Dataset.  Ignored if ``producer`` is passed (:py:attr:`producer.run <Quantum.run>` is then used instead).  A Run must be provided by one of the two arguments.
 
-        :param Quantum quantum: the Quantum instance that produced the Dataset.  May be ``None`` to store no provenance information, but if present the :py:class:`Quantum` must already have been added to the Registry.
+        :param Quantum producer: the Quantum instance that produced the Dataset.  May be ``None`` to store no provenance information, but if present the :py:class:`Quantum` must already have been added to the Registry.
 
         :return: a newly-created :py:class:`DatasetHandle` instance.
 
         :raises: an exception if a :ref:`Dataset` with the given :ref:`DatasetRef` already exists in the given :ref:`Collection`.
-
-        .. todo::
-
-            We should probably remove the tag argument and always use the tag associated with the run.
 
     .. py:method:: associate(tag, handles)
 
