@@ -626,7 +626,7 @@ SuperTask execution then proceeds on the worker node as described in :ref:`direc
 The local :ref:`Registry` is still responsible for recording provenance information provided by the SuperTask(s) and activator.
 
 After execution has completed on the node, we use :py:meth:`Registry.export` on the local :ref:`Registry`, this time to dump its entire contents to a file.
-This includes all provenance information and the list of :ref:`Datasets <Dataset>`, though the "intrusive" py:attr:`actualInputs <Quantum.actualInputs>` provenance is the only information that could not instead be inferred from the transfer system's own records and the set of files in the directory.
+This includes all provenance information and the list of :ref:`Datasets <Dataset>`, though the "intrusive" :py:attr:`actualInputs <Quantum.actualInputs>` provenance is the only information that could not instead be inferred from the transfer system's own records and the set of files in the directory.
 
 Because the current plan is for APIs outside the scope of this document to be used when ingesting provenance information and output :ref:`Datasets <Dataset>` into persistent storage, the only additional requirement on the interfaces described here is that the limited :ref:`Registry` export file format either be readable by the external code or easily convertible to a format that is.
 
