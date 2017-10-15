@@ -227,6 +227,8 @@ The inputs, both predicted and actual, are stored in an additional join table:
 
 .. _sql_DatasetConsumers:
 
+DatasetConsumers
+""""""""""""""""
 Fields:
     +---------------------+------+----------+
     | quantum_id          | int  | NOT NULL |
