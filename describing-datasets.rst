@@ -334,6 +334,10 @@ All three classes are immutable.
 
         Construct a DatasetLabel from the name of a :ref:`DatasetType` and keyword arguments that describe :ref:`DataUnits <DataUnit>`, with :ref:`DataUnit` type names as keys and :ref:`DataUnit` "values" as values.
 
+    .. py:attribute:: name
+
+        Name of the :ref:`DatasetType` associated with the :ref:`Dataset`.
+
 .. py:class:: DatasetRef(DatasetLabel)
 
     .. py:method:: __init__(self, type, units):
@@ -405,6 +409,12 @@ All three classes are immutable.
         A :py:class:`dict` holding :py:class:`DatasetHandle` instances that correspond to this :ref:`Dataset's <Dataset>` named components.
 
         Empty (or ``None``?) if the :ref:`Dataset` is not a composite.
+
+    .. py:attribute:: run
+
+        Read-only instance attribute.
+
+        The :ref:`Run` the :ref:`Dataset` was created with.
 
 
 SQL Representation
