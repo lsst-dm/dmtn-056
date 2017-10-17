@@ -88,7 +88,7 @@ Python API
 
             parent = self.datastore.get(handle.uri, handle.type.storageClass, parameters) if handle.uri else None
             children = {name : self.datastore.get(childHandle, parameters) for name, childHandle in handle.components.items()}
-            return handle.type.storageClass.assemble(parent, children, parameters)
+            return handle.type.storageClass.assemble(parent, children)
 
     .. py:method:: put(label, dataset, producer=None)
 
@@ -141,6 +141,7 @@ Python API
                        for label in labels]
             for handle in self.registry.disassociate(self.config.collection, handles, remove=True):
                 self.datastore.remove(handle.uri)
+
     .. todo::
 
         How much more of :ref:`Registry's <Registry>` should Butler forward?
