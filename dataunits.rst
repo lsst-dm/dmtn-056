@@ -117,7 +117,7 @@ Python API
 
     .. py:method:: expand(findfunc, values)
 
-        Transform a dictionary of DataUnit instances from a dictionary of DataUnit "values".
+        Construct a dictionary of DataUnit instances from a dictionary of DataUnit "values".
 
         :param findfunc: a callable with the same signature and behavior :py:meth:`Registry.findDataUnit` or :py:meth:`DataUnitMap.findDataUnit`.
 
@@ -478,11 +478,11 @@ Python API
 
         The :py:class:`PhysicalFilter` the Visit was observed with.
 
-    .. py:attribute:: obs_begin
+    .. py:attribute:: obsBegin
 
         The date and time of the beginning of the Visit.
 
-    .. py:attribute:: obs_end
+    .. py:attribute:: obsEnd
 
         The date and time of the end of the Visit.
 
@@ -616,11 +616,11 @@ Python API
 
         The :py:class:`Visit` instance associated with the ObservedSensor.
 
-    .. py:attribute:: obs_begin
+    .. py:attribute:: obsBegin
 
         The date and time of the beginning of the Visit.
 
-    .. py:attribute:: obs_end
+    .. py:attribute:: obsEnd
 
         The date and time of the end of the Visit.
 
@@ -685,17 +685,13 @@ Python API
 
         The :py:class:`Camera` instance associated with the MasterCalib.
 
-    .. py:attribute:: visit_begin
+    .. py:attribute:: visitBegin
 
         The number of the first :py:class:`Visit` instance associated with the ObservedSensor.
 
-    .. py:attribute:: obs_begin
+    .. py:attribute:: visitEnd
 
         The number of the last :py:class:`Visit` instance associated with the ObservedSensor, or ``-1`` for an open range.
-
-    .. py:attribute:: obs_end
-
-        The date and time of the end of the Visit.
 
     .. py:attribute:: filter
 
