@@ -103,6 +103,22 @@ Python API
 
         *Not supported by limited Registries.*
 
+    .. py:method:: disassociate(tag, handles, remove=True)
+
+        Remove existing :ref:`Datasets <Dataset>` from a :ref:`Collection`.
+
+        :param str tag: a :ref:`CollectionTag <Collection>` indicating the Collection the :ref:`Datasets <Dataset>` should no longer be associated with.
+
+        :param list[DatasetHandle] handles: a list of :py:class:`DatasetHandle` instances that already exist in this :ref:`Registry`.
+
+        :param bool remove: if True, remove Datasets from the Registry if they are not associated with any :ref:`Collection` (including via any composites).
+
+        :returns: If ``remove`` is True, the list of :py:class:`DatasetHandles <DatasetHandle>` that were removed.
+
+        ``tag`` and ``handle`` combinations that are not currently associated are silently ignored.
+
+        *Not supported by limited Registries.*
+
     .. py:method:: makeRun(tag)
 
         Create a new :ref:`Run` in the :ref:`Registry` and return it.
@@ -343,6 +359,12 @@ Python API
         :param str typeName: The :ref:`DatasetType` name, which may be used by the :ref:`Datastore` to override the default serialization format for the :ref:`StorageClass`.
 
         :returns: the :py:class:`str` :ref:`URI` and a dictionary of :ref:`URIs <URI>` for the :ref:`Dataset's <Dataset>` components.  The latter will be empty (or None?) if the :ref:`Dataset` is not a composite.
+
+    .. py:method:: remove(uri)
+
+        Indicate to the Datastore that a :ref:`Dataset` can be removed.
+
+        Some Datastores may implement this method as a silent no-op to disable :ref:`Dataset` deletion through standard interfaces.
 
     .. py:method:: transfer(inputDatastore, inputUri, storageClass, path, typeName=None) -> URI, {name: URI}
 

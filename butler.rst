@@ -129,6 +129,18 @@ Python API
             handle = self.registry.find(self.config.collection, ref)
             self.registry.markInputUsed(handle, quantum)
 
+    .. py:method:: unlink(*labels)
+
+        Remove the :ref:`Datasets <Dataset>` associated with the given :py:class:`DatasetLabels <DatasetLabel>` from the Butler's :ref:`Collection`, and signal that they may be deleted from storage if they are not referenced by any other :ref:`Collection`.
+
+        Implemented as:
+
+        .. code:: python
+
+            handles = [self.registry.find(self.config.collection, labels)
+                       for label in labels]
+            for handle in self.registry.disassociate(self.config.collection, handles, remove=True):
+                self.datastore.remove(handle.uri)
     .. todo::
 
         How much more of :ref:`Registry's <Registry>` should Butler forward?
