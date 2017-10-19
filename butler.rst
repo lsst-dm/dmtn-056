@@ -88,7 +88,7 @@ Python API
 
             parent = self.datastore.get(handle.uri, handle.type.storageClass, parameters) if handle.uri else None
             children = {name : self.datastore.get(childHandle, parameters) for name, childHandle in handle.components.items()}
-            return handle.type.storageClass.assemble(parent, children, parameters)
+            return handle.type.storageClass.assemble(parent, children)
 
     .. py:method:: put(label, dataset, producer=None)
 
@@ -128,6 +128,19 @@ Python API
 
             handle = self.registry.find(self.config.collection, ref)
             self.registry.markInputUsed(handle, quantum)
+
+    .. py:method:: unlink(*labels)
+
+        Remove the :ref:`Datasets <Dataset>` associated with the given :py:class:`DatasetLabels <DatasetLabel>` from the Butler's :ref:`Collection`, and signal that they may be deleted from storage if they are not referenced by any other :ref:`Collection`.
+
+        Implemented as:
+
+        .. code:: python
+
+            handles = [self.registry.find(self.config.collection, labels)
+                       for label in labels]
+            for handle in self.registry.disassociate(self.config.collection, handles, remove=True):
+                self.datastore.remove(handle.uri)
 
     .. todo::
 
