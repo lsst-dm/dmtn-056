@@ -97,7 +97,7 @@ Fields:
     | component_name          | varchar | NOT NULL |
     +-------------------------+---------+----------+
 Primary Key:
-    None
+    - (parent_dataset_id, parent_registry_id, component_dataset_id, component_registry_id)
 Foreign Keys:
     - (parent_dataset_id, parent_registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
     - (component_dataset_id, component_registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
@@ -213,7 +213,7 @@ Fields:
     | unit_name               | varchar | NOT NULL |
     +-------------------------+---------+----------+
 Primary Key:
-    None
+    - dataset_type_name
 Foreign Keys:
     - (dataset_type_name) references :ref:`sql_DatasetType` (name)
 

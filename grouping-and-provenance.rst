@@ -46,7 +46,7 @@ Fields:
     | registry_id | int     | NOT NULL |
     +-------------+---------+----------+
 Primary Key:
-    None
+    - (dataset_id, registry_id)
 Foreign Keys:
     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 

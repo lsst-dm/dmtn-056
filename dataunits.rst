@@ -209,16 +209,19 @@ Python API
 
         The name of the filter.
 
-.. _sql_AbstractFilter:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
-+----------------------------+---------+-------------+
-| *AbstractFilter*                                   |
-+============================+=========+=============+
-| abstract_filter_namename   | varchar | NOT NULL    |
-+----------------------------+---------+-------------+
+.. _sql_AbstractFilter:
+
+AbstractFilter
+""""""""""""""
+
++----------------------+---------+-------------+
+| *AbstractFilter*                             |
++======================+=========+=============+
+| abstract_filter_name | varchar | NOT NULL    |
++----------------------+---------+-------------+
 
 
 .. _Camera:
@@ -283,10 +286,13 @@ Python API
         This virtual method will be called by a :ref:`Registry` when it adds a new :ref:`Camera` to populate its :ref:`PhysicalFilters table <sql_PhysicalFilter>`.
 
 
-.. _sql_Camera:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_Camera:
+
+Camera
+""""""
 
 +-------------+---------+-------------+
 | *Camera*                            |
@@ -340,10 +346,13 @@ Python API
         The associated :py:class:`AbstractFilter`, or None.
 
 
-.. _sql_PhysicalFilter:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_PhysicalFilter:
+
+PhysicalFilter
+""""""""""""""
 
 +----------------------+---------+----------+
 | *PhysicalFilter*                          |
@@ -411,10 +420,14 @@ Python API
         A Camera-generic role for the sensor.
 
 
-.. _sql_PhysicalSensor:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_PhysicalSensor:
+
+PhysicalSensor
+""""""""""""""
+
 +--------------------------+---------+----------+
 | *PhysicalSensor*         |                    |
 +==========================+=========+==========+
@@ -495,10 +508,14 @@ Python API
         A sequence of :py:class:`ObservedSensor` instances associated with this Visit.
 
 
-.. _sql_Visit:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_Visit:
+
+Visit
+"""""
+
 +-----------------------+----------+----------+
 | *Visit*                          |          |
 +=======================+==========+==========+
@@ -564,10 +581,14 @@ Python API
         An object (type TBD) that describes the spatial extent of the ObservedSensor on the sky.
 
 
-.. _sql_ObservedSensor:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_ObservedSensor:
+
+ObservedSensor
+""""""""""""""
+
 +------------------------+---------+----------+
 | *ObservedSensor*                            |
 +========================+=========+==========+
@@ -625,10 +646,14 @@ Python API
         The date and time of the end of the Visit.
 
 
-.. _sql_Snap:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_Snap:
+
+Snap
+""""
+
 +---------------+----------+----------+
 | *Snap*                              |
 +===============+==========+==========+
@@ -702,10 +727,14 @@ Python API
         The :py:class:`PhysicalFilter` associated with the MasterCalib, or None.
 
 
-.. _sql_MasterCalib:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_MasterCalib:
+
+MasterCalib
+"""""""""""
+
 +-----------------------+---------+----------+
 | *MasterCalib*                              |
 +=======================+=========+==========+
@@ -779,10 +808,14 @@ Python API
           Can we just use pickle?
 
 
-.. _sql_SkyMap:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_SkyMap:
+
+SkyMap
+""""""
+
 +----------------+---------+--------------+
 | *SkyMap*                                |
 +================+=========+==============+
@@ -844,10 +877,14 @@ Python API
 
         Add other methods from ``lsst.skymap.TractInfo``.
 
-.. _sql_Tract:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_Tract:
+
+Tract
+"""""
+
 +--------------+---------+----------+
 | *Tract*                           |
 +==============+=========+==========+
@@ -914,10 +951,14 @@ Python API
 
         Add other methods from ``lsst.skymap.PatchInfo``.
 
-.. _sql_Patch:
-
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
+
+.. _sql_Patch:
+
+Patch
+"""""
+
 +--------------+---------+----------+
 | *Patch*                           |
 +==============+=========+==========+

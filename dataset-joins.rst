@@ -39,7 +39,7 @@ Fields:
     | registry_id          | int     | NOT NULL |
     +----------------------+---------+----------+
 Foreign Keys:
-     - (physical_filter_name, camera_name) references :ref:`sql_PhysicalFilter` (name, camera_name)
+     - (physical_filter_name, camera_name) references :ref:`sql_PhysicalFilter` (physical_filter_name, camera_name)
      - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
 .. _sql_PhysicalSensorDatasetJoin:
@@ -57,7 +57,7 @@ Fields:
     | registry_id            | int     | NOT NULL |
     +------------------------+---------+----------+
 Foreign Keys:
-     - (physical_sensor_number, camera_name) references :ref:`sql_PhysicalSensor` (number, camera_name)
+     - (physical_sensor_number, camera_name) references :ref:`sql_PhysicalSensor` (physical_sensor_number, camera_name)
      - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
 .. _sql_VisitDatasetJoin:
@@ -95,7 +95,7 @@ Fields:
     | registry_id            | int     | NOT NULL |
     +------------------------+---------+----------+
 Foreign Keys:
-     - (snap_index, visit_number, camera_name) references :ref:`sql_Snap` (index, visit_number, camera_name)
+     - (snap_index, visit_number, camera_name) references :ref:`sql_Snap` (snap_index, visit_number, camera_name)
      - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
 .. _sql_AbstractFilterDatasetJoin:
@@ -111,7 +111,7 @@ Fields:
     | registry_id          | int     | NOT NULL |
     +----------------------+---------+----------+
 Foreign Keys:
-     - (abstract_filter_name) references :ref:`sql_AbstractFilter` (name)
+     - (abstract_filter_name) references :ref:`sql_AbstractFilter` (abstract_filter_name)
      - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
 .. _sql_TractDatasetJoin:
@@ -149,5 +149,5 @@ Fields:
     | registry_id          | int     | NOT NULL |
     +----------------------+---------+----------+
 Foreign Keys:
-     - (patch_index, tract_number, skymap_name) references :ref:`sql_Patch` (index, tract_number, skymap_name)
+     - (patch_index, tract_number, skymap_name) references :ref:`sql_Patch` (patch_index, tract_number, skymap_name)
      - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
