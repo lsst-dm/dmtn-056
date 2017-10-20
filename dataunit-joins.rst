@@ -14,7 +14,7 @@ The following direct connections exist:
 .. graph:: dataunit_joins
     :align: center
 
-    MasterCalib -- Visit;
+    VisitRange -- Visit;
     Visit -- Patch;
     Visit -- Tract;
     Sensor -- Patch;
@@ -23,57 +23,45 @@ The following direct connections exist:
 Calibration-Observation Joins
 -----------------------------
 
-.. _sql_MasterCalibVisitJoin:
+.. _sql_VisitRangeJoin:
 
-MasterCalibVisitJoin
-^^^^^^^^^^^^^^^^^^^^
+VisitRangeJoin
+^^^^^^^^^^^^^^
 Fields:
     +-------------------------+---------+----------+
     | visit_begin             | int     | NOT NULL |
     +-------------------------+---------+----------+
     | visit_end               | int     | NOT NULL |
     +-------------------------+---------+----------+
-    | physical_filter_name    | varchar | NOT NULL |
-    +-------------------------+---------+----------+
     | visit_number            | varchar | NOT NULL |
     +-------------------------+---------+----------+
     | camera_name             | varchar | NOT NULL |
     +-------------------------+---------+----------+
 Foreign Keys:
-    - (visit_begin, visit_end, physical_filter_name, camera_name) references :ref:`MasterCalib` (visit_begin, visit_end, physical_filter_name, camera_name)
+    - (visit_begin, visit_end, camera_name) references :ref:`VisitRange` (visit_begin, visit_end, camera_name)
     - (visit_number, camera_name) references :ref:`Visit` (visit_number, camera_name)
 
-.. note::
-
-    The ``physical_filter_name`` field here may be an empty string, which would mean it would not be the same as the ``physical_filter_name`` field in :ref:`Visit`.
-    This is because ``physical_filter_name`` is part of :ref:`MasterCalib's <MasterCalib>` primary key but not :ref:`Visit's <Visit>`.
-
-Whether the :ref:`MasterCalibVisitJoin <sql_MasterCalibVisitJoin>` table is calculated is TBD; it could be considered the source of truth (overriding the ranges in the :ref:`MasterCalib table <sql_MasterCalib>`).
+Whether the :ref:`VisitRangeJoin <sql_VisitRangeJoin>` table is calculated is TBD; it could be considered the source of truth (overriding the ranges in the :ref:`VisitRange table <sql_VisitRange>`).
 
 If this table is calculated, it can be defined with the following view:
 
 .. code:: sql
 
-    CREATE VIEW MasterCalibVisitJoin AS
+    CREATE VIEW VisitRangeJoin AS
     SELECT
-        MasterCalib.visit_begin AS visit_begin,
-        MasterCalib.visit_end AS visit_end,
-        MasterCalib.physical_filter_name AS physical_filter_name,
-        Visit.number AS visit_number,
+        VisitRange.visit_begin AS visit_begin,
+        VisitRange.visit_end AS visit_end,
+        Visit.visit_number AS visit_number,
         Visit.camera_name AS camera_name
     FROM
-        Visit INNER JOIN MasterCalib ON (
-            Visit.camera_name == MasterCalib.camera_name
+        Visit INNER JOIN VisitRange ON (
+            Visit.camera_name == VisitRange.camera_name
             AND
-            Visit.number >= MasterCalib.visit_begin
+            Visit.visit_number >= VisitRange.visit_begin
             AND (
-                Visit.number < MasterCalib.visit_end
+                Visit.visit_number < VisitRange.visit_end
                 OR
-                MasterCalib.visit_end < 0
-            ) AND (
-                Visit.physical_filter_name == MasterCalib.physical_filter_name
-                OR
-                MasterCalib.physical_filter_name == ''
+                VisitRange.visit_end < 0
             )
         );
 
