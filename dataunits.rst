@@ -886,6 +886,14 @@ Python API
 
         An integer that identifies this Patch within its :ref:`Tract`.
 
+    .. py:attribute:: cellX
+
+        The column location of the cell represented by this tract in the grid represented by its Tarct.
+
+    .. py::attribute:: cellY
+
+        The row location of the cell represented by this tract in the grid represented by its Tarct.
+
     .. py:attribute:: region
 
         An object (type TBD) that represents the Patch's extent on the sky.
@@ -904,6 +912,10 @@ SQL Representation
 | patch_index  | int     | NOT NULL |
 +--------------+---------+----------+
 | tract_number | int     | NOT NULL |
++--------------+---------+----------+
+| cell_x       | int     | NOT NULL |
++--------------+---------+----------+
+| cell_y       | int     | NOT NULL |
 +--------------+---------+----------+
 | skymap_name  | varchar | NOT NULL |
 +--------------+---------+----------+
