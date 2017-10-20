@@ -482,9 +482,9 @@ Python API
 
         The date and time of the beginning of the Visit.
 
-    .. py:attribute:: obsEnd
+    .. py:attribute:: exposureTime
 
-        The date and time of the end of the Visit.
+        The total exposure time of the Visit (in seconds).
 
     .. py:attribute:: region
 
@@ -510,7 +510,7 @@ SQL Representation
 +-----------------------+----------+----------+
 | obs_begin             | datetime |          |
 +-----------------------+----------+----------+
-| obs_end               | datetime |          |
+| exposure_time         | float    |          |
 +-----------------------+----------+----------+
 | region                | blob     |          |
 +-----------------------+----------+----------+
@@ -620,9 +620,9 @@ Python API
 
         The date and time of the beginning of the Visit.
 
-    .. py:attribute:: obsEnd
+    .. py:attribute:: exposureTime
 
-        The date and time of the end of the Visit.
+        The exposure time of the Snap.
 
 
 .. _sql_Snap:
