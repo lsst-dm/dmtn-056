@@ -53,7 +53,7 @@ Fields:
     +---------------------+---------+----------+
     | registry_id         | int     | NOT NULL |
     +---------------------+---------+----------+
-    | dataset_type_name   | int     | NOT NULL |
+    | dataset_type_name   | varchar | NOT NULL |
     +---------------------+---------+----------+
     | unit_pack           | binary  | NOT NULL |
     +---------------------+---------+----------+

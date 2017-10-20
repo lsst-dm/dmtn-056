@@ -217,7 +217,7 @@ SQL Representation
 +----------------------------+---------+-------------+
 | *AbstractFilter*                                   |
 +============================+=========+=============+
-| abstract_filter_namename   | varchar | NOT NULL    |
+| abstract_filter_name       | varchar | NOT NULL    |
 +----------------------------+---------+-------------+
 
 
@@ -610,15 +610,19 @@ Python API
 
     .. py:attribute:: camera
 
-        The :py:class:`Camera` instance associated with the ObservedSensor.
+        The :py:class:`Camera` instance associated with the Snap.
 
     .. py:attribute:: visit
 
-        The :py:class:`Visit` instance associated with the ObservedSensor.
+        The :py:class:`Visit` instance the Snap is a part of.
+
+    .. py:attribute:: index
+
+        The index of the Snap within its Visit.
 
     .. py:attribute:: obsBegin
 
-        The date and time of the beginning of the Visit.
+        The date and time of the beginning of the Snap.
 
     .. py:attribute:: exposureTime
 
