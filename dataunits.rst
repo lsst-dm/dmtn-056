@@ -231,6 +231,9 @@ Camera :ref:`DataUnits <DataUnit>` are essentially just sources of raw data with
 Different versions of the same camera (due to e.g. changes in hardware) should still correspond to a single Camera :ref:`DataUnit`.
 There are thus multiple ``afw.cameraGeom.Camera`` objects associated with a single Camera :ref:`DataUnit`; the most natural approach to relating them would be to store the ``afw.cameraGeom.Camera`` as a :ref:`VisitRange` :ref:`Dataset`.
 
+The Collimated Beam Projector (CBP) state and the CBP spectrograph will be represented by distinct Camera DataUnits, allowing changes in state and spectrograph observations to be represented as :ref:`Visits <Visit>` with those Cameras.
+These are associated with main-camera :ref:`Visits <Visit>` that represent observations of the CBP by the :ref:`VisitSelfJoin <sql_VisitSelfJoin>` table.
+
 Like :ref:`SkyMap` but unlike every other :ref:`DataUnit`, :ref:`Cameras <Camera>` are represented by a polymorphic class hierarchy in Python rather than a single concrete class.
 
 Value:
@@ -436,6 +439,11 @@ Visit
 
 Visits correspond to observations with the full camera at a particular pointing, possibly comprised of multiple exposures (:ref:`Snaps <Snap>`).
 
+Some :ref:`DatasetTypes <DatasetType>` representing raw exposures may use Visits with no :ref:`Snaps <Snap>`, while others may use :ref:`Snaps <Snap>`.
+It may be useful to define a raw :ref:`DatasetType` with :ref:`Snap` even when only one :ref:`Snap` will exist if the data is to be processed with a pipeline that can operate on multi-`:ref:`Snap` inputs.
+
+Visits can represent observations taken for calibration purposes, such as flat field images.
+
 A Visit's ``region`` field holds an approximate but inclusive representation of its position on the sky that can be compared to the ``regions`` of other DataUnits.
 
 Value:
@@ -459,6 +467,8 @@ Many-to-Many Joins:
     We should consider adding everything in ``afw.image.VisitInfo``.
     That may be true of some other concrete DataUnits as well.
 
+    It will probably be necessary to add per-Camera Visit tables for Camera-specific metadata as well.
+    This is a rather significant change to the common schema, but it's not actually problematic.
 
 Python API
 ^^^^^^^^^^

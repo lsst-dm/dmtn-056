@@ -15,6 +15,7 @@ The following direct connections exist:
     :align: center
 
     VisitRange -- Visit;
+    Visit -- Visit;
     Visit -- Patch;
     Visit -- Tract;
     Sensor -- Patch;
@@ -33,7 +34,7 @@ Fields:
     +-------------------------+---------+----------+
     | visit_end               | int     | NOT NULL |
     +-------------------------+---------+----------+
-    | visit_number            | varchar | NOT NULL |
+    | visit_number            | int     | NOT NULL |
     +-------------------------+---------+----------+
     | camera_name             | varchar | NOT NULL |
     +-------------------------+---------+----------+
@@ -64,6 +65,32 @@ If this table is calculated, it can be defined with the following view:
                 VisitRange.visit_end < 0
             )
         );
+
+.. _sql_VisitSelfJoin:
+
+VisitSelfJoin
+^^^^^^^^^^^^^
+Visits can be joined to Visits from other Cameras primarily to represent simultaneous observations taken for calibration purposes:
+
+ - matching Collimated Beam Projector (CBP) configuration states to main-camera observations of the CBP;
+ - matching CBP spectrograph observations to CBP configuration states.
+
+This join table will probably only be used indirectly to relate auxilliary telescope observations with main camera observations, because that mapping may involve a spatial component as well.
+Instead, we expect to aggregate all reduced auxilliary telescope observations for a night into a single :ref:`Dataset` that is associated with a :ref:`VisitRange` for the night; these are then related to raw science exposures by the :ref:`sql_VisitRangeJoin` table and interpolated temporally and spatially by science code.
+
+Fields:
+    +-------------------------+---------+----------+
+    | visit_number_1          | int     | NOT NULL |
+    +-------------------------+---------+----------+
+    | visit_number_2          | int     | NOT NULL |
+    +-------------------------+---------+----------+
+    | camera_name_1           | varchar | NOT NULL |
+    +-------------------------+---------+----------+
+    | camera_name_2           | varchar | NOT NULL |
+    +-------------------------+---------+----------+
+Foreign Keys:
+    - (visit_number_1, camera_name_1) references :ref:`Visit` (visit_number, camera_name)
+    - (visit_number_2, camera_name_2) references :ref:`Visit` (visit_number, camera_name)
 
 Spatial Joins
 -------------
