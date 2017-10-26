@@ -98,6 +98,24 @@ Foreign Keys:
      - (snap_index, visit_number, camera_name) references :ref:`sql_Snap` (snap_index, visit_number, camera_name)
      - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
+.. _sql_VisitRangeDatasetJoin:
+
+VisitRangeDatasetJoin
+^^^^^^^^^^^^^^^^^^^^^
+Fields:
+    +------------------------+---------+----------+
+    | visit_begin            | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | visit_end              | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | dataset_id             | int     | NOT NULL |
+    +------------------------+---------+----------+
+    | registry_id            | int     | NOT NULL |
+    +------------------------+---------+----------+
+Foreign Keys:
+     - (visit_begin, visit_end, camera_name) references :ref:`sql_VisitRange` (visit_begin, visit_end, camera_name)
+     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
+
 .. _sql_AbstractFilterDatasetJoin:
 
 AbstractFilterDatasetJoin

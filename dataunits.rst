@@ -217,11 +217,11 @@ SQL Representation
 AbstractFilter
 """"""""""""""
 
-+----------------------+---------+-------------+
-| *AbstractFilter*                             |
-+======================+=========+=============+
-| abstract_filter_name | varchar | NOT NULL    |
-+----------------------+---------+-------------+
++----------------------+---------+----------+
+| *AbstractFilter*                          |
++======================+=========+==========+
+| abstract_filter_name | varchar | NOT NULL |
++----------------------+---------+----------+
 
 
 .. _Camera:
@@ -232,7 +232,10 @@ Camera
 Camera :ref:`DataUnits <DataUnit>` are essentially just sources of raw data with a constant layout of :ref:`PhysicalSensors <PhysicalSensor>` and a self-constent numbering system for :ref:`Visits <Visit>`.
 
 Different versions of the same camera (due to e.g. changes in hardware) should still correspond to a single Camera :ref:`DataUnit`.
-There are thus multiple ``afw.cameraGeom.Camera`` objects associated with a single Camera :ref:`DataUnit`; the most natural approach to relating them would be to store the ``afw.cameraGeom.Camera`` as a :ref:`MasterCalib` :ref:`Dataset`.
+There are thus multiple ``afw.cameraGeom.Camera`` objects associated with a single Camera :ref:`DataUnit`; the most natural approach to relating them would be to store the ``afw.cameraGeom.Camera`` as a :ref:`VisitRange` :ref:`Dataset`.
+
+The Collimated Beam Projector (CBP) state and the CBP spectrograph will be represented by distinct Camera DataUnits, allowing changes in state and spectrograph observations to be represented as :ref:`Visits <Visit>` with those Cameras.
+These are associated with main-camera :ref:`Visits <Visit>` that represent observations of the CBP by the :ref:`VisitSelfJoin <sql_VisitSelfJoin>` table.
 
 Like :ref:`SkyMap` but unlike every other :ref:`DataUnit`, :ref:`Cameras <Camera>` are represented by a polymorphic class hierarchy in Python rather than a single concrete class.
 
@@ -449,6 +452,11 @@ Visit
 
 Visits correspond to observations with the full camera at a particular pointing, possibly comprised of multiple exposures (:ref:`Snaps <Snap>`).
 
+Some :ref:`DatasetTypes <DatasetType>` representing raw exposures may use Visits with no :ref:`Snaps <Snap>`, while others may use :ref:`Snaps <Snap>`.
+It may be useful to define a raw :ref:`DatasetType` with :ref:`Snap` even when only one :ref:`Snap` will exist if the data is to be processed with a pipeline that can operate on multi-`:ref:`Snap` inputs.
+
+Visits can represent observations taken for calibration purposes, such as flat field images.
+
 A Visit's ``region`` field holds an approximate but inclusive representation of its position on the sky that can be compared to the ``regions`` of other DataUnits.
 
 Value:
@@ -472,6 +480,8 @@ Many-to-Many Joins:
     We should consider adding everything in ``afw.image.VisitInfo``.
     That may be true of some other concrete DataUnits as well.
 
+    It will probably be necessary to add per-Camera Visit tables for Camera-specific metadata as well.
+    This is a rather significant change to the common schema, but it's not actually problematic.
 
 Python API
 ^^^^^^^^^^
@@ -495,9 +505,9 @@ Python API
 
         The date and time of the beginning of the Visit.
 
-    .. py:attribute:: obsEnd
+    .. py:attribute:: exposureTime
 
-        The date and time of the end of the Visit.
+        The total exposure time of the Visit (in seconds).
 
     .. py:attribute:: region
 
@@ -527,7 +537,7 @@ Visit
 +-----------------------+----------+----------+
 | obs_begin             | datetime |          |
 +-----------------------+----------+----------+
-| obs_end               | datetime |          |
+| exposure_time         | float    |          |
 +-----------------------+----------+----------+
 | region                | blob     |          |
 +-----------------------+----------+----------+
@@ -555,7 +565,7 @@ Primary Key:
     (visit_number, physical_sensor_number, camera_name)
 
 Many-to-Many Joins:
-    - :ref:`MasterCalib` via :ref:`sql_MasterCalibVisitJoin`
+    - :ref:`VisitRange` via :ref:`sql_VisitRangeJoin`
     - :ref:`Tract` via :ref:`sql_SensorTractJoin`
     - :ref:`Patch` via :ref:`sql_SensorPatchJoin`
 
@@ -631,19 +641,23 @@ Python API
 
     .. py:attribute:: camera
 
-        The :py:class:`Camera` instance associated with the ObservedSensor.
+        The :py:class:`Camera` instance associated with the Snap.
 
     .. py:attribute:: visit
 
-        The :py:class:`Visit` instance associated with the ObservedSensor.
+        The :py:class:`Visit` instance the Snap is a part of.
+
+    .. py:attribute:: index
+
+        The index of the Snap within its Visit.
 
     .. py:attribute:: obsBegin
 
-        The date and time of the beginning of the Visit.
+        The date and time of the beginning of the Snap.
 
-    .. py:attribute:: obsEnd
+    .. py:attribute:: exposureTime
 
-        The date and time of the end of the Visit.
+        The exposure time of the Snap.
 
 
 SQL Representation
@@ -669,46 +683,36 @@ Snap
 +---------------+----------+----------+
 
 
-.. _MasterCalib:
+.. _VisitRange:
 
-MasterCalib
------------
+VisitRange
+----------
 
-MasterCalibs are the DataUnits that label master calibration products, and are defined as a range of :ref:`Visits <Visit>` from a given :ref:`Camera`.
+VisitRanges are DataUnits that label master calibration products, and are defined as a range of :ref:`Visits <Visit>` from a given :ref:`Camera`.
 
-MasterCalibs may additionally be specialized for a particular :ref:`PhysicalFilter`, or may be appropriate for all PhysicalFilters by setting the ``physical_filter_name`` field to an empty string ``""``, though we map this to ``None`` in Python.
+The VisitRange associated with not-yet-observed :ref:`Visits <Visit>` may be indicated by setting ``visit_end`` to ``-1`` (we can't use ``NULL`` for ``visit_end`` because it is part of the compound primary key).  This is mapped to ``None`` in Python.
 
-The MasterCalib associated with not-yet-observed :ref:`Visits <Visit>` may be indicated by setting ``visit_end`` to ``-1``.  This is also mapped to ``None`` in Python.
-
-We probably can't use ``NULL`` for ``physical_filter_name`` and ``visit_end`` because these are part of the compound primary key.
-
-.. note::
-
-    The fact that all of the fields in this table are part of the compound primary key is a little worrying.
-    If we could come up with some other globally-meaningful label for a set of master calibrations, we could instead make the join-to-visit table authoritative (instead of an easily-calculated view).
-    But that would require some ugly two-way synchronizations whenever either MasterCalib or Visit DataUnits are added.
 
 Value:
     visit_begin, visit_end
 
 Dependencies:
     - (camera_name) -> :ref:`Camera` (camera_name)
-    - (physical_filter_name, camera_name) -> :ref:`PhysicalFilter` (physical_filter_name, camera_name) [optional]
 
 Primary Key:
-    (visit_begin, visit_end, physical_filter_name, camera_name)
+    (visit_begin, visit_end, camera_name)
 
 Many-to-Many Joins:
-    - :ref:`Visit` via :ref:`sql_MasterCalibVisitJoin`
+    - :ref:`Visit` via :ref:`sql_VisitRangeJoin`
 
 Python API
 ^^^^^^^^^^
 
-.. py:class:: MasterCalib
+.. py:class:: VisitRange
 
     .. py:attribute:: camera
 
-        The :py:class:`Camera` instance associated with the MasterCalib.
+        The :py:class:`Camera` instance associated with the VisitRange.
 
     .. py:attribute:: visitBegin
 
@@ -718,27 +722,21 @@ Python API
 
         The number of the last :py:class:`Visit` instance associated with the ObservedSensor, or ``-1`` for an open range.
 
-    .. py:attribute:: filter
-
-        The :py:class:`PhysicalFilter` associated with the MasterCalib, or None.
-
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
-.. _sql_MasterCalib:
+.. _sql_VisitRange:
 
-MasterCalib
-"""""""""""
+VisitRange
+""""""""""
 
 +-----------------------+---------+----------+
-| *MasterCalib*                              |
+| *VisitRange*                               |
 +=======================+=========+==========+
 | visit_begin           | int     | NOT NULL |
 +-----------------------+---------+----------+
 | visit_end             | int     | NOT NULL |
-+-----------------------+---------+----------+
-| physical_filter_name  | varchar | NOT NULL |
 +-----------------------+---------+----------+
 | camera_name           | varchar | NOT NULL |
 +-----------------------+---------+----------+
@@ -939,6 +937,14 @@ Python API
 
         An integer that identifies this Patch within its :ref:`Tract`.
 
+    .. py:attribute:: cellX
+
+        The column location of the cell represented by this tract in the grid represented by its Tarct.
+
+    .. py::attribute:: cellY
+
+        The row location of the cell represented by this tract in the grid represented by its Tarct.
+
     .. py:attribute:: region
 
         An object (type TBD) that represents the Patch's extent on the sky.
@@ -961,6 +967,10 @@ Patch
 | patch_index  | int     | NOT NULL |
 +--------------+---------+----------+
 | tract_number | int     | NOT NULL |
++--------------+---------+----------+
+| cell_x       | int     | NOT NULL |
++--------------+---------+----------+
+| cell_y       | int     | NOT NULL |
 +--------------+---------+----------+
 | skymap_name  | varchar | NOT NULL |
 +--------------+---------+----------+
