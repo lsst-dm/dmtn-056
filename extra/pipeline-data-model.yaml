@@ -1,0 +1,262 @@
+units:
+  AbstractFilter:
+    fields:
+      abstract_filter_name: str
+    depends: {}
+    primary: [abstract_filter_name]
+  Camera:
+    fields:
+      camera_name: str
+      module: str
+    depends: {}
+    primary: [camera_name]
+  PhysicalFilter:
+    fields:
+      camera_name: str
+      physical_filter_name: str
+      abstract_filter_name: str
+    depends: {Camera: [camera_name], AbstractFilter: [abstract_filter_name]}
+    primary: [camera_name, physical_filter_name]
+  Visit:
+    fields:
+      camera_name: str
+      visit_number: int
+      physical_filter_name: str
+      obs_begin: datetime
+      exposure_time: float
+      region: blob
+    depends: {Camera: [camera_name], PhysicalFilter: [physical_filter_name]}
+    primary: [camera_name, visit_number]
+  PhysicalSensor:
+    fields:
+      camera_name: str
+      physical_sensor_number: int
+      name: str
+      group: str
+      purpose: str
+    depends: {Camera: [camera_name]}
+    primary: [camera_name, physical_sensor_number]
+  ObservedSensor:
+    fields:
+      camera_name: str
+      visit_number: int
+      physical_sensor_number: int
+      region: blob
+    depends:
+      Camera: [camera_name]
+      Visit: [camera_name, visit_number]
+      PhysicalSensor: [camera_name, physical_sensor_number]
+    primary: [camera_name, visit_number, physical_sensor_number]
+  Snap:
+    fields:
+      camera_name: str
+      visit_number: int
+      snap_index: int
+      obs_begin: datetime
+      exposure_time: float
+    depends: {Camera: [camera_name], Visit: [camera_name, visit_number]}
+    primary: [camera_name, visit_number, snap_index]
+  VisitRange:
+    fields:
+      camera_name: str
+      visit_begin: int
+      visit_end: int
+    depends: {Camera: [camera_name]}
+    primary: [camera_name, visit_begin, visit_end]
+  SkyMap:
+    fields:
+      skymap_name: str
+      module: str
+      serialized: blob
+    depends: {}
+    primary: [skymap_name]
+  Tract:
+    fields:
+      skymap_name: str
+      tract_number: int
+      region: blob
+    depends: {SkyMap: [skymap_name]}
+    primary: [skymap_name, tract_number]
+  Patch:
+    fields:
+      skymap_name: str
+      tract_number: int
+      cell_x: int
+      cell_y: int
+      region: blob
+    depends: {SkyMap: [skymap_name], Tract: [skymap_name, tract_number]}
+    primary: [skymap_name, tract_number, cell_x, cell_y]
+  Shard:  # Doesn't exist yet in butler_prototype
+    fields:
+      shard_number: int
+      region: blob
+    depends: {}
+    primary: [shard_number]
+
+joins:  # list of tables with many-to-many relationships
+  - [Visit, Tract]
+  - [Visit, Patch]
+  - [ObservedSensor, Tract]
+  - [ObservedSensor, Patch]
+  - [VisitRange, Visit]
+
+datasets:
+  raw:
+    units: [ObservedSensor, Snap]
+  bias:
+    units: [PhysicalSensor, VisitRange]
+  dark:
+    units: [PhysicalSensor, VisitRange]
+  flat:
+    units: [PhysicalSensor, VisitRange, PhysicalFilter]
+  fringe:
+    units: [PhysicalSensor, VisitRange, PhysicalFilter]
+  bfKernel:
+    units: [Camera, PhysicalSensor*, PhysicalFilter*, VisitRange*]
+  defects:
+    units: [PhysicalSensor, VisitRange]
+  yBackground:
+    units: [PhysicalSensor, VisitRange*, PhysicalFilter]
+  transmission_optics:
+    units: [VisitRange]
+  transmission_filter:
+    units: [PhysicalFilter, VisitRange]
+  transmission_sensor:
+    units: [PhysicalSensor, VisitRange]
+  transmission_atmosphere:
+    units: [VisitRange]
+  postISRCCD:
+    units: [ObservedSensor, Snap]
+  icSrc:
+    units: [ObservedSensor]
+  icSrc_schema:
+    units: []
+  icExp:
+    units: [ObservedSensor]
+  icExpBackground:
+    units: [ObservedSensor]
+  ref_cast:
+    units: [Shard]
+  src:
+    units: [ObservedSensor]
+  src_schema:
+    units: []
+  calexp:
+    units: [ObservedSensor]
+  calexpBackground:
+    units: [ObservedSensor]
+  srcMatch:
+    units: [ObservedSensor]
+  srcMatchFull:
+    units: [ObservedSensor]
+  sky:
+    units: [PhysicalSensor, PhysicalFilter, VisitRange]
+  skyCorr:
+    units: [ObservedSensor]
+  wcs:
+    units: [ObservedSensor, Tract]
+  photoCalib:
+    units: [ObservedSensor, Tract]
+  deepCoadd_directWarp:
+    units: [Patch, Visit]
+  deepCoadd_psfMatchedWarp:
+    units: [Patch, Visit]
+  deepCoadd:
+    units: [Patch, AbstractFilter]
+  deepCoadd_nImage:
+    units: [Patch, AbstractFilter]
+  deepCoadd_calexp:
+    units: [Patch, AbstractFilter]
+  deepCoadd_calexp_background:
+    units: [Patch, AbstractFilter]
+  deepCoadd_det:
+    units: [Patch, AbstractFilter]
+  deepCoadd_det_schema:
+    units: []
+  deepCoadd_mergeDet:
+    units: [Patch]
+  deepCoadd_mergeDet_schema:
+    units: []
+  deepCoadd_meas:
+    units: [Patch, AbstractFilter]
+  deepCoadd_meas_schema:
+    units: []
+  deepCoadd_measMatch:
+    units: [Patch, AbstractFilter]
+  deepCoadd_measMatchFull:
+    units: [Patch, AbstractFilter]
+  deepCoadd_ref:
+    units: [Patch]
+  deepCoadd_ref_schema:
+    units: []
+  forced_sr:
+    units: [Tract, ObservedSensor]
+
+tasks:
+  IsrTask:
+    units: [ObservedSensor, Snap]
+    inputs: [raw, bias, dark, flat, fringe, bfKernel, defecets, yBackground,
+             transmission_optics, tansmission_filter, transmission_sensor, transmission_atmosphere]
+    outputs: ["postISRCCD"]
+  CharacterizeImageTask:
+    units: [ObservedSensor]
+    preflight_outputs: [icSrc_schema]
+    inputs: [postISRCCD, ref_cat]
+    outputs: [icSrc, icExp, icExpBackground]
+  CalibrateTask:  # n.b. not considering inserting fake objects here
+    units: [ObservedSensor]
+    preflight_inputs: [icSrc_schema]
+    preflight_outputs: [src_schema]
+    inputs: [icSrc, icExp, icExpBackground, ref_cat]
+    outputs: [src, calexp, calexpBackground, srcMatch, srcMatchFull]
+  SkyCorrectionTask:
+    units: [Visit]
+    inputs: [calexp, calexpBackground, sky]
+    outputs: [skyCorr]
+  JointCalTask:  # née JoincalTask
+    units: [Tract]
+    inputs: [src, calexp, ref_cat]  # only needs lightweight components from calexp
+    outputs: [wcs, photoCalib*]
+  MakeWarpTask:  # née MakeCoaddTempExpTask
+    units: [Patch, Visit]
+    inputs: [calexp, wcs, photoCalib]
+    outputs: [deepCoadd_directWarp, deepCoadd_psfMatchedWarp]
+  AssembleCoaddTask:  # assume CompareWarp variant (which we might actually split into multiple SuperTasks)
+    units: [Patch, AbstractFilter]   # need to make this work with epoch ranges in the future
+    inputs: [deepCoadd_directWarp, deepCoadd_psfMatchedWarp]
+    outputs: [deepCoadd, deepCoadd_nImage]
+  DetectCoaddSourcesTask:
+    units: [Patch, AbstractFilter]
+    preflight_outputs: [deepCoadd_det_schema]
+    inputs: [deepCoadd]
+    outputs: [deepCoadd_calexp, deepCoadd_calexp_background, deepCoadd_det]
+  MergeDetectionsTask:
+    units: [Patch]
+    preflight_inputs: [deepCoadd_det_schema]
+    preflight_outputs: [deepCoadd_mergeDet_schema]
+    inputs: [deepCoadd_det]
+    outputs: [deepCoadd_mergeDet]
+  MeasureMergedCoaddSourcesTask:
+    units: [Patch, AbstractFilter]
+    preflight_inputs: [deepCoadd_mergeDet_schema]
+    preflight_outputs: [deepCoadd_meas_schema]
+    inputs: [deepCoadd_mergeDet, deepCoadd_calexp, src]
+    outputs: [deepCoadd_meas, deepCoadd_measMatch, deepCoadd_measMatchFull]
+  MergeMeasurementsTask:
+    units: [Patch]
+    preflight_inputs: [deepCoadd_meas_schema]
+    preflight_outputs: [deepCoadd_ref_schema]
+    inputs: [deepCoadd_meas]
+    outputs: [deepCoadd_ref]
+  ForcedPhotCoaddTask:
+    units: [Patch, AbstractFilter]
+    preflight_inputs: [deepCoadd_ref_schema]
+    preflight_outputs: [deepCoadd_forced_src_schema]
+    inputs: [deepCoadd_ref]
+    outputs: [deepCoadd_forced_src]
+  ForcedPhotCcdTask:
+    units: [ObservedSensor, Tract]
+    preflight_inputs: [deepCoadd_ref_schema]
+    preflight_outputs: [forced_src_schema]
+    inputs: [calexp, deepCoadd_ref]
+    outputs: [forced_src]
