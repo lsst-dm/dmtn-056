@@ -195,9 +195,9 @@ datasets:
 tasks:
   IsrTask:
     units: [ObservedSensor, Snap]
-    inputs: [raw, bias, dark, flat, fringe, bfKernel, defecets, yBackground,
+    inputs: [raw, bias, dark, flat, fringe, bfKernel, defects, yBackground,
              transmission_optics, tansmission_filter, transmission_sensor, transmission_atmosphere]
-    outputs: ["postISRCCD"]
+    outputs: [postISRCCD]
   CharacterizeImageTask:
     units: [ObservedSensor]
     preflight_outputs: [icSrc_schema]
