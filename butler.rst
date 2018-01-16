@@ -35,6 +35,10 @@ Python API
 
         a :py:class:`ButlerConfiguration` instance
 
+    .. py:attribute:: run 
+
+        a :py:class:`Run` instance, that contains the ``collection`` to use for output.
+
     .. py:attribute:: datastore
 
         a :py:class:`Datastore` instance
@@ -57,7 +61,7 @@ Python API
 
         .. code:: python
 
-            handle = self.registry.find(self.config.collection, label)
+            handle = self.registry.find(self.run.collection, label)
             return self.getDirect(handle, parameters)
 
         .. todo::
@@ -87,7 +91,7 @@ Python API
         .. code:: python
 
             parent = self.datastore.get(handle.uri, handle.type.storageClass, parameters) if handle.uri else None
-            children = {name : self.datastore.get(childHandle, parameters) for name, childHandle in handle.components.items()}
+            children = {name: self.datastore.get(childHandle, parameters) for name, childHandle in handle.components.items()}
             return handle.type.storageClass.assemble(parent, children)
 
     .. py:method:: put(label, dataset, producer=None)
@@ -98,7 +102,7 @@ Python API
 
         :param dataset: the :ref:`InMemoryDataset` to store.
 
-        :param Quantum producer: the :ref:`Quantum` instance that produced the :ref:`Dataset`.  May be ``None`` for some :ref:`Registries <Registry>`.  ``producer.run`` must match ``self.config.run``.
+        :param Quantum producer: the :ref:`Quantum` instance that produced the :ref:`Dataset`.  May be ``None`` for some :ref:`Registries <Registry>`.  ``producer.run`` must match ``self.run``.
 
         :returns: a :py:class:`DatasetHandle`
 
@@ -107,11 +111,10 @@ Python API
         .. code:: python
 
             ref = self.registry.expand(label)
-            run = self.config.run
+            run = self.run
             assert(producer is None or run == producer.run)
-            template = self.config.templates.get(ref.type.name, None)
-            path = ref.makePath(run, template)
-            uri, components = self.datastore.put(inMemoryDataset, ref.type.storageClass, path, ref.type.name)
+            storageHint = ref.makeStorageHint(run)
+            uri, components = self.datastore.put(inMemoryDataset, ref.type.storageClass, storageHint, ref.type.name)
             return self.registry.addDataset(ref, uri, components, producer=producer, run=run)
 
     .. py:method:: markInputUsed(quantum, ref)
@@ -126,7 +129,7 @@ Python API
 
         .. code:: python
 
-            handle = self.registry.find(self.config.collection, ref)
+            handle = self.registry.find(self.run.collection, ref)
             self.registry.markInputUsed(handle, quantum)
 
     .. py:method:: unlink(*labels)
@@ -137,9 +140,9 @@ Python API
 
         .. code:: python
 
-            handles = [self.registry.find(self.config.collection, labels)
+            handles = [self.registry.find(self.run.collection, label)
                        for label in labels]
-            for handle in self.registry.disassociate(self.config.collection, handles, remove=True):
+            for handle in self.registry.disassociate(self.run.collection, handles, remove=True):
                 self.datastore.remove(handle.uri)
 
     .. todo::
@@ -149,18 +152,12 @@ Python API
 
 .. py:class:: ButlerConfiguration
 
-    .. py:attribute:: collection
+    .. note::
 
-        The :ref:`CollectionTag <Collection>` of the input collection.
+      This currently is a class that maps directly onto a ``YAML`` file.
 
-    .. py:attribute:: run
+      * Configuration options are accessed through dictionary keys separated by dots (e.g. ``config['datastore.root']``).
+      * Configuration for :ref:`Datastore` and :ref:`Registry`, including which classes to instantiate, is nested under ``config['datastore']`` and ``config['registry']`` respectively.
 
-        The :ref:`Run` instance used for all outputs.
+      But this is an implementation detail that is likely to change significantly.
 
-        May be ``None`` to construct a read-only Butler.
-
-        The :ref:`Run's <Run>` :ref:`Collection` is always used as the input collection when a :ref:`Run` is provided.
-
-    .. py:attribute:: templates
-
-        A dict that maps :ref:`DatasetType` names to path templates, used to override :py:attr:`DatasetType.template` as obtained from the :ref:`Registry` when present.

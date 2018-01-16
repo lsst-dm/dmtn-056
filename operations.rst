@@ -18,7 +18,7 @@ The user has a :py:class:`DatasetLabel`, constructed or obtained by a query and 
 This proceeds allong the following steps:
 
 1. User calls: ``butler.get(label)``.
-2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`CollectionTag <Collection>` it was configured with (i.e. ``butler.registry.find(butler.config.inputCollection, label)``).
+2. :ref:`Butler` forwards this call to its :ref:`Registry`, adding the :ref:`Collection` (from the :ref:`Run`) it was configured with (i.e. ``butler.registry.find(self.run.collection, label)``).
 3. :ref:`Registry` performs the lookup on the server using SQL and returns the :ref:`URI` for the stored :ref:`Dataset` (via a :py:class:`DatasetHandle`)
 4. :ref:`Butler` forwards the request, with both the :ref:`URI` and the :ref:`StorageClass`, to the :ref:`Datastore` client (i.e. ``butler.datastore.get(handle.uri, handle.type.storageClass)``).
 5. :ref:`Datastore` client requests a serialized version of the :ref:`Dataset` from the server using the :ref:`URI`.
@@ -43,8 +43,8 @@ This proceeds allong the following steps:
 
 1. User calls: ``butler.put(label, inMemoryDataset)``.
 2. :ref:`Butler` expands the :py:class:`DatasetLabel` into a full :py:class:`DatasetRef` using the :ref:`Registry`, by calling ``datasetRef = butler.registry.expand(label)``.
-3. :ref:`Butler` obtains a :ref:`Path` by calling ``path = datasetRef.makePath(butler.config.outputCollection, template)``. This path is a hint to be used by the :ref:`Datastore` to decide where to store it.  The template is provided by the :ref:`Registry` but may be overridden by the :ref:`Butler`.
-4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(inMemoryDataset, datasetRef.type.storageClass, path, datasetRef.type.name)``.
+3. :ref:`Butler` obtains a :ref:`StorageHint` by calling ``storageHint = datasetRef.makeStorageHint(self.run)``.
+4. :ref:`Butler` then asks the :ref:`Datastore` client to store the file by calling: ``butler.datastore.put(inMemoryDataset, datasetRef.type.storageClass, storageHint, datasetRef.type.name)``.
 5. The :ref:`Datastore` client then uses the serialization function associated with the :ref:`StorageClass` to serialize the :ref:`InMemoryDataset` and sends it to the :ref:`Datastore` server.
    Depending on the type of server it may get back the actual :ref:`URI` or the client can generate it itself.
 6. :ref:`Datastore` returns the actual :ref:`URI` to the :ref:`Butler`.
@@ -57,6 +57,10 @@ See :py:class:`the API documentation <Butler.put>` for more information.
 
 Composites
 ==========
+
+.. warning::
+
+  The way composites work is likely soon to be redesigned.
 
 A :ref:`Dataset` can be **composite**, in which case it consists of a **parent** :ref:`Dataset` and one or more child :ref:`Datasets <Dataset>`.  An example would be an ``Exposure`` which includes a ``Wcs``, a ``Mask``, and an ``Image`` (as well as other components).  There are several ways this may be stored by the :ref:`Datastore`:
 
@@ -93,33 +97,33 @@ We will ignore the last one for now, because it is effectively a kind of caching
 
 While no high-level API for transfers exists in the current design, it is relatively easy to implement on top of the provided low-level API.
 
-.. py:function:: transfer(dst, src, expr, tag, copyDatasets=False)
+.. py:function:: transfer(dst, src, expr, collection, copyDatasets=False)
 
     Transfer :ref:`Datasets <Dataset>` and related entities between :ref:`Butlers <Butler>`.
 
     :param Butler dst: :ref:`Butler` instance of destination.
     :param Butler src: :ref:`Butler` instance of source.
     :param str expr: an expression (SQL query that evaluates to a list of dataset_id) that selects the Datasets.
-    :param str tag: a CollectionTag used to identify the requested transfered :ref:`Datasets <Dataset>` in the :ref:`Registry` of the destination :ref:`Butler`.
+    :param str collection: a :ref:`Collection` used to identify the requested transfered :ref:`Datasets <Dataset>` in the :ref:`Registry` of the destination :ref:`Butler`.
     :param bool copyDatasets: Should the :ref:`Datasets <Dataset>` be copied from the source to the destination :ref:`Datastore`?
 
     A possible implementation could be:
 
     .. code:: python
     
-        dst.registry.transfer(src.registry, expr, tag)
+        dst.registry.transfer(src.registry, expr, collection)
 
         if copyDatasets:
             for label in dst.query(
-                # get DatasetLabels for all Datasets in tag
+                # get DatasetLabels for all Datasets in collection
                 ):
 
                 ref = dst.registry.expand(label)
                 template = dst.config.templates.get(ref.type.name, None)
-                path = ref.makePath(dst.config.outputCollection, template)
-                handle = src.registry.find(tag, label)
+                storageHint = ref.makeStorageHint(dst.config.outputCollection, template)
+                handle = src.registry.find(collection, label)
 
-                uri, components = dst.datastore.transfer(src.datastore, handle.uri, ref.type.storageClass, path, ref.type.name)
+                uri, components = dst.datastore.transfer(src.datastore, handle.uri, ref.type.storageClass, storageHint, ref.type.name)
                 dst.registry.addDataset(ref, uri, components, handle.producer, handle.run)
         else:
             # The following assumes the old datastore was empty and that the datastore will be
@@ -194,11 +198,11 @@ A trivial implementation, for a non-persistent cache, could be:
 
                 return self.cache[(uri, parameters)]
 
-    .. py:method:: put(inMemoryDataset, storageClass, path, typeName=None) -> URI, {name: URI}
+    .. py:method:: put(inMemoryDataset, storageClass, storageHint, typeName=None) -> URI, {name: URI}
 
         Direct forward to ``self.datastore.put``.
 
-    .. py:method:: transfer(inputDatastore, inputUri, storageClass, path, typeName=None) -> URI, {name: URI}
+    .. py:method:: transfer(inputDatastore, inputUri, storageClass, storageHint, typeName=None) -> URI, {name: URI}
 
         Direct forward to ``self.datastore.transfer``.
 
@@ -210,10 +214,15 @@ A trivial implementation, for a non-persistent cache, could be:
 
 .. note::
 
-    Caching is fundamentally different from :ref:`transferring_registries_and_datastores` in that it does not modify the :ref:`Registry` at all.  This makes it a much more lightweight operation when the input :ref:`Registry` is read-only (and only read-only access is needed), but it means the :ref:`Registry` cannot be used to obtain the local path to the cached files for use by external tools.
+    Caching is fundamentally different from :ref:`transferring_registries_and_datastores` in that it does not modify the :ref:`Registry` at all.  This makes it a much more lightweight operation when the input :ref:`Registry` is read-only (and only read-only access is needed), but it means the :ref:`Registry` cannot be used to obtain the local storageHint to the cached files for use by external tools.
 
 SuperTask Pre-Flight and Execution
 ==================================
+
+.. warning::
+
+    The exact operation of ``SuperTask`` pre-flight is currently being redesigned.
+    But this section may still be helpful in understanding the issues involved.
 
 .. note::
 
@@ -232,18 +241,18 @@ The inputs to SuperTask preflight are considered here to be:
  - an output :ref:`Datastore` instance (may be the same as the input :ref:`Datastore`, but must not be read-only)
  - a Pipeline (contains SuperTasks, configuration, and the set of :ref:`DatasetTypes <DatasetType>` needed as inputs and expected as outputs)
  - a user expression that limits the :ref:`DataUnits <DataUnit>` to process.
- - an ordered list of :ref:`CollectionTags <Collection>` from which to obtain inputs
- - a :ref:`CollectionTag <Collection>` that labels the processing run.
+ - an ordered list of :ref:`Collections <Collection>` from which to obtain inputs
+ - a :ref:`Collection` that labels the processing run.
 
 .. todo::
 
     In order to construct the SuperTasks in a Pipeline (and extract the :ref:`DatasetTypes <DatasetType>`), we need to pass the SuperTask constructors a :ref:`Butler` or some other way to load the schemas of any catalogs they will use as input datasets.  These may differ between collections!
 
-#. Preflight begins with the activator calling :py:class:`Registry.makeDataGraph` with the given expression, list of input tags, and the sets of :ref:`DatasetTypes <DatasetType>` implicit in the Pipeline.  The returned :ref:`QuantumGraph` contains both the full set of input :ref:`Datasets <Dataset>` that may be required and the full set of :ref:`DataUnits <DataUnit>` that will be used to describe any future :ref:`Datasets <Dataset>`.
+#. Preflight begins with the activator calling :py:class:`Registry.makeDataGraph` with the given expression, list of input collections, and the sets of :ref:`DatasetTypes <DatasetType>` implicit in the Pipeline.  The returned :ref:`QuantumGraph` contains both the full set of input :ref:`Datasets <Dataset>` that may be required and the full set of :ref:`DataUnits <DataUnit>` that will be used to describe any future :ref:`Datasets <Dataset>`.
 
 #. If the output :ref:`Registry` is not the same as the input :ref:`Registry`, the activator transfers (see :ref:`transferring_registries_and_datastores`) all :ref:`Registry` content associated with the :ref:`Datasets <Dataset>` in the graph to the output :ref:`Registry`.  The input :ref:`Datasets <Dataset>` themselves *may* be transferred to the output :ref:`Datastore` at the same time if this will make subsequent processing more efficient.
 
-#. The activator calls :py:meth:`Registry.makeRun` on the output :ref:`Registry` with the output :ref:`CollectionTag <Collection>`, obtaining a :py:class:`Run` instance.
+#. The activator calls :py:meth:`Registry.makeRun` on the output :ref:`Registry` with the output :ref:`Collection`, obtaining a :py:class:`Run` instance.
 
 #. The activator adds all input :ref:`Datasets <Dataset>` to the :ref:`Run's <Run>` :ref:`Collection` (in the :ref:`Registry`; this does not affect the :ref:`Datastore` at all).  Note that from this point forward, we need only work with a single :ref:`Collection`, as we have aggregated everything relevant from the multiple input :ref:`Collections <Collection>` into a single input/output :ref:`Collection`.
 
@@ -520,7 +529,7 @@ In the coaddition example, that makes our full query (now completed):
             AND
         warpCollections.registry_id = warp.registry_id
             AND
-        warpCollections.tag = ($USER_TAG)
+        warpCollections.collection = ($USER_TAG)
         ($USER_EXPRESSION)
     ;
 
@@ -547,11 +556,11 @@ As noted above, the :ref:`DataUnit` primary keys from the main query are suffici
 
 Fine-Grained Input Control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-The tags and expression passed to :py:meth:`Registry.makeDataGraph` provide a level of control over processing inputs that should be sufficient for most SuperTask execution invoked by developers and science users.
+The collections and expression passed to :py:meth:`Registry.makeDataGraph` provide a level of control over processing inputs that should be sufficient for most SuperTask execution invoked by developers and science users.
 That level of control may not be sufficient for production operators, however -- though in most cases, it's actually that exercising the levels of control operators require may be unpleasant or inconvenient.
 
-That's because the :ref:`Collection` tag system is already extremely flexible.
-As long as an operator is permitted to apply tags to :ref:`Datasets <Dataset>` in the database that backs a :ref:`Registry` (which may not involve going through the :ref:`Registry` interface, they can create a :ref:`Collection` including (and more importantly, not including) any :ref:`Datasets <Dataset>` they'd like, whether that's generated by one or more SQL queries, external programs, or human inspections.
+That's because the :ref:`Collection` collection system is already extremely flexible.
+As long as an operator is permitted to apply collections to :ref:`Datasets <Dataset>` in the database that backs a :ref:`Registry` (which may not involve going through the :ref:`Registry` interface, they can create a :ref:`Collection` including (and more importantly, not including) any :ref:`Datasets <Dataset>` they'd like, whether that's generated by one or more SQL queries, external programs, or human inspections.
 This mechanism should be strongly considered as at least part of any implentation of a fine-grained control use case before we add additional logic to :py:meth:`Registry.makeDataGraph`.
 We will, after all, be adding all input data to the :ref:`Collection` associated with each :ref:`Run` during the course of preflight anyway, and it is perfectly acceptable to do this prior to preflight and then use that existing :ref:`Collection` to label the :ref:`Run` (making the later assignment of the input data to that :ref:`Collection` a no-op).
 
@@ -607,16 +616,16 @@ Instead, after Preflight, copies of all :py:attr:`predictedInput <Quantum.predic
 After execution, outputs will be transferred back and ingested into the permanent storage system.
 
 These transfers may be executed by external code that accesses the internals of the permanent :ref:`Datastore` and :ref:`Registry`, and one likely requirement of these tools is that :ref:`Registry`-wide unique filenames for both inputs and outputs be known in advance.
-Because the design described in this document does not deal directly with filenames (which are implementation details of *some* :ref:`Datastores <Datastore>`, we will assume here that the :ref:`Path <Path>` for a :ref:`Dataset` (which is by construction unique across a :ref:`Registry`) *is* the filename used by the :ref:`Datastore`.
-This assumption also implies that in this case we can construct a :ref:`URI` directly from a :ref:`Path` (whereas this would usually be a private transformation defined by a :ref:`Datastore`).
-Because the templates used to generate :ref:`Paths <Path>` are defined by the :ref:`Registry`, there is no practical loss in generality from this assumption.
+Because the design described in this document does not deal directly with filenames (which are implementation details of *some* :ref:`Datastores <Datastore>`, we will assume here that the :ref:`StorageHint <StorageHint>` for a :ref:`Dataset` (which is by construction unique across a :ref:`Registry`) *is* the filename used by the :ref:`Datastore`.
+This assumption also implies that in this case we can construct a :ref:`URI` directly from a :ref:`StorageHint` (whereas this would usually be a private transformation defined by a :ref:`Datastore`).
+Because the templates used to generate :ref:`StorageHints <StorageHint>` are defined by the :ref:`Registry`, there is no practical loss in generality from this assumption.
 
 The :ref:`QuantumGraph` generated by Preflight holds :py:class:`DatasetRef` instances for all input and output :ref:`Datasets <Dataset>` that may be produced.
-An invocation of Preflight is also associated with exactly one :ref:`Run`, and this provides enough information to obtain the unique paths of all :ref:`Datasets <Dataset>`: we simply call :py:meth:`makePath(run) <DatasetRef.makePath>` on each :py:class:`DatasetRef` in the graph.
+An invocation of Preflight is also associated with exactly one :ref:`Run`, and this provides enough information to obtain the unique storageHints of all :ref:`Datasets <Dataset>`: we simply call :py:meth:`makeStorageHint(run) <DatasetRef.makeStorageHint>` on each :py:class:`DatasetRef` in the graph.
 External code can then transfer the filenames from their persistent storage to local scratch, maintaining the unique filenames within a new directory.
 
 To execute SuperTask code on the scratch space, we need to construct a :ref:`Butler`, and that means constructing a :ref:`Registry` and :ref:`Datastore`.
-The :ref:`Datastore` is simple: it reads and writes to a local POSIX filesystem that uses the same :ref:`Path`/filename-based :ref:`URIs <URI>` as the permanent :ref:`Datastore`.
+The :ref:`Datastore` is simple: it reads and writes to a local POSIX filesystem that uses the same :ref:`StorageHint`/filename-based :ref:`URIs <URI>` as the permanent :ref:`Datastore`.
 
 For the :ref:`Registry`, we will use a *limited* :ref:`Registry`, which uses a simple set of dictionary-like mappings instead of a full SQL database.
 The content needed to construct it can be saved to a file by calling :py:meth:`export() <Registry.export>` on the master :ref:`Registry` with the subset of the :ref:`QuantumGraph` to be processed on the node as the only argument.

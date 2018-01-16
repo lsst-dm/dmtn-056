@@ -19,6 +19,10 @@ In general, limited Registries have enough functionality to support :py:meth:`Bu
 A limited Registry may be implented on top of a simple persistent key-value store (e.g. a YAML file) rather than a full SQL database.
 The operations supported by a limited Registry are indicated in the Python API section below.
 
+.. warning::
+
+  It is not yet clear if limited registries will ever exist, or if we can simply always assume `SQLite` as the minimum.
+
 .. note::
 
     Limited registries that are used on scratch space during processing need to handle provenance and can require DatasetRefs instead of just DatasetLabels, but dumb ones used for one-off, interactive work do not need provenance and would want to use DatasetLabels.
@@ -38,7 +42,7 @@ Python API
 
 .. py:class:: Registry
 
-    .. py:method:: query(sql, parameters)
+    .. py:method:: query(self, sql, parameters)
 
         Execute an arbitrary SQL SELECT query on the Registry's database and return the results.
 
@@ -50,7 +54,7 @@ Python API
 
         *Not supported by limited Registries.*
 
-    .. py:method:: registerDatasetType(datasetType)
+    .. py:method:: registerDatasetType(self, datasetType)
 
         Add a new :ref:`DatasetType` to the Registry.
 
@@ -65,11 +69,11 @@ Python API
             If the new DatasetType already exists, we need to make sure it's consistent with what's already present, but if it is, we probably shouldn't throw.
             Need to see if there's also a use case for throwing if the DatasetType exists or overwriting if its inconsistent.
 
-    .. py:method:: getDatasetType(name)
+    .. py:method:: getDatasetType(self, name)
 
         Return the :py:class:`DatasetType` associated with the given name.
 
-    .. py:method:: addDataset(ref, uri, components, producer=None, run=None)
+    .. py:method:: addDataset(self, ref, uri, components, run, producer=None)
 
         Add a :ref:`Dataset` to a :ref:`Collection`.
 
@@ -91,11 +95,11 @@ Python API
 
         :raises: an exception if a :ref:`Dataset` with the given :ref:`DatasetRef` already exists in the given :ref:`Collection`.
 
-    .. py:method:: associate(tag, handles)
+    .. py:method:: associate(self, collection, handles)
 
         Add existing :ref:`Datasets <Dataset>` to a :ref:`Collection`, possibly creating the :ref:`Collection` in the process.
 
-        :param str tag: a :ref:`CollectionTag <Collection>` indicating the Collection the :ref:`Datasets <Dataset>` should be associated with.
+        :param str collection: the :ref:`Collection` the :ref:`Datasets <Dataset>` should be associated with.
 
         :param list[DatasetHandle] handles: a list of :py:class:`DatasetHandle` instances that already exist in this :ref:`Registry`.
 
@@ -103,11 +107,11 @@ Python API
 
         *Not supported by limited Registries.*
 
-    .. py:method:: disassociate(tag, handles, remove=True)
+    .. py:method:: disassociate(self, collection, handles, remove=True)
 
         Remove existing :ref:`Datasets <Dataset>` from a :ref:`Collection`.
 
-        :param str tag: a :ref:`CollectionTag <Collection>` indicating the Collection the :ref:`Datasets <Dataset>` should no longer be associated with.
+        :param str collection: the :ref:`Collection` the :ref:`Datasets <Dataset>` should no longer be associated with.
 
         :param list[DatasetHandle] handles: a list of :py:class:`DatasetHandle` instances that already exist in this :ref:`Registry`.
 
@@ -115,27 +119,41 @@ Python API
 
         :returns: If ``remove`` is True, the list of :py:class:`DatasetHandles <DatasetHandle>` that were removed.
 
-        ``tag`` and ``handle`` combinations that are not currently associated are silently ignored.
+        ``collection`` and ``handle`` combinations that are not currently associated are silently ignored.
 
         *Not supported by limited Registries.*
 
-    .. py:method:: makeRun(tag)
+        .. todo::
+
+          What is the interface for removal of datasets that are no longer part of any colection?
+
+    .. py:method:: makeRun(self, collection)
 
         Create a new :ref:`Run` in the :ref:`Registry` and return it.
 
-        :param str tag: the :ref:`CollectionTag <Collection>` used to identify all inputs and outputs of the :ref:`Run`.
+        :param str collection: the :ref:`Collection` used to identify all inputs and outputs of the :ref:`Run`.
 
         :returns: a :py:class:`Run` instance.
 
         *Not supported by limited Registries.*
 
-    .. py:method:: updateRun(run)
+    .. py:method:: updateRun(self, run)
 
         Update the ``environment`` and/or ``pipeline`` of the given Run in the database, given the :py:class:`DatasetHandles <DatasetHandle>` attributes of the given :py:class:`Run`.
 
         *Not supported by limited Registries.*
 
-    .. py:method:: addQuantum(quantum)
+    .. py:method:: getRun(self, collection=None, id=None)
+
+        Get a :ref:`Run` corresponding to it's collection or id
+
+        :param str collection: Collection collection
+
+        :param int id: If given, lookup by id instead and ignore `collection`.
+
+        :returns: a :py:class:`Run` instance
+
+    .. py:method:: addQuantum(self, quantum)
 
         Add a new :ref:`Quantum` to the :ref:`Registry`.
 
@@ -146,7 +164,7 @@ Python API
         The :py:attr:`predictedInputs <Quantum.predictedInputs>` attribute must be fully populated with :py:class:`DatasetHandles <DatasetHandle>`.
         The :py:attr:`actualInputs <Quantum.actualInputs>` and :py:attr:`outputs <Quantum.outputs>` will be ignored.
 
-    .. py:method:: markInputUsed(quantum, handle)
+    .. py:method:: markInputUsed(self, quantum, handle)
 
         Record the given :py:class:`DatasetHandle` as an actual (not just predicted) input of the given :ref:`Quantum`.
 
@@ -154,7 +172,7 @@ Python API
 
         Raises an exception if ``handle`` is not already in the predicted inputs list.
 
-    .. py:method:: addDataUnit(unit, replace=False)
+    .. py:method:: addDataUnit(self, unit, replace=False)
 
         Add a new :ref:`DataUnit`, optionally replacing an existing one (for updates).
 
@@ -169,13 +187,13 @@ Python API
             This will need to update many-to-many join tables between DataUnits in some cases.
             We may want to vectorize this operation or otherwise allow many new DataUnits to be added before updating the join tables.
 
-    .. py:method:: findDataUnit(cls, pkey)
+    .. py:method:: findDataUnit(self, cls, values)
 
-        Return a :ref:`DataUnit` given the values of its primary key.
+        Return a :ref:`DataUnit` given a dictionary of values
 
         :param type cls: a class that inherits from :py:class:`DataUnit`.
 
-        :param tuple pkey: a tuple of primary key values that uniquely identify the :ref:`DataUnit`; see :py:attr:`DataUnit.pkey`.
+        :param dict values: A dictionary of values that uniquely identify the `DataUnit`.
 
         :returns: a :py:class:`DataUnit` instance of type ``cls``, or ``None`` if no matching unit is found.
 
@@ -183,7 +201,7 @@ Python API
 
         *Not supported by limited Registries.*
 
-    .. py:method:: expand(label)
+    .. py:method:: expand(self, label)
 
         Expand a :py:class:`DatasetLabel`, returning an equivalent :py:class:`DatasetRef`.
 
@@ -191,7 +209,7 @@ Python API
 
         *For limited Registries,* ``label`` *must be a* :py:class:`DatasetRef` *, making this a guaranteed no-op (but still callable, for interface compatibility).*
 
-    .. py:method:: find(tag, label)
+    .. py:method:: find(self, collection, label)
 
         Look up the location of the :ref:`Dataset` associated with the given :py:class:`DatasetLabel`.
 
@@ -199,17 +217,17 @@ Python API
 
         Must be a simple pass-through if ``label`` is already a :py:class:`DatasetHandle`.
 
-        :param str tag: a :ref:`CollectionTag <Collection>` indicating the :ref:`Collection` to search.
+        :param str collection: a :ref:`Collection` indicating the :ref:`Collection` to search.
 
         :param DatasetLabel label: a :py:class:`DatasetLabel` that identifies the :ref:`Dataset`.  *For limited Registries, must be a* :py:class:`DatasetRef`.
 
         :returns: a :py:class:`DatasetHandle` instance
 
-    .. py:method:: makeDataGraph(tags, expr, neededDatasetTypes, futureDatasetTypes)
+    .. py:method:: makeDataGraph(self, collections, expr, neededDatasetTypes, futureDatasetTypes)
 
         Evaluate a filter expression and lists of :ref:`DatasetTypes <DatasetType>` and return a :ref:`QuantumGraph`.
 
-        :param list[str] tags: an ordered list of tags indicating the :ref:`Collections <Collection>` to search for :ref:`Datasets <Dataset>`.
+        :param list[str] collections: an ordered list of collections indicating the :ref:`Collections <Collection>` to search for :ref:`Datasets <Dataset>`.
 
         :param str expr: an expression that limits the :ref:`DataUnits <DataUnit>` and (indirectly) the :ref:`Datasets <Dataset>` returned.
 
@@ -225,17 +243,17 @@ Python API
 
             More complete description for expressions.
 
-    .. py:method:: subset(tag, expr, datasetTypes)
+    .. py:method:: subset(self, collection, expr, datasetTypes)
 
         Create a new :ref:`Collection` by subsetting an existing one.
 
-        :param str tag: a :ref:`CollectionTag <Collection>` indicating the input :ref:`Collection` to subset.
+        :param str collection: a :ref:`Collection` indicating the input :ref:`Collection` to subset.
 
         :param str expr: an expression that limits the :ref:`DataUnits <DataUnit>` and (indirectly) the :ref:`Datasets <Dataset>` in the subset.
 
         :param list[DatasetType] datasetTypes: the list of :ref:`DatasetTypes <DatasetType>` whose instances should be included in the subset.
 
-        :returns: a str :ref:`CollectionTag <Collection>`
+        :returns: a str :ref:`Collection`
 
         *Not supported by limited Registries.*
 
@@ -243,19 +261,19 @@ Python API
 
             This should probably have the same signature as makeDataGraph; since that implies it can merge as it subsets, it might need a new name.
 
-    .. py:method:: merge(outputTag, inputTags)
+    .. py:method:: merge(self, outputCollection, inputCollections)
 
         Create a new :ref:`Collection` from a series of existing ones.
 
         Entries earlier in the list will be used in preference to later entries when both contain :ref:`Datasets <Dataset>` with the same :ref:`DatasetRef`.
 
-        :param outputTag: a str :ref:`CollectionTag <Collection>` to use for the new :ref:`Collection`.
+        :param outputCollection: a str :ref:`Collection` to use for the new :ref:`Collection`.
 
-        :param list[str] inputTags: a list of :ref:`CollectionTags <Collection>` to combine.
+        :param list[str] inputCollections: a list of :ref:`Collection`s to combine.
 
         *Not supported by limited Registries.*
 
-    .. py:method:: makeProvenanceGraph(expr, types=None)
+    .. py:method:: makeProvenanceGraph(self, expr, types=None)
 
         Return a :ref:`QuantumGraph` that contains the full provenance of all :ref:`Datasets <Dataset>` matching an expression.
 
@@ -267,7 +285,7 @@ Python API
 
             Should have convenience versions that operate on e.g. DatasetHandles provided by the user.
 
-    .. py:method:: export(expr) -> TableSet
+    .. py:method:: export(self, expr)
 
         Export contents of the :ref:`Registry`, limited to those reachable from the :ref:`Datasets <Dataset>` identified
         by the expression ``expr``, into a :ref:`TableSet` format such that it can be imported into a different database.
@@ -283,34 +301,34 @@ Python API
             Should have convenience versions that operate on e.g. DatasetHandles provided by the user.
             Should also have a version that operates on a QuantumGraph; that may also permit some optimizations, especially if :py:attr:`QuantumGraph.units` is not ``None``.
 
-    .. py:method:: import(tables, tag)
+    .. py:method:: import_(self, tables, collection)
 
         Import (previously exported) contents into the (possibly empty) :ref:`Registry`.
 
         :param TableSet tables: a :ref:`TableSet` containing the exported content.
 
-        :param str tag: an additional CollectionTag assigned to the newly imported :ref:`Datasets <Dataset>`.
+        :param str collection: an additional Collection assigned to the newly imported :ref:`Datasets <Dataset>`.
 
         *Limited Registries will import only some of the information exported by full Registry.*
 
-    .. py:method:: transfer(src, expr, tag)
+    .. py:method:: transfer(self, src, expr, collection)
 
         Transfer contents from a source :ref:`Registry`, limited to those reachable from the :ref:`Datasets <Dataset>` identified
-        by the expression ``expr``, into this :ref:`Registry` and tag them with a :ref:`Collection`.
+        by the expression ``expr``, into this :ref:`Registry` and collection them with a :ref:`Collection`.
 
         :param Registry src: the source :ref:`Registry`.
 
         :param str expr: an expression that limits the :ref:`DataUnits <DataUnit>` and (indirectly) the :ref:`Datasets <Dataset>` transferred.
 
-        :param str tag: an additional CollectionTag assigned to the newly imported :ref:`Datasets <Dataset>`.
+        :param str collection: an additional Collection assigned to the newly imported :ref:`Datasets <Dataset>`.
 
 
         Trivially implemented as:
 
         .. code:: python
 
-            def transfer(self, src, expr, tag):
-                self.import(src.export(expr), tag)
+            def transfer(self, src, expr, collection):
+                self.import_(src.export(expr), collection)
 
 
 .. _Datastore:
@@ -336,17 +354,19 @@ Python API
 
 .. py:class:: Datastore
 
-    .. py:method:: get(uri, parameters=None)
+    .. py:method:: get(self, uri, storageClass, parameters=None)
 
         Load an :ref:`InMemoryDataset` from the store.
 
         :param str uri: a :ref:`URI` that specifies the location of the stored :ref:`Dataset`.
 
+        :param StorageClass storageClass: the :ref:`StorageClass` associated with the :ref:`DatasetType`.
+
         :param dict parameters: :ref:`StorageClass`-specific parameters that specify a slice of the :ref:`Dataset` to be loaded.
 
         :returns: an :ref:`InMemoryDataset` or slice thereof.
 
-    .. py:method:: put(inMemoryDataset, storageClass, path, typeName=None) -> URI, {name: URI}
+    .. py:method:: put(self, inMemoryDataset, storageClass, storageHint, typeName=None)
 
         Write a :ref:`InMemoryDataset` with a given :ref:`StorageClass` to the store.
 
@@ -354,19 +374,19 @@ Python API
 
         :param StorageClass storageClass: the :ref:`StorageClass` associated with the :ref:`DatasetType`.
 
-        :param str path: A :ref:`Path` that provides a hint that the :ref:`Datastore` may use as (part of) the :ref:`URI`.
+        :param str storageHint: A :ref:`StorageHint` that provides a hint that the :ref:`Datastore` may use as (part of) the :ref:`URI`.
 
         :param str typeName: The :ref:`DatasetType` name, which may be used by the :ref:`Datastore` to override the default serialization format for the :ref:`StorageClass`.
 
         :returns: the :py:class:`str` :ref:`URI` and a dictionary of :ref:`URIs <URI>` for the :ref:`Dataset's <Dataset>` components.  The latter will be empty (or None?) if the :ref:`Dataset` is not a composite.
 
-    .. py:method:: remove(uri)
+    .. py:method:: remove(self, uri)
 
         Indicate to the Datastore that a :ref:`Dataset` can be removed.
 
         Some Datastores may implement this method as a silent no-op to disable :ref:`Dataset` deletion through standard interfaces.
 
-    .. py:method:: transfer(inputDatastore, inputUri, storageClass, path, typeName=None) -> URI, {name: URI}
+    .. py:method:: transfer(self, inputDatastore, inputUri, storageClass, storageHint, typeName=None)
 
         Retrieve a :ref:`Dataset` with a given :ref:`URI` from an input :ref:`Datastore`,
         and store the result in this :ref:`Datastore`.
@@ -377,7 +397,7 @@ Python API
 
         :param StorageClass storageClass: the :ref:`StorageClass` associated with the :ref:`DatasetType`.
 
-        :param str path: A :ref:`Path` that provides a hint that this :ref:`Datastore` may use as [part of] the :ref:`URI`.
+        :param str storageHint: A :ref:`StorageHint` that provides a hint that this :ref:`Datastore` may use as [part of] the :ref:`URI`.
 
         :param str typeName: The :ref:`DatasetType` name, which may be used by this :ref:`Datastore` to override the default serialization format for the :ref:`StorageClass`.
 

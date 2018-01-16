@@ -22,7 +22,6 @@ Relations between :ref:`Datasets <Dataset>`, :ref:`Quanta <Quantum>`, and locati
 for stored objects are kept in a database called a :ref:`Registry` which implements a common SQL schema.
 
 In the database, the :ref:`Datasets <Dataset>` are grouped into :ref:`Collections <Collection>`,
-which are identified by a *CollectionTag*.
 Within a given :ref:`Collection` a :ref:`Dataset` is uniquely identified by a :ref:`DatasetRef`.
 
 Conceptually a :ref:`DatasetRef` is a combination of a :ref:`DatasetType` and a set of :ref:`DataUnits <DataUnit>`.
@@ -53,7 +52,7 @@ They can use this instance to:
 * Store a :ref:`Dataset` associated with a particular :py:class:`DatasetLabel`.
 
 The :ref:`Butler` implements these requests by holding a **single instance** of :ref:`Registry`
-and **a single instance** of :ref:`Datastore` (as well as a :ref:`Collection` tag), to which it delegates the calls (note, however,
+and **a single instance** of :ref:`Datastore` (as well as a :ref:`Collection`), to which it delegates the calls (note, however,
 that this :ref:`Datastore` may delegate to one or more other :ref:`Datastores <Datastore>`).
 
 Currently, :ref:`Registry` must be used directly to perform general metadata and relationship queries, though we may add :ref:`Butler` forwarding interfaces for these as the design matures.

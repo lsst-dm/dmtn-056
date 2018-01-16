@@ -9,7 +9,7 @@ Dataset
 
 A Dataset is a discrete entity of stored data.
 
-Datasets are uniquely identified by either a :ref:`URI` or the combination of a :ref:`CollectionTag <Collection>` and a :ref:`DatasetRef`.
+Datasets are uniquely identified by either a :ref:`URI` or the combination of a :ref:`Collection` and a :ref:`DatasetRef`.
 
 Example: a "calexp" for a single visit and sensor produced by a processing run.
 
@@ -55,13 +55,13 @@ Fields:
     +---------------------+---------+----------+
     | dataset_type_name   | varchar | NOT NULL |
     +---------------------+---------+----------+
-    | unit_pack           | binary  | NOT NULL |
-    +---------------------+---------+----------+
     | uri                 | varchar |          |
     +---------------------+---------+----------+
     | run_id              | int     | NOT NULL |
     +---------------------+---------+----------+
     | producer_id         | int     |          |
+    +---------------------+---------+----------+
+    | unit_hash           | binary  | NOT NULL |
     +---------------------+---------+----------+
 Primary Key:
     dataset_id, registry_id
@@ -73,8 +73,8 @@ Foreign Keys:
 Using a single table (instead of per-:ref:`DatasetType` and/or per-:ref:`Collection` tables) ensures that table-creation permissions are not required when adding new :ref:`DatasetTypes <DatasetType>` or :ref:`Collections <Collection>`.  It also makes it easier to store provenance by associating :ref:`Datasets <Dataset>` with :ref:`Quanta <Quantum>`.
 
 The disadvantage of this approach is that the connections between :ref:`Datasets <Dataset>` and :ref:`DataUnits <DataUnit>` must be stored in a set of :ref:`additional join tables <dataset_joins>` (one for each :ref:`DataUnit` table).
-The connections are summarized by the ``unit_pack`` field, which contains an ID that is unique only within a :ref:`Collection` for a given :ref:`DatasetType`, constructed by bit-packing the values of the associated units (a :ref:`Path` would be a viable but probably inefficient choice).
-While a ``unit_pack`` value cannot be used to reconstruct a full :ref:`DatasetRef`, a ``unit_pack`` value can be used to quickly search for the :ref:`Dataset` matching a given :ref:`DatasetRef`.
+The connections are summarized by the ``unit_hash`` field, which contains a ``sha512`` hash that is unique only within a :ref:`Collection` for a given :ref:`DatasetType`, constructed by hashing the values of the associated units.
+While a ``unit_hash`` value cannot be used to reconstruct a full :ref:`DatasetRef`, a ``unit_hash`` value can be used to quickly search for the :ref:`Dataset` matching a given :ref:`DatasetRef`.
 It also allows :py:meth:`Registry.merge` to be implemented purely as a database operation by using it as a GROUP BY column in a query over multiple :ref:`Collections <Collection>`.
 
 Dataset utilizes a compound primary key that combines an autoincrement ``dataset_id`` field that is populated by the :ref:`Registry` in which the :ref:`Dataset` originated and a ``registry_id`` that identifies that :ref:`Registry`.
@@ -117,7 +117,7 @@ A named category of :ref:`Datasets <Dataset>` that defines how they are organize
 
 In addition to a name, a DatasetType includes:
 
- - a template string that can be used to construct a :ref:`Path` (may be overridden);
+ - a template string that can be used to construct a :ref:`StorageHint` (may be overridden);
  - a tuple of :ref:`DataUnit <DataUnit>` types that define the structure of :ref:`DatasetRefs <DatasetRef>`;
  - a :ref:`StorageClass` that determines how :ref:`Datasets <Dataset>` are stored and composed.
 
@@ -157,7 +157,7 @@ Python API
 
         Read-only instance attribute.
 
-        A string with ``str.format``-style replacement patterns that can be used to create a :ref:`Path` from a :ref:`Run` (and optionally its associated :ref:`Collection`) and a :ref:`DatasetRef`.
+        A string with ``str.format``-style replacement patterns that can be used to create a :ref:`StorageHint` from a :ref:`Run` (and optionally its associated :ref:`Collection`) and a :ref:`DatasetRef`.
 
         May be None to indicate a read-only :ref:`Dataset` or one whose templates must be provided at a higher level.
 
@@ -189,7 +189,7 @@ DatasetType
 """""""""""
 Fields:
     +-----------------------+---------+----------+
-    | name                  | varchar | NOT NULL |
+    | dataset_type_name     | varchar | NOT NULL |
     +-----------------------+---------+----------+
     | template              | varchar |          |
     +-----------------------+---------+----------+
@@ -279,6 +279,10 @@ SQL Representation
 The :ref:`DatasetType table <sql_DatasetType>` holds StorageClass names in a ``varchar`` field.
 As a name is sufficient to retreive the rest of the StorageClass definition in Python, the additional information is not duplicated in SQL.
 
+.. note::
+
+    A need has been identified to have per-StorageClass tables that have a single row of metadata for each Dataset of that StorageClass, but details have not been worked out (including how to ensure those rows are populated when adding Datasets to the registry).
+
 .. _DatasetRef:
 
 DatasetRef
@@ -296,6 +300,10 @@ The :py:class:`DatasetLabel` class also described here is more similar to the v1
 
 Python API
 ^^^^^^^^^^
+
+.. warning::
+
+  The Python representation of :ref:`Dataset` will likely change in the new preflight design. In particular :py:class:`DatasetLabel` and :py:class:`DatasetHandle` will disappear and be subsumed into :py:class:`DatasetRef`.
 
 The :py:class:`DatasetRef` class itself is the middle layer in a three-class hierarchy of objects that behave like pointers to :ref:`Datasets <Dataset>`.
 
@@ -356,19 +364,19 @@ All three classes are immutable.
 
         A tuple of :py:class:`DataUnit` instances that label the :ref:`DatasetRef` within a :ref:`Collection`.
 
-    .. py:method:: makePath(run, template=None) -> Path
+    .. py:method:: makeStorageHint(run, template=None) -> StorageHint
 
-        Construct the :ref:`Path` part of a :ref:`URI` by filling in ``template`` with the :ref:`CollectionTag <Collection>` and the values in the :py:attr:`units` tuple.
+        Construct the :ref:`StorageHint` part of a :ref:`URI` by filling in ``template`` with the :ref:`Collection` and the values in the :py:attr:`units` tuple.
 
-        This is often just a storage hint since the :ref:`Datastore` will likely have to deviate from the provided path (in the case of an object-store for instance).
+        This is often just a storage hint since the :ref:`Datastore` will likely have to deviate from the provided storageHint (in the case of an object-store for instance).
 
-        Although a :ref:`Dataset` may belong to multiple :ref:`Collections <Collection>`, only the first :ref:`Collection` it is added to is used in its :ref:`Path`.
+        Although a :ref:`Dataset` may belong to multiple :ref:`Collections <Collection>`, only the first :ref:`Collection` it is added to is used in its :ref:`StorageHint`.
 
         :param Run run: the :ref:`Run` to which the new :ref:`Dataset` will be added; always implies a collection :ref:`Collection` that can also be used in the template.
 
-        :param str template: a path template to fill in.  If None, the :py:attr:`template <DatasetType.template>` attribute of :py:attr:`type` will be used.
+        :param str template: a storageHint template to fill in.  If None, the :py:attr:`template <DatasetType.template>` attribute of :py:attr:`type` will be used.
 
-        :returns: a str :ref:`Path`
+        :returns: a str :ref:`StorageHint`
 
     .. py:attribute:: producer
 
@@ -437,44 +445,44 @@ Transition
 
 The "python" and "persistable" entries in v14 Butler dataset policy files refer to Python and C++ InMemoryDataset types, respectively.
 
-.. _Path:
+.. _StorageHint:
 
-Path
-----
+StorageHint
+-----------
 
 A storage hint provided to aid in constructing a :ref:`URI`.
 
-Frequently (in e.g. filesystem-based Datastores) the path will be used as the full filename **within** a :ref:`Datastore`, and hence each :ref:`Dataset` in a :ref:`Registry` must have a unique path (even if they are in different :ref:`Collections <Collection>`).
-This can only guarantee that paths are unique within a :ref:`Datastore` if a single :ref:`Registry` manages all writes to the :ref:`Datastore`.
-Having a single :ref:`Registry` responsible for writes to a :ref:`Datastore` (even if multiple :ref:`Registries <Registry>` are permitted to read from it) is thus probably the easiest (but by no means the only) way to guarantee path uniqueness in a filesystem-basd :ref:`Datastore`.
+Frequently (in e.g. filesystem-based Datastores) the storageHint will be used as the full filename **within** a :ref:`Datastore`, and hence each :ref:`Dataset` in a :ref:`Registry` must have a unique storageHint (even if they are in different :ref:`Collections <Collection>`).
+This can only guarantee that storageHints are unique within a :ref:`Datastore` if a single :ref:`Registry` manages all writes to the :ref:`Datastore`.
+Having a single :ref:`Registry` responsible for writes to a :ref:`Datastore` (even if multiple :ref:`Registries <Registry>` are permitted to read from it) is thus probably the easiest (but by no means the only) way to guarantee storageHint uniqueness in a filesystem-basd :ref:`Datastore`.
 
-Paths are generated from string templates, which are expanded using the :ref:`DataUnits <DataUnit>` associated with a :ref:`Dataset`, its :ref:`DatasetType` name, and the :ref:`Collection` the :ref:`Dataset` was originally added to.
-Because a :ref:`Dataset` may ultimately be associated with multiple :ref:`Collections <Collection>`, one cannot infer the path for a :ref:`Dataset` that has already been added to a :ref:`Registry` from its template.
-That means it is impossible to reconstruct a :ref:`URI` from the template, even if a particular :ref:`Datastore` guarantees a relationship between paths and :ref:`URIs <URI>`.
+StorageHints are generated from string templates, which are expanded using the :ref:`DataUnits <DataUnit>` associated with a :ref:`Dataset`, its :ref:`DatasetType` name, and the :ref:`Collection` the :ref:`Dataset` was originally added to.
+Because a :ref:`Dataset` may ultimately be associated with multiple :ref:`Collections <Collection>`, one cannot infer the storageHint for a :ref:`Dataset` that has already been added to a :ref:`Registry` from its template.
+That means it is impossible to reconstruct a :ref:`URI` from the template, even if a particular :ref:`Datastore` guarantees a relationship between storageHints and :ref:`URIs <URI>`.
 Instead, the original :ref:`URI` must be obtained by querying the :ref:`Registry`.
 
-The actual :ref:`URI` used for storage is not required to respect the path (e.g. for object stores).
+The actual :ref:`URI` used for storage is not required to respect the storageHint (e.g. for object stores).
 
 .. todo::
 
-    Use Runs instead of Collections to define Paths.
+    Use Runs instead of Collections to define StorageHints.
 
 
 Transition
 ^^^^^^^^^^
 
-The filled-in templates provided in Mapper policy files in the v14 Butler play the same role as the new :ref:`Path` concept when writing :ref:`Datasets <Dataset>`.
-Mapper templates were also used in reading files in the v14 Butler, however, and :ref:`Paths <Path>` are not.
+The filled-in templates provided in Mapper policy files in the v14 Butler play the same role as the new :ref:`StorageHint` concept when writing :ref:`Datasets <Dataset>`.
+Mapper templates were also used in reading files in the v14 Butler, however, and :ref:`StorageHints <StorageHint>` are not.
 
 Python API
 ^^^^^^^^^^
 
-Paths are represented by simple Python strings.
+StorageHints are represented by simple Python strings.
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
-Paths do not appear in SQL at all, but the defaults for the templates that generate them are a field in the :ref:`DatasetType table <sql_DatasetType>`.
+StorageHints do not appear in SQL at all, but the defaults for the templates that generate them are a field in the :ref:`DatasetType table <sql_DatasetType>`.
 
 
 .. _URI:
