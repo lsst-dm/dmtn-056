@@ -175,17 +175,17 @@ Because all grouping and filtering operations on :ref:`DataUnits <DataUnit>` are
 
     DatasetRef is not immutable, but it is "append-only": it can never be modified to point to a different Dataset, but additional data about the Dataset may be added by a :ref:`Registry`.  Because DatasetRef comparisons are based only on the information that must be provided by construction, this is sufficient for them to be considered hashable and hence usable as keys in ``dicts`` and ``sets``.
 
-    .. py:method:: __init__(self, type, id):
+    .. py:method:: __init__(self, datasetType, dataId):
 
         Construct from a :py:class:`DatasetType` instance and Data ID ``dict``.
 
-    .. py:attribute:: type
+    .. py:attribute:: datasetType
 
         Read-only instance attribute.
 
         The :py:class:`DatasetType` associated with the :ref:`Dataset` the DatasetRef points to.
 
-    .. py:attribute:: id
+    .. py:attribute:: dataId
 
         Read-only instance attribute.
 
@@ -193,7 +193,7 @@ Because all grouping and filtering operations on :ref:`DataUnits <DataUnit>` are
 
         Dictionary keys may be the names of DataUnit tables (e.g. "Visit"), or dot-separated names of fields within them (e.g. "Visit.exposure_time").  The name of a table is interpreted as the name of the "value" field for that table (e.g. "Visit" is interpreted as "Visit.number").
 
-        The ID will always contain enough entries to fully specify the primary key of all DataUnits in the associated DatasetType, and will contain additional entries only when explicitly requested.
+        The ``dataId`` will always contain enough entries to fully specify the primary key of all DataUnits in the associated DatasetType, and will contain additional entries only when explicitly requested.
 
     .. py:attribute:: producer
 
@@ -249,7 +249,7 @@ Because all grouping and filtering operations on :ref:`DataUnits <DataUnit>` are
 
     .. py:method:: makeStorageHint(run, template=None) -> StorageHint
 
-        Construct the :ref:`StorageHint` part of a :ref:`URI` by filling in ``template`` with the :ref:`Run` and the values in the :py:attr:`id` dict.
+        Construct the :ref:`StorageHint` part of a :ref:`URI` by filling in ``template`` with the :ref:`Run` and the values in the :py:attr:`dataId` dict.
 
         This is often just a storage hint since the :ref:`Datastore` will likely have to deviate from the provided storageHint (in the case of an object-store for instance).
 
@@ -257,7 +257,7 @@ Because all grouping and filtering operations on :ref:`DataUnits <DataUnit>` are
 
         :param Run run: the :ref:`Run` to which the new :ref:`Dataset` will be added; always implies a collection :ref:`Collection` that can also be used in the template.
 
-        :param str template: a storageHint template to fill in.  If None, the :py:attr:`template <DatasetType.template>` attribute of :py:attr:`type` will be used.
+        :param str template: a storageHint template to fill in.  If None, the :py:attr:`template <DatasetType.template>` attribute of :py:attr:`datasetType` will be used.
 
         :returns: a str :ref:`StorageHint`
 
