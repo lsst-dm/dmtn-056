@@ -10,7 +10,7 @@ Collection
 An entity that contains :ref:`Datasets <Dataset>`, with the following conditions:
 
 - Has at most one :ref:`Dataset` per :ref:`DatasetRef`.
-- Has a unique, human-readable identifier, called a CollectionTag.
+- Has a unique, human-readable identifier string.
 - Can be combined with a :ref:`DatasetRef` to obtain a globally unique :ref:`URI`.
 
 Most :ref:`Registries <Registry>` contain multiple Collections.
@@ -23,15 +23,15 @@ The v14 Butler's Data Repository concept plays a similar role in many contexts, 
 Python API
 ^^^^^^^^^^
 
-CollectionTags are simply Python strings.
+Collections are simply Python strings.
 
 A :ref:`QuantumGraph` may be constructed to hold exactly the contents of a single :ref:`Collection`, but does not do so in general.
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
 
-Collections are defined by a many-to-many "join" table that links :ref:`sql_Dataset` to CollectionTags.
-Because CollectionTags are just strings, we have no independent Collection table.
+Collections are defined by a many-to-many "join" table that links :ref:`sql_Dataset` to Collections.
+Because Collections are just strings, we have no independent Collection table.
 
 .. _sql_DatasetCollectionJoin:
 
@@ -39,14 +39,14 @@ DatasetCollections
 """"""""""""""""""
 Fields:
     +-------------+---------+----------+
-    | tag         | varchar | NOT NULL |
+    | collection  | varchar | NOT NULL |
     +-------------+---------+----------+
     | dataset_id  | int     | NOT NULL |
     +-------------+---------+----------+
     | registry_id | int     | NOT NULL |
     +-------------+---------+----------+
 Primary Key:
-    - (dataset_id, registry_id)
+    - (collection, dataset_id, registry_id)
 Foreign Keys:
     - (dataset_id, registry_id) references :ref:`sql_Dataset` (dataset_id, registry_id)
 
@@ -55,7 +55,7 @@ This table should be present even in :ref:`Registries <Registry>` that only repr
 
 .. todo::
 
-    Storing the tag name for every :ref:`Dataset` is costly (but may be mitigated by compression).
+    Storing the collection for every :ref:`Dataset` is costly (but may be mitigated by compression).
     Perhaps better to have a separate :ref:`Collection` table and reference by ``collection_id`` instead?
 
 .. _Run:
@@ -83,12 +83,12 @@ Python API
 
     Run instances in Python can only be created by :py:meth:`Registry.makeRun`.
 
-    .. py:attribute:: tag
+    .. py:attribute:: collection
 
-        The :ref:`Collection` tag associated with a Run.
-        While a new tag is created for a Run when the Run is created, that tag may later be deleted, so this attribute may be None.
+        The :ref:`Collection` associated with a Run.
+        While a new collection is created for a Run when the Run is created, that collection may later be deleted, so this attribute may be None.
 
-    .. py::attribute:: environment
+    .. py:attribute:: environment
 
         A :py:class:`DatasetHandle` that can be used to retreive a description of the software environment used to create the Run.
 
@@ -96,13 +96,13 @@ Python API
 
         A :py:class:`DatasetHandle` that can be used to retreive the Pipeline (including configuration) used during this Run.
 
-    .. py::attribute:: pkey
+    .. py:attribute:: pkey
 
         The ``(run_id, registry_id)`` tuple used to uniquely identify this Run.
 
 .. todo::
 
-    If a :ref:`Collection` table is adopted, the ``tag`` can be replaced by a ``collection_id`` for increased space efficiency.
+    If a :ref:`Collection` table is adopted, the ``collection`` can be replaced by a ``collection_id`` for increased space efficiency.
 
 SQL Representation
 ^^^^^^^^^^^^^^^^^^
@@ -117,7 +117,7 @@ Fields:
     +---------------------+---------+----------+
     | registry_id         | int     | NOT NULL |
     +---------------------+---------+----------+
-    | tag                 | varchar |          |
+    | collection          | varchar |          |
     +---------------------+---------+----------+
     | environment_id      | int     |          |
     +---------------------+---------+----------+
