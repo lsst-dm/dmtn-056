@@ -21,6 +21,7 @@
     dataunits.rst
     dataunit-joins.rst
     dataset-joins.rst
+    preflight-redesign.rst
 
 .. .. rubric:: References
 

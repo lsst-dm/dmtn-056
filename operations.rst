@@ -230,6 +230,8 @@ SuperTask Pre-Flight and Execution
     Actual SuperTasks, of course, still only see a :ref:`Butler`.
     But we should decide when the design is more mature whether to hide the interfaces the control code uses behind :ref:`Butler` as well.
 
+.. _preflight:
+
 Preflight
 ---------
 
