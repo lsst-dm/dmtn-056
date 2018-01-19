@@ -144,6 +144,78 @@ This also provides an opportunity to clarify the interfaces necessary for dealin
             We should probably make it possible to add a "translation" dict to Quantum to let it map a SuperTask's config field names to the DatasetType names they point to - otherwise every concrete SuperTask will have to do all of that dereferencing itself, which adds a lot of boilerplate.
 
 
+Pipeline
+--------
+
+The :py:class:`Pipeline` class API was never fully specified as part of the original SuperTask design.
+The proposed API below is not strongly constrained by its interactions with other classes here, and hence it may change in the future.
+
+
+.. py:class:: Pipeline
+
+    .. py:method:: normalize(self)
+
+        Sort the contents of the Pipeline to be consistent with the weak orderings implied by input and output *and* init-input and -init-output :ref:`DatasetTypes <DatasetType>` of the SuperTasks, and return True if the Pipeline is well-formed
+        (has no cycles, the two orderings are consistent, not to-be-produced datasets are required to be preexisting, all Configs pass their validation checks, etc).
+
+        .. note::
+
+            While it'd be nice to maintain this as a class invariant, I think that would make it possible to permit in-place updates to the configuration.
+
+    .. py:method:: __getitem__(self, name)
+
+        Return a ``pipe.base.Struct`` with ``.task`` and ``.config`` attributes holding the SuperTask class and config instance associated with the given name.
+
+        .. todo:
+
+            It'd be nice to be able to support some kind of slicing to generate subsets, but the fact that we really only have a weak ordering in general makes that tricky.  Need to think about what the right API ought to be.
+
+    .. py:method:: __len__(self)
+
+        Return the number of SuperTasks in the Pipeline.
+
+    .. py:method:: __iter__(self)
+
+        Iterate over the SuperTasks in the Pipeline, returning ``pipe.base.Structs`` with ``.task``, ``.config``, and ``.name``
+        attributes.
+
+    .. py:method:: insert(task, config=None, name=None, normalize=True)
+
+        Insert a new SuperTask into the Pipeline, using a default-constructed config and its ``_DefaultName`` attribute if ``config`` and/or ``name`` is None (respectively).
+
+        If ``normalize`` is True, calls :py:meth:`normalize` after inserting and returns the result.
+
+    .. py:method:: write(self, file)
+
+        Write the Pipeline to a text file.
+
+    .. py:staticmethod:: read(file)
+
+        Return a new Pipeline constructed by reading the given file.
+
+    .. py:method:: getInitInputDatasetTypes(self)
+
+        Return the DatasetTypes that need to be provided to construct instances of the SuperTasks in the Pipeline.
+
+        The returned object is a dictionary whose keys are the names associated with the SuperTasks in the Pipeline and whose values are the results of calling :py:class:`SuperTask.getInitInputFields` on that SuperTask class.  Any DatasetTypes that are also present in the results of any SuperTask's :py:meth:`getInitOutputFields <SuperTask.getInitOutputFields>` will not be included in the results (as this implies they can be obtained by the Pipeline itself during a call to ``instantiate()``).
+
+    .. py:method:: instantiate(self, initobs)
+
+        Instantiate all SuperTasks in the Pipeline.
+
+        Return an iterable (sequence or generator) over ``pipe.base.Structs`` with ``.task`` and ``.name`` attributes, with ``.task`` holding a :py:class:`SuperTask` instance (which has a ``.config`` attribute) instead of the type object held by the Pipeline.
+
+        The ``initobjs`` argument must be a nested dictionary with the same keys as the result of :py:meth:`getInitInputDatasetTypes` and values corresponding to the ``inputs`` arguments required by those SuperTasks (obtained, e.g. by retrieving those values from a Butler using the DatasetTypes provided by :py:meth:`getInitInputDatasetTypes`).
+
+        After each SuperTask is constructed, :py:meth:`SuperTask.getInitOutputs` will be called and the results inserted into ``initobs`` for use by later ``SuperTask`` constructors (as well as the caller).
+
+    .. py:method:: getInputDatasetTypes(self)
+
+        Return the DatasetTypes that need to already be present to execute the Pipeline.
+
+        The returned object is a dictionary whose keys are the names associated with the SuperTasks in the Pipeline and whose values are the results of calling :py:class:`SuperTask.getInputFields` on that SuperTask class.  Any DatasetTypes that are also present in the results of any SuperTask's :py:meth:`getOutputFields <SuperTask.getOutputFields>` will not be included in the results (as this implies they will be produced in the course of execution).
+
+
 Registry Design Implications
 ============================
 
