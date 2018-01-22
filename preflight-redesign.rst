@@ -334,3 +334,78 @@ Because all grouping and filtering operations on :ref:`DataUnits <DataUnit>` are
 
 Preflight Solver Algorithm
 ==========================
+
+The Preflight Solver is a core component of the SuperTask framework that we expect to be used in all contexts where SuperTask preflight is run.
+
+The interface described here is not expected to be a direct user-facing interface; other front-end objects are expected to provide higher-level interfaces for gathing inputs and reporting outputs while delegating the bulk of their work to the Solver.
+
+Inputs
+------
+
+The Preflight Solver takes four inputs:
+
+ - a :py:class:`Pipeline` instance holding the concrete SuperTask classes to be executed and their associated configurations;
+
+ - a :py:class:`Registry` instance holding all input datasets;
+
+ - a list of :ref:`Collections <Collection>` from which input datasets should be obtained, ordered such that datasets from the first :ref:`Collections <Collection>` in the list will be preferred to those from the last ones;
+
+ - an operator-provided expression limiting the :ref:`DataUnits <DataUnit>` to process.
+
+More precisely, the operator-provided expression is a SQL expression that can be used as part of a WHERE clause, utilizing any of the following tables:
+
+ - any :ref:`DataUnit` tables listed in the :py:attr:`QuantumConfig.units` attributes of an SuperTasks;
+
+ - any :ref:`DataUnit` tables considered "dependencies" of the above;
+
+ - any :ref:`StorageClass` metadata tables associated with "pure input" :ref:`DatasetType <DatasetType>` (those returned by :py:meth:`Pipeline.getInputDatasetTypes`).
+
+We could accept a more general expression that utilizing additional tables by either providing a mechanism for the operator to specify those additional tables or by parsing the expression ourselves.
+For simplicity we will assume there are no additional tables available to the expression for the remainder of this document, but we emphasize that this is not a hard constraint.
+
+We will also assume throughput most of the discussion that a single :ref:`Collection` provides all of the inputs.
+The more general case can be handled by first resolving duplicate datasets between :ref:`Collections <Collection>` via a correlated subquery of the sort shown below (using a view for clarity, not necessity):
+
+.. code:: sql
+
+    CREATE TEMPORARY VIEW RankedDataset AS SELECT
+        Dataset.dataset_id,
+        Dataset.unit_hash,
+        Dataset.dataset_type_name,
+        CASE DatasetCollections.collection
+            WHEN 'best' THEN 1
+            WHEN 'next' THEN 2
+            ...
+            WHEN 'last' THEN N
+        END AS rank
+    FROM
+        Dataset
+            INNER JOIN
+        DatasetCollections
+            ON (Dataset.dataset_id = DatasetCollections.dataset_id)
+    WHERE
+        DatasetCollections.collection IN ('best', 'next', ..., 'last');
+
+    SELECT
+        Outer.dataset_id,
+        Outer.dataset_type_name
+    FROM
+        RankedDataset AS Outer
+    WHERE
+        Outer.rank = (
+            SELECT
+                MIN(Inner.rank)
+            FROM
+                RankedDataset AS Inner
+            WHERE
+                Outer.dataset_id = Inner.dataset_id
+            GROUP BY Inner.unit_hash, Inner.dataset_type_name
+        );
+
+
+Outputs
+-------
+
+The Preflight Solver produces a single output: a :py:class:`QuantumGraph` containing all of the :ref:`Quanta <Quantum>` to be executed, the SuperTask classes and configuration that should be used to execute them, and :py:class:`DatasetRefs <DatasetRef2>` for their inputs and outputs.
+
+Any existing datasets to be used as inputs will have :py:attr:`DatasetRef2.url` attributes that are not None, allowing them to be identified for staging and adding to the output :ref:`Collection` as necessary.
