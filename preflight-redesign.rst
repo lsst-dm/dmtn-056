@@ -59,7 +59,7 @@ The config class associated with the SuperTask base class (and thus used as a ba
 
         .. note::
 
-            This field should only be set when StorageType tables are actually used by ``expression``, as changing it indicates an algorithmic configuration change, not just a processing change.  More general prevention of the creation of a particular DatasetType should be accomplished by removing any SuperTasks that outputs it from a Pipeline.
+            This field should only be set when StorageClass tables are actually used by ``expression``, as changing it indicates an algorithmic configuration change, not just a processing change.  More general prevention of the creation of a particular DatasetType should be accomplished by removing any SuperTasks that outputs it from a Pipeline.
 
 
 In addition, the specialized ``DatasetField`` config class can now be generalized.
@@ -78,9 +78,7 @@ This lets us implement it as just another ``ConfigField`` with a new common conf
 
         This list need not include dependencies (e.g. :ref:`Visit` can be included on its own, with :ref:`Camera` implied).
 
-    .. py:method:: makeDatasetType(self)
-
-        Return a DatasetType instance constructed with the fields of this config.
+The :py:class:`StorageClass` associated with the :py:class:`DatasetType` is not configurable (it is fixed by the concrete SuperTask).
 
 
 SuperTask ABC
